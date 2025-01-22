@@ -30,7 +30,7 @@
 ;;; your option) any later version.
 ;;;
 ;;; GNU Guix is distributed in the hope that it will be useful, but
-;;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; WITHOUT ANY WARRANTY; without even cmthe implied warranty of
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;;; GNU General Public License for more details.
 ;;;
@@ -56,6 +56,7 @@
   #:use-module (guix diagnostics)           ;<location>, &error-location, etc.
   #:use-module (ice-9 format)
   #:use-module ((ice-9 iconv) #:prefix iconv:)
+  #:use-module (ice-9 exceptions)
   #:use-module (ice-9 match)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
@@ -92,6 +93,7 @@
             %current-target-system
             package-name->name+version
             downstream-package-name
+            target-darwin?
             target-linux?
             target-hurd?
             system-hurd?
@@ -126,6 +128,7 @@
             strip-for-target
 
             version-compare
+            version-compare-scm
             version>?
             version>=?
             version-prefix
@@ -212,6 +215,8 @@ by `args-fold', if VARIABLE is defined, otherwise return an empty list."
 COMMAND (a list).  In addition, return a list of PIDs that the caller must
 wait.  When INPUT is a file port, it must be unbuffered; otherwise, any
 buffered data is lost."
+  ; FIXME: Dogan: doesn't look like this returns pids, the doc comment is probably
+  ; wrong
   (let loop ((input input)
              (pids  '()))
     (if (file-port? input)
@@ -692,6 +697,8 @@ returned by `config.guess'."
   ;; By default, this is equal to (gnu-triplet->nix-system %host-type).
   (make-parameter %system))
 
+(%current-system "aarch64-darwin")
+
 (define %current-target-system
   ;; Either #f or a GNU triplet representing the target system we are
   ;; cross-building to.
@@ -721,11 +728,17 @@ a character other than '@'."
   "Does the operating system of TARGET use the Linux kernel?"
   (->bool (string-contains target "linux")))
 
+
 (define* (target-hurd? #:optional (target (or (%current-target-system)
                                               (%current-system))))
   "Does TARGET represent the GNU(/Hurd) system?"
   (and (string-suffix? "-gnu" target)
        (not (string-contains target "linux"))))
+
+(define* (target-darwin? #:optional (target (or (%current-target-system)
+                                               (%current-system))))
+  "Is the TARGET darwin (MacOS) kernel?"
+  (->bool (string-contains target "darwin")))
 
 (define* (system-hurd?)
   "Is the current system the GNU(/Hurd) system?"
@@ -734,7 +747,7 @@ a character other than '@'."
 (define* (target-hurd64? #:optional (target (or (%current-target-system)
                                                 (%current-system))))
   "Does TARGET represent the 64bit GNU(/Hurd) system?"
-  (and (target-hurd?)
+  (and (target-hurd?) ; FIXME: should this not pass target?
        (target-64bit? target)))
 
 (define* (system-hurd64?)
@@ -882,19 +895,138 @@ architecture (x86_64) using 32-bit data types?"
       (string-append target "-strip")
       "strip"))
 
+(define (int->cmp num)
+  (cond
+    ((= num 0) '=)
+    ((< num 0) '<)
+    ((> num 0) '>)))
+
+(define (version-compare-scm s1 s2)
+  ; states:
+  (define S-N 0) ; normal
+  (define S-I 3) ; comparing integral part
+  (define S-F 6) ; comparing fractional part
+  (define S-Z 9) ; idem but with leading Zeroes only
+
+  ; result-type:
+  (define CMP 2) ; return diff
+  (define LEN 3) ; compare using len_diff/diff
+
+  (define next-state
+    (vector
+      ; x    d    0    ; state
+      S-N  S-I  S-Z   ; S-N
+      S-N  S-I  S-I   ; S-I
+      S-N  S-F  S-F   ; S-F
+      S-N  S-F  S-Z)) ; S-Z
+
+  (define result-type
+    (vector
+      ; x/x  x/d  x/0  d/x  d/d  d/0  0/x  0/d  0/0    ; state
+      CMP  CMP  CMP  CMP  LEN  CMP  CMP  CMP  CMP   ; S-N
+      CMP  -1   -1    1   LEN  LEN   1   LEN  LEN   ; S-I
+      CMP  CMP  CMP  CMP  CMP  CMP  CMP  CMP  CMP   ; S-F
+      CMP   1    1   -1   CMP  CMP  -1   CMP  CMP)) ; S-Z
+
+  (define (ch->int ch) (char->integer ch))
+
+  (define (isdigit? c)
+    (and (>= c (ch->int #\0))
+         (<= c (ch->int #\9))))
+
+  (define (str->list s) (string->list s))
+  (define (first-ch->int s)
+    (cond
+      ((string=? s "") 0)
+      (else (ch->int (string-ref s 0)))))
+
+  (define (substr s idx)
+    (if (string=? s "")
+      s
+      (substring s idx)))
+
+  (if (eq? s1 s2)
+    '=
+    (begin
+      (let* ((p1 s1)
+             (p2 s2)
+             (c1 (first-ch->int p1))
+             (c2 (first-ch->int p2))
+             (diff (- c1 c2))
+             (state (+ S-N
+                       (if (= c1 (ch->int #\0)) 1 0)
+                       (if (isdigit? c1) 1 0))))
+        (set! p1 (substr p1 1))
+        (set! p2 (substr p2 1))
+        (let loop ()
+          (when (= diff 0)
+            (if (= c1 0)
+              (int->cmp diff) ;; think this just can be '=
+              (begin
+                (set! c1 (first-ch->int p1))
+                (set! c2 (first-ch->int p2))
+                (set! p1 (substr p1 1))
+                (set! p2 (substr p2 1))
+                (set! state (+ (vector-ref next-state state)
+                               (if (= c1 (ch->int #\0)) 1 0)
+                               (if (isdigit? c1) 1 0)))
+                (set! diff (- c1 c2))
+                (loop))
+            )))
+        (set! state (vector-ref
+                      result-type
+                      (+ (* state 3)
+                         (if (= c2 (ch->int #\0)) 1 0)
+                         (if (isdigit? c2) 1 0))))
+        (cond
+          ((= state CMP) (int->cmp diff))
+          ((= state LEN)
+           (let loop ()
+             (if (isdigit? (first-ch->int p1))
+               (begin
+                 (set! p1 (substr p1 1))
+                 (if (not (isdigit? (first-ch->int p2)))
+                   '>
+                   (begin
+                     (set! p2 (substr p2 1))
+                     (loop))))
+
+               (if (isdigit? (first-ch->int p2))
+                 '<
+                 (int->cmp diff)))))
+          (else (int->cmp state)))))
+      ))
+
 (define version-compare
-  (let ((strverscmp
-         (let ((sym (or (dynamic-func "strverscmp" (dynamic-link))
-                        (error "could not find `strverscmp' (from GNU libc)"))))
-           (pointer->procedure int sym (list '* '*)))))
-    (lambda (a b)
-      "Return '> when A denotes a newer version than B,
-'< when A denotes a older version than B,
-or '= when they denote equal versions."
-      (let ((result (strverscmp (string->pointer a) (string->pointer b))))
-        (cond ((positive? result) '>)
-              ((negative? result) '<)
-              (else '=))))))
+  (with-exception-handler
+    (lambda (exn)
+      version-compare-scm)
+    (lambda ()
+      (let ((sym (or (dynamic-func "strverscmp" (dynamic-link)))))
+        (let ((strverscmp (pointer->procedure int sym (list '* '*))))
+          (lambda (a b)
+            "Return '> when A denotes a newer version than B,
+            '< when A denotes a older version than B,
+            or '= when they denote equal versions."
+            (let ((result (int->cmp (strverscmp (string->pointer a) (string->pointer
+                                                                      b))))
+                  (result-new (version-compare-scm a b)))
+              (if (eq? result result-new)
+                (begin
+                   (format #t "version-compare results the same for ~a and ~a (~a)\n" a
+                           b result))
+                (begin
+                  (let ((error-msg (format #f "version-compare-scm (~a) and strverscmp (~a) differ for ~a and ~a\n" result-new result a b)))
+                    (throw 'assertion-failure error-msg)))))))))
+    #:unwind? #t
+    ))
+
+
+;; (define (version-compare a b)
+;;   (display (string-append "version-compare " a " " b " "))
+;;   (let ((result (version-compare-impl a b)))
+;;     (display (string-append (symbol->string result) "\n"))))
+
 
 (define (version-prefix version-string num-parts)
   "Truncate version-string to the first num-parts components of the version.

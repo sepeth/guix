@@ -160,11 +160,22 @@
      ("tar"
       ,(base32 "17d3x27qhiwk7h6ns0xrvbrq0frxz89mjjh2cdwx2rraq5x6wffm"))
      ("xz"
-      ,(base32 "0nxn75xf386vdq3igmgm8gnyk4h4x0cm8jv71vlb2jvwxh0cyw1q")))))
+      ,(base32 "0nxn75xf386vdq3igmgm8gnyk4h4x0cm8jv71vlb2jvwxh0cyw1q")))
+    ("aarch64-darwin"
+     ("bash"
+      ,(base32 "0v8h8rz1xw8bd46q2x8342q0q43ki3p7dgwxl66n2gny8209cr4l"))
+     ("mkdir"
+      ,(base32 "07brjyklqnacarra4z2j2f026acy4kikb1a0gg795cky3nki49z1"))
+     ("tar"
+      ,(base32 "0iq4ir72654dg34dhxs2bj0y365xi8q1p2qpjasf0asn4wx3mlzk"))
+     ("xz"
+      ,(base32 "0w9xqi8gh8y2s2z3nsghj22yjj6hxb33va43x6dpadi497gy6na6")))
+     ))
 
 (define %bootstrap-executable-base-urls
   ;; This is where the bootstrap executables come from.
-  '("https://git.savannah.gnu.org/cgit/guix.git/plain/gnu/packages/bootstrap/"
+  '("http://localhost:8000/bootstrap-binaries-darwin/"
+    "https://git.savannah.gnu.org/cgit/guix.git/plain/gnu/packages/bootstrap/"
     "https://alpha.gnu.org/gnu/guix/bootstrap/"
     "http://flashner.co.il/guix/bootstrap/"
     "http://lilypond.org/janneke/guix/"))
@@ -177,6 +188,7 @@
     ("x86_64-gnu" (string-append system "/20241122/" program))
     ("powerpc-linux" (string-append system "/20200923/bin/" program))
     ("riscv64-linux" (string-append system "/20210725/bin/" program))
+    ("aarch64-darwin" (string-append system "/20241228/bin/" program))
     (_ (string-append system "/" program
                       "?id=44f07d1dc6806e97c4e9ee3e6be883cc59dc666e"))))
 
@@ -184,6 +196,7 @@
   (mlambda (program system)
     "Return an origin for PROGRAM, a statically-linked bootstrap executable
 built for SYSTEM."
+    ;; (format #t "bootstrap-executable system ~a ~a ~a~%" system (%current-system) %host-type)
     (let ((system (if (string=? system "x86_64-linux")
                       "i686-linux"
                       system)))
@@ -197,6 +210,7 @@ built for SYSTEM."
 for system '~a'")
                            program system))))))
         ((bv)
+         ;; (format #t "bootstrap-executable ~a bv ~a~%" program bv)
          (origin
            (method url-fetch/executable)
            (uri (map (cute string-append <>
@@ -347,6 +361,7 @@ or false to signal an error."
      ((string=? system "or1k-elf") "no-ld.so")
      ((string-suffix? "-elf" system) "no-ld.so")
      ((string-suffix? "-mingw" system) "no-ld.so")
+     ((string-prefix? "aarch64-darwin" system) "ihavenoideaitisanapplelinker.so")
 
      (else (error "dynamic linker name not known for this system"
                   system)))))
@@ -358,7 +373,8 @@ or false to signal an error."
 
 (define %bootstrap-base-urls
   ;; This is where the initial binaries come from.
-  '("https://ftp.gnu.org/gnu/guix/bootstrap"
+  '("http://localhost:8000/bootstrap-binaries-darwin"
+    "https://ftp.gnu.org/gnu/guix/bootstrap"
     "https://alpha.gnu.org/gnu/guix/bootstrap"
     "http://ftp.gnu.org/gnu/guix/bootstrap"
     "http://alpha.gnu.org/gnu/guix/bootstrap"
@@ -373,6 +389,8 @@ or false to signal an error."
                  (match system
                    ("aarch64-linux"
                     "/20170217/guile-2.0.14.tar.xz")
+                   ("aarch64-darwin"
+                    "/20241228/guile-3.0.10-aarch64-darwin.tar.xz")
                    ("powerpc-linux"
                     "/20200923/guile-2.0.14.tar.xz")
                    ("armhf-linux"
@@ -403,6 +421,8 @@ or false to signal an error."
      (base32 "1rnyfz5q38jyvxddj617443bnnzql4vw0mxzqpj8wz48wx4bhbq0"))
     ("aarch64-linux"
      (base32 "1giy2aprjmn5fp9c4s9r125fljw4wv6ixy5739i5bffw4jgr0f9r"))
+    ("aarch64-darwin"
+     (base32 "17zni8l7mf0rxn6h2awl43frl35hb1yfn3pn23liy4f3bfmw9brx"))
     ("i586-gnu"
      (base32 "0wgqpsmvg25rnqn49ap7kwd2qxccd8dr4lllzp7i3rjvgav27vac"))
     ("x86_64-gnu"
@@ -612,6 +632,8 @@ $out/bin/guile --version~%"
                                              "/20150101/static-binaries.tar.xz")
                                             ("aarch64-linux"
                                              "/20170217/static-binaries.tar.xz")
+                                            ("aarch64-darwin"
+                                             "/20241228/static-binaries.tar.xz")
                                             ("powerpc64le-linux"
                                              "/20210106/static-binaries-0-powerpc64le-linux-gnu.tar.xz")
                                             ("i586-gnu"
@@ -639,6 +661,9 @@ $out/bin/guile --version~%"
                               ("aarch64-linux"
                                (base32
                                 "18dfiq6c6xhsdpbidigw6480wh0vdgsxqq3xindq4lpdgqlccpfh"))
+                              ("aarch64-darwin"
+                               (base32
+                                "0m4f4d4ap1a3ngr509hfvj9nzxa334ji38dgy1s9xn9nm8mzrxsg"))
                               ("powerpc64le-linux"
                                (base32
                                 "0afs2j9z2d1hjq42myz4iwjh0aqgzf59inifw87x6b6p1z9wv92v"))
@@ -700,6 +725,8 @@ $out/bin/guile --version~%"
                                              "/20150101/binutils-2.25.tar.xz")
                                             ("aarch64-linux"
                                              "/20170217/binutils-2.27.tar.xz")
+                                            ("aarch64-darwin"
+                                             "/20241228/binutils-2.41.tar.xz")
                                             ("powerpc64le-linux"
                                              "/20210106/binutils-static-stripped-2.34-powerpc64le-linux-gnu.tar.xz")
                                             ("i586-gnu"
@@ -727,6 +754,9 @@ $out/bin/guile --version~%"
                               ("aarch64-linux"
                                (base32
                                 "111s7ilfiby033rczc71797xrmaa3qlv179wdvsaq132pd51xv3n"))
+                              ("aarch64-darwin"
+                               (base32
+                                "1a9zdr0097ms6xcsjx9gd6s6ma5y3cvlcc466b3ql72mlr505x9f"))
                               ("powerpc64le-linux"
                                (base32
                                 "1klxy945c61134mzhqzz2gbk8w0n8jq7arwkrvz78d22ff2q0cwz"))
@@ -798,6 +828,8 @@ $out/bin/guile --version~%"
                                        "/20150101/glibc-2.20.tar.xz")
                                       ("aarch64-linux"
                                        "/20170217/glibc-2.25.tar.xz")
+                                      ("aarch64-darwin"
+                                       "/20241228/glibc-2.25.tar.xz")
                                       ("powerpc64le-linux"
                                        "/20210106/glibc-stripped-2.31-powerpc64le-linux-gnu.tar.xz")
                                       ("i586-gnu"
@@ -823,6 +855,9 @@ $out/bin/guile --version~%"
                          (base32
                           "18cmgvpllqfpn6khsmivqib7ys8ymnq0hdzi3qp24prik0ykz8gn"))
                         ("aarch64-linux"
+                         (base32
+                          "07nx3x8598i2924rjnlrncg6rm61c9bmcczbbcpbx0fb742nvv5c"))
+                        ("aarch64-darwin"
                          (base32
                           "07nx3x8598i2924rjnlrncg6rm61c9bmcczbbcpbx0fb742nvv5c"))
                         ("powerpc64le-linux"
@@ -919,7 +954,9 @@ exec ~a/bin/.gcc-wrapped -B~a/lib \
      `(("tar" ,(bootstrap-executable "tar" (%current-system)))
        ("xz"  ,(bootstrap-executable "xz" (%current-system)))
        ("bash" ,(bootstrap-executable "bash" (%current-system)))
-       ("libc" ,%bootstrap-glibc)
+       ,@(if (or (target-hurd?) (target-linux?))
+           `(("libc" ,%bootstrap-glibc))
+           `())
        ("tarball" ,(bootstrap-origin
                     (origin
                       (method url-fetch)
@@ -929,6 +966,8 @@ exec ~a/bin/.gcc-wrapped -B~a/lib \
                                         "/20150101/gcc-4.8.4.tar.xz")
                                        ("aarch64-linux"
                                         "/20170217/gcc-5.4.0.tar.xz")
+                                       ("aarch64-darwin"
+                                        "/20241228/gcc-5.4.0.tar.xz")
                                        ("powerpc64le-linux"
                                         "/20210106/gcc-stripped-5.5.0-powerpc64le-linux-gnu.tar.xz")
                                        ("i586-gnu"
@@ -954,6 +993,9 @@ exec ~a/bin/.gcc-wrapped -B~a/lib \
                           (base32
                            "0ghz825yzp43fxw53kd6afm8nkz16f7dxi9xi40bfwc8x3nbbr8v"))
                          ("aarch64-linux"
+                          (base32
+                           "1ar3vdzyqbfm0z36kmvazvfswxhcihlacl2dzdjgiq25cqnq9ih1"))
+                         ("aarch64-darwin"
                           (base32
                            "1ar3vdzyqbfm0z36kmvazvfswxhcihlacl2dzdjgiq25cqnq9ih1"))
                          ("powerpc64le-linux"
@@ -996,7 +1038,10 @@ exec ~a/bin/.gcc-wrapped -B~a/lib \
     ((or "i686-linux" "x86_64-linux")
      `(("linux-libre-headers" ,%bootstrap-linux-libre-headers)))
     (_
-     `(("libc" ,%bootstrap-glibc)
+     `(
+       ,@(if (or (target-hurd?) (target-linux?))
+           `(("libc" ,%bootstrap-glibc))
+           `())
        ("gcc" ,%bootstrap-gcc)
        ("binutils" ,%bootstrap-binutils)
        ("coreutils&co" ,%bootstrap-coreutils&co)
@@ -1007,7 +1052,10 @@ exec ~a/bin/.gcc-wrapped -B~a/lib \
   ;; These are bootstrap inputs that are cheap to produce (no compilation
   ;; needed) and that are meant to be used for testing.  (These are those we
   ;; used before the Mes-based full-source bootstrap.)
-  `(("libc" ,%bootstrap-glibc)
+  `(
+    ,@(if (or (target-hurd?) (target-linux?))
+        `(("libc" ,%bootstrap-glibc))
+        `())
     ("gcc" ,%bootstrap-gcc)
     ("binutils" ,%bootstrap-binutils)
     ("coreutils&co" ,%bootstrap-coreutils&co)

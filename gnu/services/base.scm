@@ -81,7 +81,9 @@
   #:use-module ((gnu packages disk)
                 #:select (dosfstools))
   #:use-module ((gnu packages file-systems)
-                #:select (bcachefs-tools exfat-utils jfsutils zfs))
+                #:select (
+                          ;bcachefs-tools
+                          exfat-utils jfsutils zfs))
   #:use-module (gnu packages fonts)
   #:use-module (gnu packages terminals)
   #:use-module ((gnu packages wm) #:select (sway))
@@ -558,7 +560,8 @@ upon boot."
   "Return the package providing the utilities for file system TYPE, #f
 otherwise."
   (assoc-ref
-   `(("bcachefs" . ,bcachefs-tools)
+   `(
+     ;("bcachefs" . ,bcachefs-tools)
      ("btrfs" . ,btrfs-progs)
      ("exfat" . ,exfat-utils)
      ("ext2" . ,e2fsprogs)

@@ -817,7 +817,14 @@ Where every <*-phase-name> is an expression evaluating to a symbol, and
 (define (invoke program . args)
   "Invoke PROGRAM with the given ARGS.  Raise an exception
 if the exit code is non-zero; otherwise return #t."
+  (format #t "program args: ~a~%" (program-arguments))
+  ;; (format #t "invoke ~a ~a~%" program args)
+  (format #t "Running ~a~%" program)
   (let ((code (apply system* program args)))
+  ;; (let ((code (spawn program args
+  ;;                    #:output (standard-output-port)
+  ;;                    #:error (standard-error-port))))
+    (format #t "~a exit code ~a~%" program code)
     (unless (zero? code)
       (raise (condition (&invoke-error
                          (program program)
@@ -1168,7 +1175,7 @@ FILE are kept unchanged."
                                                   "patch-shebang: ~a: changing `~a' to `~a'~%"
                                                   file (string-append interp " " arg1) bin)
                                           (patch p bin rest))
-                                      (begin 
+                                      (begin
                                         (format (current-error-port)
                                                 "patch-shebang: ~a: changing `~a' to `~a'~%"
                                                 file interp bin)

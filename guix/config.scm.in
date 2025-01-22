@@ -80,6 +80,7 @@
                      (signer ,(cdr intro)))))
                  '())))))
 
+;; FIXME:: also test setting this during configure
 (define %storedir
   "@storedir@")
 

@@ -10,6 +10,7 @@
 #include "builtins.hh"
 
 #include <algorithm>
+#include <iostream>
 
 #include <cstring>
 #include <unistd.h>
@@ -673,10 +674,14 @@ static void performOp(bool trusted, unsigned int clientVersion,
     }
 
     case wopQuerySubstitutablePathInfos: {
+        printf("wopQuerySubstitutablePathInfos\n");
         PathSet paths = readStorePaths<PathSet>(from);
+        printf("wop startWork\n");
         startWork();
         SubstitutablePathInfos infos;
+        printf("wop querySubstitutablePathInfos\n");
         store->querySubstitutablePathInfos(paths, infos);
+        printf("wop stopWork\n");
         stopWork();
         writeInt(infos.size(), to);
         foreach (SubstitutablePathInfos::iterator, i, infos) {
@@ -686,6 +691,7 @@ static void performOp(bool trusted, unsigned int clientVersion,
             writeLongLong(i->second.downloadSize, to);
             writeLongLong(i->second.narSize, to);
         }
+        printf("wop done\n");
         break;
     }
 
@@ -780,7 +786,6 @@ static void performOp(bool trusted, unsigned int clientVersion,
 static void processConnection(bool trusted, uid_t userId)
 {
     canSendStderr = false;
-    _writeToStderr = tunnelStderr;
 
 #ifdef HAVE_HUP_NOTIFICATION
     /* Allow us to receive SIGPOLL for events on the client socket. */
@@ -807,6 +812,7 @@ static void processConnection(bool trusted, uid_t userId)
         reserveSpace = readInt(from) != 0;
 
     /* Send startup error messages to the client. */
+    printf("Start work\n");
     startWork();
 
     try {
@@ -826,7 +832,10 @@ static void processConnection(bool trusted, uid_t userId)
 	setTerminationSignalHandler();
 
         /* Open the store. */
+        /*printMsg(lvlInfo, "Opening the store");*/
+        /*std::cout << "But std::cout opens?\n";*/
         store = std::shared_ptr<StoreAPI>(new LocalStore(reserveSpace));
+        /*printMsg(lvlInfo, "Did it succeed?");*/
 
 	if (userId != (uid_t) -1) {
             /* Create the user profile.  */
@@ -860,6 +869,7 @@ static void processConnection(bool trusted, uid_t userId)
         opCount++;
 
         try {
+            printf("performOp op: %d\n", op);
             performOp(trusted, clientVersion, from, to, op);
         } catch (Error & e) {
             /* If we're not in a state where we can send replies, then
@@ -938,12 +948,12 @@ static void acceptConnection(int fdSocket)
 
 	  /* If we're on a TCP connection, disable Nagle's algorithm so that
 	     data is sent as soon as possible.  */
-	  (void) setsockopt(remote, SOL_TCP, TCP_NODELAY,
+	  (void) setsockopt(remote, IPPROTO_TCP, TCP_NODELAY,
 			    &enabled, sizeof enabled);
 
 #if defined(TCP_QUICKACK)
 	  /* Enable TCP quick-ack if applicable; this might help a little.  */
-	  (void) setsockopt(remote, SOL_TCP, TCP_QUICKACK,
+	  (void) setsockopt(remote, IPPROTO_TCP, TCP_QUICKACK,
 			    &enabled, sizeof enabled);
 #endif
 	}
@@ -953,9 +963,11 @@ static void acceptConnection(int fdSocket)
 
 	/* Get the identity of the caller, if possible. */
 	if (remoteAddr.ss_family == AF_UNIX) {
+	    std::cout << "remoteAddr.ss_family == AF_UNIX\n";
 #if defined(SO_PEERCRED)
 	    ucred cred;
 	    socklen_t credLen = sizeof(cred);
+	    // FIXME: Should SOL_SOCKET change?
 	    if (getsockopt(remote, SOL_SOCKET, SO_PEERCRED,
 			   &cred, &credLen) == -1)
 		throw SysError("getting peer credentials");
@@ -1058,6 +1070,7 @@ static void daemonLoop(const std::vector<int>& sockets)
 
     /* Loop accepting connections. */
     while (1) {
+        std::cout << "Accepting connections...\n";
 	fd_set readfds;
 
 	initializeFDSet(&readfds);

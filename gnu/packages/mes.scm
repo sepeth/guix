@@ -181,7 +181,7 @@ $prefix/share/guile/site/$GUILE_EFFECTIVE_VERSION\n")))))))
               (sha256
                (base32
                 "1a5ag8i303yhf76sg05rpcans9vadvnpxcpa4sl09z4cv5bfcgh3"))))
-    (supported-systems '("armhf-linux" "i686-linux"
+    (supported-systems '("aarch64-darwin" "armhf-linux" "i686-linux"
                          "x86_64-linux" "riscv64-linux"))
     (propagated-inputs (list mescc-tools nyacc-1.00.2))
     (native-inputs
@@ -242,7 +242,7 @@ Guile.")
                 "1jak61gxab8bj8ddpgwfn9lqs917szq1phadmg8y5cjsndn1hv4k"))))
     (build-system gnu-build-system)
     (supported-systems '("i686-linux" "x86_64-linux"
-                         "armhf-linux" "aarch64-linux"
+                         "armhf-linux" "aarch64-darwin" "aarch64-linux"
                          "riscv64-linux"))
     (arguments
      (list
@@ -275,7 +275,7 @@ get_machine.")
     (native-inputs (list mescc-tools))
     (build-system gnu-build-system)
     (supported-systems '("i686-linux" "x86_64-linux"
-                         "armhf-linux" "aarch64-linux"
+                         "armhf-linux" "aarch64-darwin" "aarch64-linux"
                          "riscv64-linux"))
     (arguments
      `(#:make-flags (list (string-append "PREFIX=" (assoc-ref %outputs "out"))

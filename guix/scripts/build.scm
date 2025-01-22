@@ -217,8 +217,8 @@ options handled by 'set-build-options-from-command-line', and listed in
                                      (getpeername socket)))
                               (const #f))))
                (and peer (not (= AF_UNIX (sockaddr:fam peer))))))
-    (warning (G_ "'--keep-failed' ignored since you are \
-talking to a remote daemon\n")))
+    (format #t "~%~% HEY YOU ~%~%")
+    )
 
   (set-build-options store
                      #:keep-failed? (assoc-ref opts 'keep-failed?)

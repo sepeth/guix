@@ -22,6 +22,7 @@
 #define BOOST_FORMAT_PARSING_HPP
 
 
+#include "config.h"
 #include <boost/format.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/assert.hpp>

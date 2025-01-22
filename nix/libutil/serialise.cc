@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <cerrno>
+#include <iostream>
 
 
 namespace nix {
@@ -64,6 +65,7 @@ static void warnLargeDump()
 
 void FdSink::write(const unsigned char * data, size_t len)
 {
+    /*printf("Writing %d bytes to fd\n", len);*/
     static bool warned = false;
     if (warn && !warned) {
         written += len;
@@ -93,6 +95,7 @@ BufferedSource::~BufferedSource()
 
 size_t BufferedSource::read(unsigned char * data, size_t len)
 {
+    /*printf("Reading %d bytes\n", len);*/
     if (!buffer) buffer = new unsigned char[bufSize];
 
     if (!bufPosIn) bufPosIn = readUnbuffered(buffer, bufSize);
@@ -114,6 +117,7 @@ bool BufferedSource::hasData()
 
 size_t FdSource::readUnbuffered(unsigned char * data, size_t len)
 {
+    /*printf("Reading %d bytes from fd\n", len);*/
     ssize_t n;
     do {
         checkInterrupt();
@@ -127,6 +131,7 @@ size_t FdSource::readUnbuffered(unsigned char * data, size_t len)
 
 size_t StringSource::read(unsigned char * data, size_t len)
 {
+    /*printf("Reading %d bytes from string\n", len);*/
     if (pos == s.size()) throw EndOfFile("end of string reached");
     size_t n = s.copy((char *) data, len, pos);
     pos += n;
@@ -136,6 +141,7 @@ size_t StringSource::read(unsigned char * data, size_t len)
 
 void writePadding(size_t len, Sink & sink)
 {
+    /*printf("Write padding %d\n", len);*/
     if (len % 8) {
         unsigned char zero[8];
         memset(zero, 0, sizeof(zero));
@@ -146,6 +152,7 @@ void writePadding(size_t len, Sink & sink)
 
 void writeInt(unsigned int n, Sink & sink)
 {
+    /*printf("Writing int %d %x\n", n, n);*/
     unsigned char buf[8];
     memset(buf, 0, sizeof(buf));
     buf[0] = n & 0xff;
@@ -158,6 +165,7 @@ void writeInt(unsigned int n, Sink & sink)
 
 void writeLongLong(unsigned long long n, Sink & sink)
 {
+    /*std::cout << "Writing long long " << n << "\n";*/
     unsigned char buf[8];
     buf[0] = n & 0xff;
     buf[1] = (n >> 8) & 0xff;
@@ -173,6 +181,7 @@ void writeLongLong(unsigned long long n, Sink & sink)
 
 void writeString(const unsigned char * buf, size_t len, Sink & sink)
 {
+    /*std::cout << "Writing string of len " << len << ": " << buf << "\n";*/
     writeInt(len, sink);
     sink(buf, len);
     writePadding(len, sink);
@@ -187,6 +196,7 @@ void writeString(const string & s, Sink & sink)
 
 template<class T> void writeStrings(const T & ss, Sink & sink)
 {
+    /*std::cout << "Writing strings: " << ss.size() << "\n";*/
     writeInt(ss.size(), sink);
     foreach (typename T::const_iterator, i, ss)
         writeString(*i, sink);

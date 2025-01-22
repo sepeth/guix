@@ -19,6 +19,7 @@
 #ifndef BOOST_FORMAT_FUNCS_HPP
 #define BOOST_FORMAT_FUNCS_HPP
 
+#include "config.h"
 #include "boost/format.hpp"
 #include "boost/throw_exception.hpp"
 

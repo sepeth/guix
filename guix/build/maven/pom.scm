@@ -21,6 +21,7 @@
   #:use-module (system foreign)
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)
+  #:use-module (guix utils)
   #:export (add-local-package
             get-pom
             pom-ref
@@ -189,24 +190,6 @@ file."
              ((_ content ...)
               (loop content groupid artifactid version scope))))))
       (pom-ref content "dependencies"))))
-
-(define version-compare
-  (let ((strverscmp
-         (let ((sym (or (dynamic-func "strverscmp" (dynamic-link))
-                        (error "could not find `strverscmp' (from GNU libc)"))))
-           (pointer->procedure int sym (list '* '*)))))
-    (lambda (a b)
-      "Return '> when A denotes a newer version than B,
-'< when A denotes a older version than B,
-or '= when they denote equal versions."
-      (let ((result (strverscmp (string->pointer a) (string->pointer b))))
-        (cond ((positive? result) '>)
-              ((negative? result) '<)
-              (else '=))))))
-
-(define (version>? a b)
-  "Return #t when A denotes a version strictly newer than B."
-  (eq? '> (version-compare a b)))
 
 (define (fix-maven-xml sxml)
   "When writing an xml file from an sxml representation, it is not possible to

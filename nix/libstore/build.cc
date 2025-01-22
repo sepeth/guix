@@ -398,6 +398,7 @@ void Goal::amDone(ExitCode result)
 
 void Goal::trace(const format & f)
 {
+    /*printf("%s (goal::tr): %s\n", name.c_str(), f.str().c_str());*/
     debug(format("%1%: %2%") % name % f);
 }
 
@@ -474,6 +475,7 @@ UserLock::~UserLock()
 
 void UserLock::acquire()
 {
+    printf("UserLock::acquire\n");
     assert(uid == 0);
 
     assert(settings.buildUsersGroup != "");
@@ -535,7 +537,7 @@ void UserLock::acquire()
             supplementaryGIDs.resize(10);
             int ngroups = supplementaryGIDs.size();
             int err = getgrouplist(pw->pw_name, pw->pw_gid,
-                supplementaryGIDs.data(), &ngroups);
+                (int*)supplementaryGIDs.data(), &ngroups);
             if (err == -1)
                 throw Error(format("failed to get list of supplementary groups for ‘%1%’") % pw->pw_name);
 
@@ -1153,6 +1155,10 @@ static bool canBuildLocally(const string & platform)
 #if __linux__
         || (platform == "i686-linux" && settings.thisSystem == "x86_64-linux")
         || (platform == "armhf-linux" && settings.thisSystem == "aarch64-linux")
+#elif __APPLE__
+        // FIXME: Dogan: rather use the one below but starts_with is only available at C++20, the daemon is at C++11
+        || true
+        // || (platform.starts_with("aarch64-darwin") && settings.thisSystem.starts_with("aarch64-darwin"))
 #endif
         ;
 }
@@ -2061,6 +2067,8 @@ static bool sameOperatingSystemKernel(const std::string& system1, const std::str
 {
     auto os1 = system1.substr(system1.find("-"));
     auto os2 = system2.substr(system2.find("-"));
+    printf("%s == %s\n", os1.c_str(), os2.c_str());
+           
     return os1 == os2;
 }
 
@@ -2430,11 +2438,13 @@ void DerivationGoal::runChild()
 	   it: the ELF file for that OS is likely indistinguishable from a
 	   native ELF binary and it would just crash at run time.  */
 	int error;
-	if (sameOperatingSystemKernel(drv.platform, settings.thisSystem)) {
+	// FIXME: Dogan - this is a hack to make it work on macOS
+	if (true || sameOperatingSystemKernel(drv.platform, settings.thisSystem)) {
 	    execve(drv.builder.c_str(), stringsToCharPtrs(args).data(),
 		   stringsToCharPtrs(envStrs).data());
 	    error = errno;
 	} else {
+	    printf("no same operating system kernel\n");
 	    error = ENOEXEC;
 	}
 
@@ -3265,7 +3275,7 @@ void SubstitutionGoal::tryToRun()
         deletePath(destPath);
 
     if (!worker.substituter) {
-	const Strings args = { "substitute", "--substitute" };
+	const Strings args = { "bubstitute", "--substitute" };
 	const std::map<string, string> env = {
 	    { "_NIX_OPTIONS",
 	      settings.pack() + "deduplicate="
@@ -3611,11 +3621,13 @@ void Worker::waitForAWhile(GoalPtr goal)
 
 void Worker::run(const Goals & _topGoals)
 {
+    /*printf("Worker::run\n");*/
     foreach (Goals::iterator, i,  _topGoals) topGoals.insert(*i);
 
     startNest(nest, lvlDebug, format("entered goal loop"));
 
     while (1) {
+        /*printf("Worker::run while 1\n");*/
 
         checkInterrupt();
 

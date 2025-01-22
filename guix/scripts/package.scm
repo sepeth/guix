@@ -983,6 +983,7 @@ processed, #f otherwise."
 
 (define (process-actions store opts)
   "Process any install/remove/upgrade action from OPTS."
+  (format #t "Attempting to acquire the profile lock~%")
 
   (define dry-run? (assoc-ref opts 'dry-run?))
   (define bootstrap? (assoc-ref opts 'bootstrap?))

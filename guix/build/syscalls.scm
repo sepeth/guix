@@ -1318,6 +1318,21 @@ system to PUT-OLD."
   (namelen uint8)
   (name    uint8))
 
+;; 'struct dirent64' for Darwin, when _DARWIN_FEATURE_64_BIT_INODE is defined
+(define-c-struct %struct-dirent-header/darwin
+  sizeof-dirent-header/darwin
+  (lambda (inode offset record-length name-length type name)
+    `((type . ,(file-type->symbol type))
+      (inode . ,inode)))
+  read-dirent-header/darwin
+  write-dirent-header!/darwin
+  (inode  int64) ; q
+  (offset int64)
+  (record-length unsigned-short)
+  (name-length unsigned-short)
+  (type   uint8)
+  (name   uint8))                                 ;first byte of 'd_name'
+
 ;; Constants for the 'type' field, from <dirent.h>.
 (define DT_UNKNOWN 0)
 (define DT_FIFO 1)
@@ -1338,6 +1353,7 @@ system to PUT-OLD."
 (define opendir*
   (let ((proc (syscall->procedure '* "opendir" '(*))))
     (lambda* (name #:optional (string->pointer string->pointer/utf-8))
+      ;; (display (string-append "opendir(" name ")\n"))
       (let-values (((ptr err)
                     (proc (string->pointer name))))
         (if (null-pointer? ptr)
@@ -1358,7 +1374,8 @@ system to PUT-OLD."
 
 (define (readdir-procedure name-field-offset sizeof-dirent-header
                            read-dirent-header)
-  (let ((proc (syscall->procedure '* (if musl-libc? "readdir" "readdir64") '(*))))
+  ;; FIXME: make it portable
+  (let ((proc (syscall->procedure '* "readdir" '(*))))
     (lambda* (directory #:optional (pointer->string pointer->string/utf-8))
       (let ((ptr (proc directory)))
         (and (not (null-pointer? ptr))
@@ -1370,15 +1387,17 @@ system to PUT-OLD."
 
 (define readdir*
   ;; Decide at run time which one must be used.
-  (if linux?
-      (readdir-procedure (c-struct-field-offset %struct-dirent-header/linux
+  ;; XXX: This prevents us expanding to more platforms.
+  (if #t
+      (readdir-procedure (c-struct-field-offset %struct-dirent-header/darwin
                                                 name)
-                         sizeof-dirent-header/linux
-                         read-dirent-header/linux)
+                         sizeof-dirent-header/darwin
+                         read-dirent-header/darwin)
       (readdir-procedure (c-struct-field-offset %struct-dirent-header/hurd
                                                 name)
                          sizeof-dirent-header/hurd
                          read-dirent-header/hurd)))
+
 
 (define* (scandir* name #:optional
                    (select? (const #t))
@@ -1495,6 +1514,7 @@ exception if it's already taken."
                               F_SETLK)            ;non-blocking attempt
                           (bytevector->pointer bv))))
         (unless (zero? ret)
+          (format #t "flock returned with ~a~%" ret)
           ;; Presumably we got EAGAIN or so.
           (throw 'flock-error err))))))
 
@@ -1503,14 +1523,16 @@ exception if it's already taken."
   "Wait and acquire an exclusive lock on FILE.  Return an open port according
 to MODE."
   (let ((port (open-file file mode)))
-    (fcntl-flock port
-                 (if (output-port? port) 'write-lock 'read-lock)
-                 #:wait? wait?)
+    ;; FIXME: Dogan - make this work on macOS
+    ;; (fcntl-flock port
+    ;;              (if (output-port? port) 'write-lock 'read-lock)
+    ;;              #:wait? wait?)
     port))
 
 (define (unlock-file port)
   "Unlock PORT, a port returned by 'lock-file', and close it."
-  (fcntl-flock port 'unlock)
+  ;; FIXME: Dogan - make this work on macOS
+  ;; (fcntl-flock port 'unlock)
   (close-port port)
   #t)
 
@@ -1521,7 +1543,9 @@ to MODE."
         (set! port
           (catch 'system-error
             (lambda ()
-              (lock-file file))
+              (format #t "system error~%")
+              ; (lock-file file)
+              )
             (lambda args
               ;; When using the statically-linked Guile in the initrd,
               ;; 'fcntl-flock' returns ENOSYS unconditionally.  Ignore
@@ -1533,18 +1557,20 @@ to MODE."
       thunk
       (lambda ()
         (when port
-          (unlock-file port)
+          ; (unlock-file port)
           (delete-file file))))))
 
 (define (call-with-file-lock/no-wait file thunk handler)
   (let ((port #f))
     (dynamic-wind
       (lambda ()
+        (format #t "dyn-wind with-file-lock~%")
         (set! port
           (catch #t
             (lambda ()
               (lock-file file #:wait? #f))
             (lambda (key . args)
+              (format #t "lock-file before-match: ~a ~a~%" key args)
               (match key
                 ('flock-error
                  (apply handler args)
@@ -1561,6 +1587,7 @@ to MODE."
                 (_ (apply throw key args)))))))
       thunk
       (lambda ()
+        (format #t "lock-file dyn-wind exit~%")
         (when port
           (unlock-file port)
           (delete-file file))))))

@@ -73,7 +73,10 @@
 
 
 (define (get-bytevector-n* port count)
+  ;(backtrace)
+  ;(format #t "get-bytevector-n* ~a... " count)
   (let ((bv (get-bytevector-n port count)))
+    ;(format #t "Done.~%")
     (when (or (eof-object? bv)
               (< (bytevector-length bv) count))
       (raise (condition (&nar-error
@@ -93,13 +96,17 @@
          (error "sub-bytevector called to get a super bytevector"))))
 
 (define (write-int n p)
+  ;(format #t "write-int ~a~%" n)
   (let ((b (make-bytevector 8 0)))
     (bytevector-u32-set! b 0 n (endianness little))
     (put-bytevector p b)))
 
 (define (read-int p)
-  (let ((b (get-bytevector-n* p 8)))
-    (bytevector-u32-ref b 0 (endianness little))))
+  ;(format #t "read-int... ")
+  (let* ((b (get-bytevector-n* p 8))
+         (rv (bytevector-u32-ref b 0 (endianness little))))
+    ;(format #t "~a~%" rv)
+    rv))
 
 (define (write-long-long n p)
   (let ((b (make-bytevector 8 0)))
@@ -107,6 +114,7 @@
     (put-bytevector p b)))
 
 (define (read-long-long p)
+  (fgormat #t "read-long-long ~a ~%" p)
   (let ((b (get-bytevector-n* p 8)))
     (bytevector-u64-ref b 0 (endianness little))))
 
@@ -126,17 +134,25 @@
     (put-bytevector p b)))
 
 (define (write-string s p)
+  ;(format #t "write-string ~a~%" s)
   (write-bytevector (string->utf8 s) p))
 
 (define (read-byte-string p)
+  ;(backtrace)
+  ;(format #t "read-byte-string~%")
   (let* ((len (read-int p))
          (m   (modulo len 8))
-         (pad (if (zero? m) 0 (- 8 m)))
-         (bv  (get-bytevector-n* p (+ len pad))))
-    (sub-bytevector bv len)))
+         (pad (if (zero? m) 0 (- 8 m))))
+    (let* ((bv  (get-bytevector-n* p (+ len pad)))
+           (rv (sub-bytevector bv len)))
+      ;(format #t "read-byte-string-done ~a ~a~%" len rv)
+      rv)))
 
 (define (read-string p)
-  (utf8->string (read-byte-string p)))
+  ;(format #t "read-string... ~%")
+  (let ((rv (utf8->string (read-byte-string p))))
+    ;(format #t "~a Done~%" rv)
+    rv))
 
 (define (read-latin1-string p)
   "Read an ISO-8859-1 string from P."
@@ -159,13 +175,17 @@ substitute invalid byte sequences with question marks.  This is a
          (port (open-bytevector-input-port bv)))
     (set-port-encoding! port "UTF-8")
     (set-port-conversion-strategy! port 'substitute)
-    (rdelim:read-string port)))
+    (let ((rv (rdelim:read-string port)))
+      ;(format #t "read-maybe-utf8-string ~a~%" rv)
+      rv)))
 
 (define (write-string-list l p)
+  ;(format #t "write-string-list~%")
   (write-int (length l) p)
   (for-each (cut write-string <> p) l))
 
 (define (read-string-list p)
+  ;(format #t "read-string-list~%")
   (let ((len (read-int p)))
     (unfold (cut >= <> len)
             (lambda (i)
@@ -441,6 +461,7 @@ depends on TYPE."
                 (result (proc file type `(,port . ,size) result)))
            (let ((m (modulo size 8)))
              (unless (zero? m)
+               ;(format #t "unless zero? m ~a~%" m)
                (get-bytevector-n* port (- 8 m))))
            (read-eof-marker)
            result))

@@ -38,7 +38,11 @@
 #include <exception>
 #include <iostream>
 
+#ifdef LIBC
 #include <libintl.h>
+#else
+#include <gettext.h>
+#endif
 #include <locale.h>
 
 /* Variables used by `nix-daemon.cc'.  */

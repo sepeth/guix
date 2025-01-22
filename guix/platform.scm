@@ -24,6 +24,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
+  #:use-module (system vm trace)
   #:export (platform
             platform?
             platform-target
@@ -100,6 +101,7 @@ exception."
 
 (define (platform-modules)
   "Return the list of platform modules."
+  ;; (display "Running platform-modules\n")
   (all-modules (map (lambda (entry)
                       `(,entry . "guix/platforms"))
                     %load-path)
@@ -109,6 +111,7 @@ exception."
   ;; The list of publically-known platforms.
   (memoize
    (lambda ()
+     ;; (display "Inside platforms lambda\n")
      (fold-module-public-variables (lambda (obj result)
                                      (if (platform? obj)
                                          (cons obj result)
@@ -119,6 +122,7 @@ exception."
 (define (lookup-platform-by-system system)
   "Return the platform corresponding to the given SYSTEM.  Raise
 &PLATFORM-NOT-FOUND-ERROR when no platform could be found."
+  ;; (format #t "Running lookup-platform-by-system for ~a\n" system)
   (or (find (lambda (platform)
               (let ((s (platform-system platform)))
                 (and (string? s) (string=? s system))))
@@ -129,12 +133,16 @@ exception."
 (define (lookup-platform-by-target target)
   "Return the platform corresponding to the given TARGET.  Raise
 &PLATFORM-NOT-FOUND-ERROR when no platform could be found."
+  ;; (format #t "Running lookup-platform-by-target for ~a\n" target)
   (or (find (lambda (platform)
               (let ((t (platform-target platform)))
                 (and (string? t) (string=? t target))))
             (platforms))
       (raise (condition (&platform-not-found-error
                          (target-or-system target))))))
+
+;; (trace-calls-to-procedure lookup-platform-by-target)
+;; (trace-calls-to-procedure lookup-platform-by-system)
 
 (define (lookup-platform-by-target-or-system target-or-system)
   "Return the platform corresponding to the given TARGET or SYSTEM.  Raise
@@ -163,9 +171,11 @@ otherwise."
 
 (define (systems)
   "Return the list of supported systems."
+  (display "Running systems\n")
   (delete-duplicates
    (filter-map platform-system (platforms))))
 
 (define (targets)
   "Return the list of supported targets."
+  (display "Running targets!\n")
   (map platform-target (platforms)))

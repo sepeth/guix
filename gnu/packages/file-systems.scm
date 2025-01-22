@@ -711,13 +711,21 @@ from a mounted file system.")
     (home-page "http://www.gphoto.org/proj/gphotofs/")
     (license license:gpl2+)))
 
+;; (format #t "Loading bcachefs-tools...~%")
+(format #t "Current target system: ~a~%" (%current-target-system))
+(format #t "Current system: ~a~%" (%current-system))
+
 (define bcachefs-tools-rust-target
   (platform-rust-target (lookup-platform-by-target-or-system
                          (or (%current-target-system)
                              (%current-system)))))
 
+;; (format #t " bcachefs-tools-rust-target: ~a~%" bcachefs-tools-rust-target)
+
+;; FIXME:: Dogan - bcachefs-tools-rust-target was there
 (define bcachefs-tools-target/release
-  (string-append "target/" bcachefs-tools-rust-target "/release"))
+  ;; (string-append "target/" bcachefs-tools-rust-target "/release"))
+  (string-append "target/aarch64-apple-darwin/release"))
 
 (define bcachefs-tools-cargo-args
   ;; Distinct from -MAKE-FLAGS for use with ‘cargo test’ in 'check.

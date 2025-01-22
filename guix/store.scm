@@ -472,8 +472,14 @@ non-blocking."
              ;; This trick allows use of the `scm_c_read' optimization.
              (socket PF_UNIX
                      (if non-blocking?
-                         (logior SOCK_STREAM SOCK_CLOEXEC SOCK_NONBLOCK)
-                         (logior SOCK_STREAM SOCK_CLOEXEC))
+                         (logior SOCK_STREAM
+                                 ; FIXME: this is not supported on macOS
+                                 ;SOCK_CLOEXEC
+                                 SOCK_NONBLOCK)
+                         (logior SOCK_STREAM
+                                 ; FIXME: this is not supported on macOS
+                                 ;SOCK_CLOEXEC
+                                 ))
                      0)))
         (a (make-socket-address PF_UNIX file)))
 

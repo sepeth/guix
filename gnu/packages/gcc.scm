@@ -906,7 +906,8 @@ It also includes runtime support libraries for these languages.")
 ;; Note: When changing the default gcc version, update
 ;;       the gcc-toolchain-* definitions.
 (define-public gcc
-  (if (host-hurd64?)
+  (if (or (host-hurd64?) (and (target-darwin?) (target-aarch64?)))
+  ;(if (host-hurd64?)
       gcc-14
       gcc-11))
 

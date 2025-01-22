@@ -934,7 +934,7 @@ as-derivation:
 	  "$(top_srcdir)/build-aux/compile-as-derivation.scm"	\
 	  "$(abs_top_srcdir)"
 
-SUBDIRS = po/guix po/packages
+SUBDIRS = po/guix po/packages gnulib
 BUILT_SOURCES =
 
 include doc/local.mk
@@ -945,7 +945,7 @@ include nix/local.mk
 
 endif BUILD_DAEMON
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4 -I gnulib/m4
 
 # Pass an explicit '--localstatedir' so that configure does not error out if
 # it finds an existing installation with a different localstatedir.  Inherit
@@ -1288,7 +1288,7 @@ WEBLATE_REPO = https://framagit.org/tyreunom/guix-translations
 # format only), warn otherwise.  Copied files are converted to a canonical
 # form.
 download-po:
-	dir=$$(mktemp -d); \
+	dir=$$($(MKTEMP) -d); \
 	git clone --depth 1 "$(WEBLATE_REPO)" "$$dir/translations" && \
 	for domain in po/doc po/guix po/packages; do \
 	    for po in "$$dir/translations/$$domain"/*.po; do \

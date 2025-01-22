@@ -110,6 +110,7 @@ stored."
 found."
   ;; Note: Keep bootstrap binaries on the local file system so that the 'guix'
   ;; package can provide them as inputs and copy them to the right place.
+  (display "Are we failing here?")
   (let* ((system (match system
                    ("x86_64-linux" "i686-linux")
                    (_ system)))

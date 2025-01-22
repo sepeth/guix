@@ -639,8 +639,13 @@ void writeToStderr(const string & s)
     }
 }
 
+static void daemonStderr(const unsigned char * s, size_t count)
+{
+    std::cerr << "ERR: " << s;
+}
 
-void (*_writeToStderr) (const unsigned char * buf, size_t count) = 0;
+
+void (*_writeToStderr) (const unsigned char * buf, size_t count) = daemonStderr;
 
 
 void readFull(int fd, unsigned char * buf, size_t count)
@@ -1018,7 +1023,7 @@ pid_t startProcess(std::function<void()> fun,
     if (pid == -1) throw SysError("unable to fork");
 
     if (pid == 0) {
-        _writeToStderr = 0;
+        /*_writeToStderr = 0;*/
         try {
 #if __linux__
             if (dieWithParent && prctl(PR_SET_PDEATHSIG, SIGKILL) == -1)

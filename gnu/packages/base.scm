@@ -100,6 +100,8 @@
   (package
     (name "hello")
     (version "2.12.2")
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux" "aarch64-linux"
+                         "riscv64-linux"))
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnu/hello/hello-" version
@@ -927,6 +929,7 @@ the store.")
                                      "CVE-2024-33600" "CVE-2024-33599"))))
    (replacement glibc/fixed)
    (build-system gnu-build-system)
+   (supported-systems '("i686-linux" "x86_64-linux" "aarch64-linux" "riscv64-linux"))
 
    ;; Glibc's <limits.h> refers to <linux/limit.h>, for instance, so glibc
    ;; users should automatically pull Linux headers as well.  On GNU/Hurd,

@@ -20,6 +20,7 @@
 #ifndef BOOST_FORMAT_IMPLEMENTATION_HPP
 #define BOOST_FORMAT_IMPLEMENTATION_HPP
 
+#include "config.h"
 #include <boost/throw_exception.hpp>
 #include <boost/assert.hpp>
 #include <boost/format.hpp>

@@ -203,6 +203,9 @@ AC_SUBST([GZIP])
 AC_SUBST([BZIP2])
 AC_SUBST([XZ])
 
+AC_PATH_PROG([MKTEMP], [gmktemp mktemp])
+AC_PATH_PROG([SED], [gsed sed])
+
 dnl Git is now required for the "builtin:git-download" derivation builder.
 AC_PATH_PROG([GIT], [git])
 if test "x$GIT" = "x"; then
@@ -295,5 +298,7 @@ AC_CONFIG_FILES([etc/committer.scm], [chmod +x etc/committer.scm])
 AC_CONFIG_FILES([test-env:build-aux/test-env.in], [chmod +x test-env])
 AC_CONFIG_FILES([pre-inst-env:build-aux/pre-inst-env.in],
   [chmod +x pre-inst-env])
+
+CXXFLAGS="$CXXFLAGS -Ignulib"
 
 AC_OUTPUT

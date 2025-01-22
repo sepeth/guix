@@ -127,7 +127,7 @@ guix_daemon_LDFLAGS = 				\
   $(LIBGCRYPT_LDFLAGS)
 
 guix_daemon_LDADD =				\
-  libstore.a libutil.a libformat.a -lz		\
+  gnulib/libgnu.a libstore.a libutil.a libformat.a -lz		\
   $(SQLITE3_LIBS) $(LIBGCRYPT_LIBS)
 
 guix_daemon_headers =				\

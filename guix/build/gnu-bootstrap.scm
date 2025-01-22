@@ -48,7 +48,9 @@ Guile and its module and object directories."
                                  "/site-ccache")))
       (for-each (lambda (template)
                   (format #t "Configuring ~a~%" template)
+                  ;; 3 means drop the .in file extension.
                   (let ((target (string-drop-right template 3)))
+                    ;; (start-repl)
                     (copy-file template target)
                     (substitute* target
                       (("@PACKAGE_NAME@") name)

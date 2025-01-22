@@ -107,27 +107,28 @@ endef
 
 # If /dev/null is used for this POT file path, a warning will be issued
 # because the path extension is not 'pot'.
-dummy_pot = $(shell mktemp --suffix=.pot)
+dummy_pot = $(shell $(MKTEMP) --suffix=.pot)
 
+# -o nowarn disables: The TexInfo module of po4a is not ready for production use, and needs a new maintainer.
 $(srcdir)/%D%/guix.%.texi: po/doc/guix-manual.%.po $(srcdir)/%D%/contributing.%.texi guix/build/po.go
-	-$(AM_V_PO4A)$(PO4A) --no-update			\
+	-$(AM_V_PO4A)$(PO4A) --no-update -o no-warn			\
 	    --variable localized="$@.tmp"			\
 	    --variable master="%D%/guix.texi"			\
 	    --variable po="$<"					\
 	    --variable pot=$(dummy_pot)			\
 	    po/doc/po4a.cfg
-	-sed -i "s|guix\.info|$$(basename "$@" | sed 's|texi$$|info|')|" "$@.tmp"
+	-$(SED) -i "s|guix\.info|$$(basename "$@" | sed 's|texi$$|info|')|" "$@.tmp"
 	-$(AM_V_POXREF)LC_ALL=en_US.UTF-8 $(xref_command)
 	-mv "$@.tmp" "$@"
 
 $(srcdir)/%D%/guix-cookbook.%.texi: po/doc/guix-cookbook.%.po guix/build/po.go
-	-$(AM_V_PO4A)$(PO4A) --no-update			\
+	-$(AM_V_PO4A)$(PO4A) --no-update -o no-warn			\
 	    --variable localized="$@.tmp"			\
 	    --variable master="%D%/guix-cookbook.texi"		\
 	    --variable po="$<"					\
 	    --variable pot=$(dummy_pot)			\
 	    po/doc/po4a.cfg
-	-sed -i "s|guix-cookbook\.info|$$(basename "$@" | sed 's|texi$$|info|')|" "$@.tmp"
+	-$(SED) -i "s|guix-cookbook\.info|$$(basename "$@" | sed 's|texi$$|info|')|" "$@.tmp"
 	-$(AM_V_POXREF)LC_ALL=en_US.UTF-8 $(xref_command)
 	-mv "$@.tmp" "$@"
 

@@ -876,7 +876,7 @@ MesCC-Tools), and finally M2-Planet.")
     (inputs '())
     (propagated-inputs '())
     (native-inputs (%boot-tcc-inputs))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (arguments
      (list #:implicit-inputs? #f
            #:guile %bootstrap-guile
@@ -921,7 +921,7 @@ MesCC-Tools), and finally M2-Planet.")
               (sha256
                (base32
                 "1xvfy4pqhrd5v2cv8lzf63iqg92k09g6z9n2ah6ndd4h17k1x0an"))))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
     (native-inputs `(("binutils" ,binutils-mesboot0)
@@ -1036,7 +1036,9 @@ ac_cv_c_float_format='IEEE (little-endian)'
     (supported-systems '("i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
-    (native-inputs `(("kernel-headers" ,%bootstrap-linux-libre-headers)
+    (native-inputs `(,@(if (target-linux?)
+                         `(("kernel-headers" ,%bootstrap-linux-libre-headers))
+                         `())
                      ,@(%boot-tcc-inputs)))
     (arguments
      `(#:implicit-inputs? #f
@@ -1156,8 +1158,10 @@ ac_cv_c_float_format='IEEE (little-endian)'
     (name "gcc-mesboot0")
     (native-inputs `(;; Packages are given in an order that's relevant for
                      ;; #include_next purposes.
-                     ("libc" ,glibc-mesboot0)
-                     ("kernel-headers" ,%bootstrap-linux-libre-headers)
+                     ,@(if (target-linux?)
+                         `(("libc" ,glibc-mesboot0)
+                           ("kernel-headers" ,%bootstrap-linux-libre-headers))
+                         `())
                      ,@(%boot-mesboot-core-inputs)))
     (arguments
      (substitute-keyword-arguments (package-arguments gcc-core-mesboot0)
@@ -1196,8 +1200,10 @@ ac_cv_c_float_format='IEEE (little-endian)'
 
 (define (%boot-mesboot0-inputs)
   `(("gcc" ,gcc-mesboot0)
-    ("kernel-headers" ,%bootstrap-linux-libre-headers)
-    ("libc" ,glibc-mesboot0)
+    ,@(if (target-linux?)
+        `(("kernel-headers" ,%bootstrap-linux-libre-headers)
+          ("libc" ,glibc-mesboot0))
+        `())
     ,@(alist-delete "gcc" (%boot-mesboot-core-inputs))))
 
 (define binutils-mesboot1
@@ -1229,7 +1235,7 @@ ac_cv_c_float_format='IEEE (little-endian)'
                (base32
                 "1rs2f9hmvy3q6zkl15jnlmnpgffm0bhw5ax0h5c7q604wqrip69x"))))
     (native-inputs (%boot-mesboot0-inputs))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
     (arguments
@@ -1533,6 +1539,7 @@ ac_cv_c_float_format='IEEE (little-endian)'
     (inherit glibc-mesboot0)
     (name "glibc-headers-mesboot")
     (version "2.16.0")
+    (supported-systems '("i686-linux" "x86_64-linux" "aarch64-linux" "riscv64-linux"))
     (source (bootstrap-origin
              (origin
                (method url-fetch)
@@ -1672,7 +1679,8 @@ SHELL := " shell "
                       (copy-recursively kernel-headers out)))))))))))
 
 (define (%boot-mesboot4-inputs)
-  `(("libc" ,glibc-mesboot)
+  `(
+    ,@(if (target-linux?) `(("libc" ,glibc-mesboot)) `())
     ,@(alist-delete "libc" (%boot-mesboot3-inputs))))
 
 (define gcc-mesboot1-wrapper
@@ -1685,8 +1693,8 @@ SHELL := " shell "
     (source #f)
     (inputs '())
     (native-inputs `(("bash" ,gash-boot)
+                     ,@(if (target-linux?) `(("libc" ,glibc-mesboot)) `())
                      ("coreutils" ,gash-utils-boot)
-                     ("libc" ,glibc-mesboot)
                      ("gcc" ,gcc-mesboot1)))
     (arguments
      `(#:implicit-inputs? #f
@@ -1739,7 +1747,7 @@ exec " gcc "/bin/" program
     (version (package-version gcc-4.9))
     (source (bootstrap-origin (package-source gcc-4.9)))
     (native-inputs `(("gcc-wrapper" ,gcc-mesboot1-wrapper)
-                     ("headers" ,glibc-headers-mesboot)
+                     ,@(if (target-linux?) `(("headers" ,glibc-headers-mesboot)) `())
                      ,@(%boot-mesboot4-inputs)))
     (arguments
      `(#:validate-runpath? #f
@@ -1825,7 +1833,7 @@ exec " gcc "/bin/" program
     (inputs '())
     (native-inputs `(("bash" ,gash-boot)
                      ("coreutils" ,gash-utils-boot)
-                     ("libc" ,glibc-mesboot)
+                     ,@(if (target-linux?) `(("libc" ,glibc-mesboot)) `())
                      ("gcc" ,gcc-mesboot)))))
 
 (define (%boot-mesboot5-inputs)
@@ -1911,7 +1919,8 @@ exec " gcc "/bin/" program
   ;; The traditional bootstrap-inputs.  For the i686-linux, x86_64-linux
   ;; Scheme-only bootstrap the actual reduced set with bootstrapped toolchain.
   (match (%current-system)
-    ((or "i686-linux" "x86_64-linux")
+         ;; Mes or No Mes
+    ((or "aarch64-darwin" "i686-linux" "x86_64-linux")
      (%boot-mesboot6-inputs))
     (_
      (%bootstrap-inputs))))
@@ -2482,7 +2491,10 @@ exec " gcc "/bin/" program
 
               ;; Call it differently so that the builder can check whether
               ;; the "libc" input is #f.
-              ("libc-native" ,@(assoc-ref (%boot0-inputs) "libc"))
+
+              ,@(if (or (target-hurd?) (target-linux?))
+                  `(("libc-native" ,@(assoc-ref (%boot0-inputs) "libc")))
+                  `())
               ,@(alist-delete "libc" (%boot0-inputs))))
 
     ;; No need for the native-inputs to build the documentation at this stage.
@@ -3005,7 +3017,7 @@ that makes it available under the native tool names."
                       (define (wrap-program program)
                         ;; GCC-BOOT0 is a libc-less cross-compiler, so it
                         ;; needs to be told where to find the crt files and
-                        ;; the dynamic linker.
+                        ;; the dynamic linker. <<- INTERESTING from macOS POV
                         (call-with-output-file program
                           (lambda (p)
                             (format p "#!~a/bin/bash
@@ -3028,7 +3040,7 @@ exec ~a/bin/~a-~a -B~a/lib -Wl,-dynamic-linker -Wl,~a/~a \"$@\"~%"
     (native-inputs
      `(("binutils" ,binutils)
        ("gcc" ,gcc)
-       ("libc" ,glibc)
+       ,@(if (target-linux?) `(("libc" ,glibc)) `())
        ("bash" ,bash)))
     (inputs '())))
 
@@ -3137,10 +3149,13 @@ exec ~a/bin/~a-~a -B~a/lib -Wl,-dynamic-linker -Wl,~a/~a \"$@\"~%"
                      (car (assoc-ref (%boot1-inputs) "bash"))))
 
 (define (%boot2-inputs)
+  ;; FIXME: Dogan - I think we can remove the "libc" input here.
   ;; 3rd stage inputs.
-  `(("libc" ,glibc-final)
-    ("libc:static" ,glibc-final "static")
-    ("gcc" ,gcc-boot0-wrapped)
+  `(,@(if (target-linux?)
+        `(("libc" ,glibc-final)
+          ("libc:static" ,glibc-final "static")
+          ("gcc" ,gcc-boot0-wrapped))
+        `())
     ,@(fold alist-delete (%boot1-inputs) '("libc" "gcc" "linux-libre-headers"))))
 
 (define libstdc++

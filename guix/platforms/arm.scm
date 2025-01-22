@@ -20,7 +20,8 @@
   #:use-module (guix platform)
   #:use-module (guix records)
   #:export (armv7-linux
-            aarch64-linux))
+            aarch64-linux
+            aarch64-darwin))
 
 (define armv7-linux
   (platform
@@ -37,3 +38,9 @@
    (linux-architecture "arm64")
    (rust-target "aarch64-unknown-linux-gnu")
    (glibc-dynamic-linker "/lib/ld-linux-aarch64.so.1")))
+
+(define aarch64-darwin
+  (platform
+   (target "aarch64-darwin") ; FIXME:: Dogan - fixed the version number here via setting %current-system directly in guix/utils.scm
+   (system "aarch64-darwin")
+   (glibc-dynamic-linker #f)))

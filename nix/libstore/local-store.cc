@@ -873,11 +873,14 @@ PathSet LocalStore::querySubstitutablePaths(const PathSet & paths)
 
 std::shared_ptr<Agent> LocalStore::substituter()
 {
+    printf("substituter\n");
     if (!runningSubstituter) {
+    printf("no running substituter\n");
 	const Strings args = { "substitute", "--query" };
 	const std::map<string, string> env = { { "_NIX_OPTIONS", settings.pack() } };
 	runningSubstituter = std::make_shared<Agent>(settings.guixProgram, args, env);
     }
+    printf("substituter end\n");
 
     return runningSubstituter;
 }
@@ -1450,6 +1453,7 @@ void LocalStore::invalidatePathChecked(const Path & path)
 
 bool LocalStore::verifyStore(bool checkContents, bool repair)
 {
+    std::cout << "Getting called?\n";
     printMsg(lvlError, format("reading the store..."));
 
     bool errors = false;
