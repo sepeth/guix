@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2019, 2020, 2021 Hartmut Goebel <h.goebel@crazy-compilers.com>
-;;; Copyright © 2021, 2023, 2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2021, 2023-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -21,13 +21,17 @@
   #:use-module (guix build-system cargo)
   #:use-module (guix build-system trivial)
   #:use-module (guix download)
+  #:use-module (guix git-download)
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (guix packages)
   #:use-module (guix gexp)
   #:use-module (guix utils)
   #:use-module (gnu packages)
   #:use-module (gnu packages base)  ; glibc
+  #:use-module (gnu packages crates-check)
+  #:use-module (gnu packages crates-compression)
   #:use-module (gnu packages crates-crypto)
+  #:use-module (gnu packages crates-database)
   #:use-module (gnu packages crates-io)
   #:use-module (gnu packages crates-tls)
   #:use-module (gnu packages crates-web)
@@ -185,14 +189,14 @@ than just headers; it requires tight integration with the MUA.")
 (define-public rust-sequoia-cert-store-0.6
   (package
     (name "rust-sequoia-cert-store")
-    (version "0.6.1")
+    (version "0.6.2")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-cert-store" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "14f3zhkh0hrjmkv6ksvyr29z6mfq1hadqzqsvhp3xwlf9y66bhjg"))))
+        (base32 "19drjzxihs1bgqb0klwf81nxxx9jqgifzi49v8gqw00d6ba9lcwy"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
@@ -204,7 +208,7 @@ than just headers; it requires tight integration with the MUA.")
                        ("rust-openpgp-cert-d" ,rust-openpgp-cert-d-0.3)
                        ("rust-rayon" ,rust-rayon-1)
                        ("rust-rusqlite" ,rust-rusqlite-0.29)
-                       ("rust-sequoia-net" ,rust-sequoia-net-0.28)
+                       ("rust-sequoia-net" ,rust-sequoia-net-0.29)
                        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
                        ("rust-smallvec" ,rust-smallvec-1)
                        ("rust-thiserror" ,rust-thiserror-1)
@@ -251,25 +255,25 @@ than just headers; it requires tight integration with the MUA.")
     (description "This package provides Directories used by Sequoia.")
     (license license:lgpl2.0+)))
 
-(define-public rust-sequoia-gpg-agent-0.4
+(define-public rust-sequoia-gpg-agent-0.5
   (package
     (name "rust-sequoia-gpg-agent")
-    (version "0.4.2")
+    (version "0.5.1")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-gpg-agent" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "119njpmhg0is0vlba199bmyp7fi19w8y555i89njkyrfv7yvakds"))))
+        (base32 "1j3pawsnxj27ak5gfw6aa7crypbbvv5whwpm3cml7ay4yv6qp8hh"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
        #:cargo-inputs (("rust-anyhow" ,rust-anyhow-1)
                        ("rust-chrono" ,rust-chrono-0.4)
                        ("rust-futures" ,rust-futures-0.3)
-                       ("rust-lalrpop" ,rust-lalrpop-0.17)
-                       ("rust-lalrpop-util" ,rust-lalrpop-util-0.17)
+                       ("rust-lalrpop" ,rust-lalrpop-0.20)
+                       ("rust-lalrpop-util" ,rust-lalrpop-util-0.20)
                        ("rust-libc" ,rust-libc-0.2)
                        ("rust-sequoia-ipc" ,rust-sequoia-ipc-0.35)
                        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
@@ -340,14 +344,14 @@ than just headers; it requires tight integration with the MUA.")
 (define-public rust-sequoia-keystore-0.6
   (package
     (name "rust-sequoia-keystore")
-    (version "0.6.1")
+    (version "0.6.2")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-keystore" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "168scr1nv5h1fm67p1p59ym267db07kg3fw3shrramaq0af2smx8"))))
+        (base32 "1qy3nk2r39m5mzvx58ij7a1r9hiw0fmgmjrad6j4nf8djids5lsx"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
@@ -422,14 +426,14 @@ than just headers; it requires tight integration with the MUA.")
 (define-public rust-sequoia-keystore-gpg-agent-0.4
   (package
     (name "rust-sequoia-keystore-gpg-agent")
-    (version "0.4.0")
+    (version "0.4.1")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-keystore-gpg-agent" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "0s5spxk7v6cdcfzrya4y1n29m09kkrlmqacnrq2azik92kwva1mk"))))
+        (base32 "1qnpcydrw0l3i0i082cy9mghjjq3l25clxwfj6gcpf72d6hq0wkq"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
@@ -440,7 +444,7 @@ than just headers; it requires tight integration with the MUA.")
         ("rust-lazy-static" ,rust-lazy-static-1)
         ("rust-log" ,rust-log-0.4)
         ("rust-openpgp-cert-d" ,rust-openpgp-cert-d-0.3)
-        ("rust-sequoia-gpg-agent" ,rust-sequoia-gpg-agent-0.4)
+        ("rust-sequoia-gpg-agent" ,rust-sequoia-gpg-agent-0.5)
         ("rust-sequoia-ipc" ,rust-sequoia-ipc-0.35)
         ("rust-sequoia-keystore-backend" ,rust-sequoia-keystore-backend-0.6)
         ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
@@ -578,17 +582,17 @@ private key store.")
      "This package provides a TPM backend for Sequoia's private key store.")
     (license license:lgpl2.0+)))
 
-(define-public rust-sequoia-net-0.28
+(define-public rust-sequoia-net-0.29
   (package
     (name "rust-sequoia-net")
-    (version "0.28.0")
+    (version "0.29.0")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-net" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "0jw1p8gwf505q6dh1281fl7kmh8mr1f4hswl5crrycwqlq5q3gva"))))
+        (base32 "0xdraqrjlpjpzyn8sc8c8xfq13pr1gp6sd4c0n80x30i6kc60zjl"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
@@ -597,22 +601,25 @@ private key store.")
                        ("rust-futures-util" ,rust-futures-util-0.3)
                        ("rust-hickory-client" ,rust-hickory-client-0.24)
                        ("rust-hickory-resolver" ,rust-hickory-resolver-0.24)
-                       ("rust-http" ,rust-http-0.2)
-                       ("rust-hyper" ,rust-hyper-0.14)
-                       ("rust-hyper-tls" ,rust-hyper-tls-0.5)
+                       ("rust-http" ,rust-http-1)
+                       ("rust-hyper" ,rust-hyper-1)
+                       ("rust-hyper-tls" ,rust-hyper-tls-0.6)
                        ("rust-libc" ,rust-libc-0.2)
                        ("rust-percent-encoding" ,rust-percent-encoding-2)
-                       ("rust-reqwest" ,rust-reqwest-0.11)
+                       ("rust-reqwest" ,rust-reqwest-0.12)
                        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
-                       ("rust-tempfile" ,rust-tempfile-3)
                        ("rust-thiserror" ,rust-thiserror-1)
                        ("rust-tokio" ,rust-tokio-1)
                        ("rust-url" ,rust-url-2)
                        ("rust-z-base-32" ,rust-z-base-32-0.1))
-       #:cargo-development-inputs (("rust-hyper" ,rust-hyper-0.14)
+       #:cargo-development-inputs (("rust-bytes" ,rust-bytes-1)
+                                   ("rust-http-body-util" ,rust-http-body-util-0.1)
+                                   ("rust-hyper" ,rust-hyper-1)
+                                   ("rust-hyper-util" ,rust-hyper-util-0.1)
                                    ("rust-rand" ,rust-rand-0.8)
-                                   ("rust-reqwest" ,rust-reqwest-0.11)
-                                   ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))
+                                   ("rust-reqwest" ,rust-reqwest-0.12)
+                                   ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
+                                   ("rust-tempfile" ,rust-tempfile-3))))
     (native-inputs
      (list clang pkg-config))
     (inputs
@@ -626,21 +633,17 @@ HKP protocol, and searching and publishing Web Key Directories.")
 (define-public rust-sequoia-openpgp-1
   (package
     (name "rust-sequoia-openpgp")
-    (version "1.21.2")
+    (version "1.22.0")
     (source
       (origin
         (method url-fetch)
         (uri (crate-uri "sequoia-openpgp" version))
         (file-name (string-append name "-" version ".tar.gz"))
         (sha256
-         (base32 "1mh2rc7briyggsvwbg34g3vvx6aisisllb9vz4p96kdl2vi1w9hk"))))
+         (base32 "0ngg32kqcrg6lz1c0g2fkb76cm1ajifb9qcjvv77kw4gwkly8n78"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("crypto-nettle")
-       #:cargo-test-flags
-       (list "--release" "--"
-             "--skip=leak_tests::test_aes_256_decryption"
-             "--skip=leak_tests::test_ed25519")
        #:cargo-inputs
        (("rust-aes" ,rust-aes-0.8)
         ("rust-aes-gcm" ,rust-aes-gcm-0.10)
@@ -668,7 +671,7 @@ HKP protocol, and searching and publishing Web Key Directories.")
         ("rust-flate2" ,rust-flate2-1)
         ("rust-getrandom" ,rust-getrandom-0.2)
         ("rust-idea" ,rust-idea-0.5)
-        ("rust-idna" ,rust-idna-0.5)
+        ("rust-idna" ,rust-idna-1)
         ("rust-lalrpop" ,rust-lalrpop-0.20)
         ("rust-lalrpop-util" ,rust-lalrpop-util-0.20)
         ("rust-lazy-static" ,rust-lazy-static-1)
@@ -722,40 +725,42 @@ defaults).
 This Guix package is built to use the nettle cryptographic library.")
     (license license:lgpl2.0+)))
 
-(define-public rust-sequoia-openpgp-0.9
+(define-public rust-sequoia-policy-config-0.7
   (package
-    (inherit rust-sequoia-openpgp-1)
-    (name "rust-sequoia-openpgp")
-    (version "0.9.0")
+    (name "rust-sequoia-policy-config")
+    (version "0.7.0")
     (source
      (origin
        (method url-fetch)
-       (uri (crate-uri "sequoia-openpgp" version))
+       (uri (crate-uri "sequoia-policy-config" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "007h2pi7lcph5jf5bxjydm7hjwjai33yk6dic3cxknki22lxlkfw"))))
+        (base32 "17alq9dyg9gd26zbc8bcgm0vgwnlghqp0npvh088fc768c05yzb1"))))
     (build-system cargo-build-system)
     (arguments
-     `(#:skip-build? #t
-       #:cargo-inputs
-       (("rust-base64" ,rust-base64-0.9)
-        ("rust-buffered-reader" ,rust-buffered-reader-0.9)
-        ("rust-bzip2" ,rust-bzip2-0.3)
-        ("rust-failure" ,rust-failure-0.1)
-        ("rust-flate2" ,rust-flate2-1)
-        ("rust-idna" ,rust-idna-0.1)
-        ("rust-lalrpop" ,rust-lalrpop-0.17)
-        ("rust-lalrpop-util" ,rust-lalrpop-util-0.17)
-        ("rust-lazy-static" ,rust-lazy-static-1)
-        ("rust-memsec" ,rust-memsec-0.5)
-        ("rust-nettle" ,rust-nettle-5)
-        ("rust-quickcheck" ,rust-quickcheck-0.8)
-        ("rust-rand" ,rust-rand-0.6)
-        ("rust-sequoia-rfc2822" ,rust-sequoia-rfc2822-0.9)
-        ("rust-time" ,rust-time-0.1))))))
+     `(#:features '("sequoia-openpgp/crypto-nettle")
+       #:cargo-inputs (("rust-anyhow" ,rust-anyhow-1)
+                       ("rust-chrono" ,rust-chrono-0.4)
+                       ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
+                       ("rust-serde" ,rust-serde-1)
+                       ("rust-thiserror" ,rust-thiserror-1)
+                       ("rust-toml" ,rust-toml-0.5))
+       #:cargo-development-inputs
+       (("rust-assert-cmd" ,rust-assert-cmd-2)
+        ("rust-quickcheck" ,rust-quickcheck-1)
+        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))
+    (native-inputs
+     (list clang pkg-config))
+    (inputs
+     (list gmp nettle))
+    (home-page "https://sequoia-pgp.org/")
+    (synopsis "Configure Sequoia using a configuration file")
+    (description "Configure Sequoia using a configuration file.")
+    (license license:lgpl2.0+)))
 
 (define-public rust-sequoia-policy-config-0.6
   (package
+    (inherit rust-sequoia-policy-config-0.7)
     (name "rust-sequoia-policy-config")
     (version "0.6.0")
     (source (origin
@@ -765,7 +770,6 @@ This Guix package is built to use the nettle cryptographic library.")
               (sha256
                (base32
                 "0x42h22kng4dsbfr0a6zdf2j9bcq14r0yr6xdw6rrggj139lazbm"))))
-    (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
        #:cargo-inputs
@@ -778,175 +782,273 @@ This Guix package is built to use the nettle cryptographic library.")
        #:cargo-development-inputs
        (("rust-assert-cmd" ,rust-assert-cmd-2)
         ("rust-lazy-static" ,rust-lazy-static-1)
-        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))
-    (native-inputs
-     (list clang pkg-config))
-    (inputs
-     (list gmp nettle))
-    (home-page "https://sequoia-pgp.org/")
-    (synopsis "Configure Sequoia using a configuration file")
-    (description "Configure Sequoia using a configuration file.")
-    (license license:lgpl2.0+)))
-
-(define-public rust-sequoia-rfc2822-0.9
-  (package
-    (name "rust-sequoia-rfc2822")
-    (version "0.9.0")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (crate-uri "sequoia-rfc2822" version))
-       (file-name (string-append name "-" version ".tar.gz"))
-       (sha256
-        (base32 "1aj34i6862718m162rqfv69fkmvdw063s6ws7hbp42n73gb08p5c"))))
-    (build-system cargo-build-system)
-    (arguments
-     `(#:skip-build? #t
-       #:cargo-inputs
-       (("rust-failure" ,rust-failure-0.1)
-        ("rust-lalrpop" ,rust-lalrpop-0.17)
-        ("rust-lalrpop-util" ,rust-lalrpop-util-0.17))))
-    (home-page "https://sequoia-pgp.org/")
-    (synopsis "RFC 2822 name-addr parser")
-    (description "Currently, this crate only recognizes the RFC 2822 name-addr
-and addr-spec productions, i.e., things of the form: @code{Name (Comment)
-<email@@example.org>} and @code{email@@example.org}
-
-Although the above appear simple to parse, RFC 2822's whitespace and comment
-rules are rather complex.  This crate implements the whole grammar." )
-    (license license:gpl3)))
+        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))))
 
 (define-public rust-sequoia-tpm-0.1
   (package
     (name "rust-sequoia-tpm")
-    (version "0.1.0")
+    (version "0.1.1")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-tpm" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "0xh0m7yybkwpc0f858da27y82a2vlsdfch35hjaykih5lf4xmdri"))))
+        (base32 "0n6qa5kxsq8m2m1b7rqgcdhfjd67jql0vsinl7x0j9vma9r38brk"))))
     (build-system cargo-build-system)
     (arguments
-     `(#:features '("sequoia-openpgp/crypto-nettle")
-       #:cargo-inputs (("rust-anyhow" ,rust-anyhow-1)
-                       ("rust-env-logger" ,rust-env-logger-0.11)
-                       ("rust-hex" ,rust-hex-0.4)
-                       ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
+     `(#:cargo-inputs (("rust-hex" ,rust-hex-0.4)
                        ("rust-serde" ,rust-serde-1)
-                       ("rust-serde-yaml" ,rust-serde-yaml-0.8)
-                       ("rust-structopt" ,rust-structopt-0.3)
                        ("rust-tss-esapi" ,rust-tss-esapi-7)
-                       ("rust-tss-esapi-sys" ,rust-tss-esapi-sys-0.5))
-       #:cargo-development-inputs
-       (("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))
-    (native-inputs (list clang pkg-config))
-    (inputs (list nettle tpm2-tss))
+                       ("rust-tss-esapi-sys" ,rust-tss-esapi-sys-0.5))))
+    (native-inputs (list pkg-config))
+    (inputs (list tpm2-tss))
     (home-page "https://sequoia-pgp.org/")
     (synopsis "Machinery for working with TPM from Sequoia")
     (description
      "This package provides machinery for working with TPM from Sequoia.")
     (license (list license:lgpl2.0+ license:asl2.0))))
 
-(define-public rust-sequoia-wot-0.12
+(define-public rust-sequoia-wot-0.13
   (package
     (name "rust-sequoia-wot")
-    (version "0.12.0")
+    (version "0.13.3")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-wot" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "1nrx1cn58d8lkp2g0ahw2320zmil3ryxl13inpwf61v4vqi5svj8"))))
+        (base32 "08948jazk7c5a4sza5amq9ah8r0mg02lcrrpqhwgi3qjx6w550v0"))))
     (build-system cargo-build-system)
     (arguments
      `(#:features '("sequoia-openpgp/crypto-nettle")
-       #:cargo-test-flags '("--release" "--"
-                            ;; Not all files included.
-                            "--skip=gpg_trust_roots")
        #:cargo-inputs (("rust-anyhow" ,rust-anyhow-1)
                        ("rust-chrono" ,rust-chrono-0.4)
-                       ("rust-clap" ,rust-clap-4)
-                       ("rust-clap-complete" ,rust-clap-complete-4)
-                       ("rust-clap-mangen" ,rust-clap-mangen-0.2)
                        ("rust-crossbeam" ,rust-crossbeam-0.8)
-                       ("rust-dot-writer" ,rust-dot-writer-0.1)
-                       ("rust-enumber" ,rust-enumber-0.3)
                        ("rust-num-cpus" ,rust-num-cpus-1)
                        ("rust-sequoia-cert-store" ,rust-sequoia-cert-store-0.6)
                        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
-                       ("rust-sequoia-policy-config" ,rust-sequoia-policy-config-0.6)
-                       ("rust-thiserror" ,rust-thiserror-1))
-       #:cargo-development-inputs (("rust-assert-cmd" ,rust-assert-cmd-2)
-                                   ("rust-predicates" ,rust-predicates-2)
-                                   ("rust-quickcheck" ,rust-quickcheck-1)
-                                   ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
-                                   ("rust-tempfile" ,rust-tempfile-3))))
+                       ("rust-thiserror" ,rust-thiserror-2))
+       #:cargo-development-inputs
+       (("rust-quickcheck" ,rust-quickcheck-1)
+        ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1))))
     (inputs
      (list nettle openssl sqlite))
     (native-inputs
      (list clang pkg-config))
     (home-page "https://sequoia-pgp.org/")
     (synopsis "Implementation of OpenPGP's web of trust")
-    (description "An implementation of OpenPGP's web of trust.")
+    (description
+     "This package provides an implementation of @code{OpenPGP's} web of trust.")
     (license license:lgpl2.0+)))
+
+(define-public sequoia-chameleon-gnupg
+  (package
+    (name "sequoia-chameleon-gnupg")
+    (version "0.12.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "sequoia-chameleon-gnupg" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "0ydb6wbyznr9p734p4jh896arcc45wi0b4isfjs6znwa40j3s66c"))))
+    (build-system cargo-build-system)
+    (arguments
+     (list
+       #:install-source? #f
+       #:features '(list "crypto-nettle")
+       #:cargo-test-flags
+       '(list "--"
+              ;; Some tests overly depend on specific versions of input crates.
+              "--skip=gpg::generate_key"
+              "--skip=gpg::list_keys"
+              "--skip=gpg::migrate::migration_from_secring"
+              "--skip=gpg::print_mds"
+              "--skip=gpg::quick::add_key_default_default_iso_date"
+              "--skip=gpg::quick::generate_key_default_default_iso_date"
+              "--skip=gpg::sign"
+              "--skip=gpg::verify")
+       #:cargo-inputs
+       (list rust-anyhow-1
+             rust-base64-0.21
+             rust-buffered-reader-1
+             rust-chrono-0.4
+             rust-clap-4
+             rust-clap-complete-4
+             rust-clap-mangen-0.2
+             rust-daemonize-0.5
+             rust-dirs-5
+             rust-fd-lock-4
+             rust-filetime-0.2
+             rust-futures-0.3
+             rust-indexmap-2
+             rust-interprocess-2
+             rust-libc-0.2
+             rust-memchr-2
+             rust-openssh-keys-0.6
+             rust-percent-encoding-2
+             rust-rand-0.8
+             rust-rand-distr-0.4
+             rust-rayon-1
+             rust-reqwest-0.12
+             rust-roff-0.2
+             rust-rpassword-7
+             rust-rusqlite-0.31
+             rust-sequoia-cert-store-0.6
+             rust-sequoia-gpg-agent-0.5
+             rust-sequoia-ipc-0.35
+             rust-sequoia-net-0.29
+             rust-sequoia-openpgp-1
+             rust-sequoia-policy-config-0.7
+             rust-sequoia-wot-0.13
+             rust-serde-1
+             rust-serde-json-1
+             rust-shellexpand-3
+             rust-tempfile-3
+             rust-thiserror-2
+             rust-tokio-1)
+       #:cargo-development-inputs
+       (list rust-anyhow-1
+             rust-bzip2-0.4
+             rust-diff-0.1
+             rust-editdistancek-1
+             rust-histo-1
+             rust-interprocess-2
+             rust-ntest-0.9
+             rust-pty-process-0.4
+             rust-regex-1
+             rust-reqwest-0.12
+             rust-serde-with-3
+             rust-stfu8-0.2
+             rust-tar-0.4
+             rust-tempfile-3)
+       #:phases
+       #~(modify-phases %standard-phases
+           (add-after 'unpack 'set-asset-out-dir
+             (lambda _
+               (setenv "ASSET_OUT_DIR" "target/assets")))
+           (add-after 'install 'install-more
+             (lambda* (#:key outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (share (string-append out "/share"))
+                      (bash-completions-dir
+                        (string-append out "/etc/bash_completion.d"))
+                      (zsh-completions-dir
+                        (string-append share "/zsh/site-functions"))
+                      (fish-completions-dir
+                        (string-append share "/fish/vendor_completions.d"))
+                      (elvish-completions-dir
+                        (string-append share "/elvish/lib"))
+                      (man1 (string-append share "/man/man1")))
+                 ;; The completions are generated in build.rs.
+                 (mkdir-p bash-completions-dir)
+                 (mkdir-p elvish-completions-dir)
+                 (for-each (lambda (file)
+                             (install-file file man1))
+                           (find-files "target/assets/man-pages" "\\.1$"))
+                 (copy-file "target/assets/shell-completions/gpg-sq.bash"
+                            (string-append bash-completions-dir "/gpg-sq"))
+                 (copy-file "target/assets/shell-completions/gpgv-sq.bash"
+                            (string-append bash-completions-dir "/gpgv-sq"))
+                 (copy-file "target/assets/shell-completions/gpg-sq.elv"
+                            (string-append elvish-completions-dir "/gpg-sq"))
+                 (copy-file "target/assets/shell-completions/gpgv-sq.elv"
+                            (string-append elvish-completions-dir "/gpgv-sq"))
+                 (install-file "target/assets/shell-completions/_gpg-sq"
+                               zsh-completions-dir)
+                 (install-file "target/assets/shell-completions/_gpgv-sq"
+                               zsh-completions-dir)
+                 (install-file "target/assets/shell-completions/gpg-sq.fish"
+                               fish-completions-dir)
+                 (install-file "target/assets/shell-completions/gpgv-sq.fish"
+                               fish-completions-dir)))))))
+    (inputs
+     (list nettle openssl sqlite))
+    (native-inputs
+     (list clang gnupg pkg-config sequoia-sq))
+    (home-page "https://sequoia-pgp.org/")
+    (synopsis "Sequoia's reimplementation of the GnuPG interface")
+    (description "This package provides Sequoia's reimplementation of the
+@code{GnuPG} interface.
+
+@code{gpg-sq} is Sequoia's alternative implementation of a tool following the
+GnuPG command line interface.  It provides a drop-in but not feature-complete
+replacement for the GnuPG project's @code{gpg}.
+
+This Guix package is built to use the nettle cryptographic library.")
+    (license license:gpl3+)))
 
 (define-public sequoia-sq
   (package
     (name "sequoia-sq")
-    (version "0.38.0")
+    (version "1.2.0")
     (source
      (origin
        (method url-fetch)
        (uri (crate-uri "sequoia-sq" version))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        (base32 "060dsh7ws9mwamc1jcp093j2g54sm9v5fy1mdhlw8kw2wybqybrj"))))
+        (base32 "0p3z6njzgffz8hrjnj3c1xk9fwfr8fjp81nmr03v8n2fspzyq6l7"))))
     (build-system cargo-build-system)
     (arguments
      `(#:install-source? #f
+       #:features '("crypto-nettle"
+                    "sequoia-keystore/gpg-agent"
+                    "sequoia-keystore/openpgp-card"
+                    "sequoia-keystore/softkeys")
        #:cargo-test-flags
-       (list "--release" "--"
+       (list "--"
              ;; The certificate has an expiration date.
              "--skip=sq_autocrypt_import")
        #:cargo-inputs
-       (("rust-anyhow" ,rust-anyhow-1)
+       (("rust-aho-corasick" ,rust-aho-corasick-1)
+        ("rust-anyhow" ,rust-anyhow-1)
         ("rust-buffered-reader" ,rust-buffered-reader-1)
         ("rust-cfg-if" ,rust-cfg-if-1)
         ("rust-chrono" ,rust-chrono-0.4)
         ("rust-clap" ,rust-clap-4)
         ("rust-clap-complete" ,rust-clap-complete-4)
+        ("rust-clap-lex" ,rust-clap-lex-0.7)
+        ("rust-culpa" ,rust-culpa-1)
         ("rust-dirs" ,rust-dirs-5)
+        ("rust-filetime" ,rust-filetime-0.2)
         ("rust-fs-extra" ,rust-fs-extra-1)
+        ("rust-futures-util" ,rust-futures-util-0.3)
+        ("rust-gethostname" ,rust-gethostname-0.4)
         ("rust-humantime" ,rust-humantime-2)
         ("rust-indicatif" ,rust-indicatif-0.17)
         ("rust-once-cell" ,rust-once-cell-1)
+        ("rust-regex" ,rust-regex-1)
+        ("rust-reqwest" ,rust-reqwest-0.12)
         ("rust-roff" ,rust-roff-0.2)
         ("rust-rpassword" ,rust-rpassword-7)
+        ("rust-rusqlite" ,rust-rusqlite-0.32)
         ("rust-sequoia-autocrypt" ,rust-sequoia-autocrypt-0.25)
         ("rust-sequoia-cert-store" ,rust-sequoia-cert-store-0.6)
         ("rust-sequoia-directories" ,rust-sequoia-directories-0.1)
+        ("rust-sequoia-ipc" ,rust-sequoia-ipc-0.35)
         ("rust-sequoia-keystore" ,rust-sequoia-keystore-0.6)
-        ("rust-sequoia-net" ,rust-sequoia-net-0.28)
+        ("rust-sequoia-net" ,rust-sequoia-net-0.29)
         ("rust-sequoia-openpgp" ,rust-sequoia-openpgp-1)
-        ("rust-sequoia-policy-config" ,rust-sequoia-policy-config-0.6)
-        ("rust-sequoia-wot" ,rust-sequoia-wot-0.12)
+        ("rust-sequoia-policy-config" ,rust-sequoia-policy-config-0.7)
+        ("rust-sequoia-wot" ,rust-sequoia-wot-0.13)
         ("rust-serde" ,rust-serde-1)
-        ("rust-subplot-build" ,rust-subplot-build-0.7)
-        ("rust-subplotlib" ,rust-subplotlib-0.7)
+        ("rust-subplot-build" ,rust-subplot-build-0.12)
+        ("rust-subplotlib" ,rust-subplotlib-0.12)
         ("rust-tempfile" ,rust-tempfile-3)
         ("rust-termcolor" ,rust-termcolor-1)
-        ("rust-terminal-size" ,rust-terminal-size-0.2)
-        ("rust-textwrap" ,rust-textwrap-0.15)
-        ("rust-thiserror" ,rust-thiserror-1)
-        ("rust-tokio" ,rust-tokio-1))
+        ("rust-terminal-size" ,rust-terminal-size-0.4)
+        ("rust-textwrap" ,rust-textwrap-0.16)
+        ("rust-thiserror" ,rust-thiserror-2)
+        ("rust-tokio" ,rust-tokio-1)
+        ("rust-toml-edit" ,rust-toml-edit-0.22)
+        ("rust-typenum" ,rust-typenum-1))
        #:cargo-development-inputs
        (("rust-assert-cmd" ,rust-assert-cmd-2)
-        ("rust-fehler" ,rust-fehler-1)
         ("rust-libc" ,rust-libc-0.2)
-        ("rust-predicates" ,rust-predicates-2)
+        ("rust-predicates" ,rust-predicates-3)
         ("rust-regex" ,rust-regex-1))
        #:phases
        (modify-phases %standard-phases
@@ -981,7 +1083,7 @@ rules are rather complex.  This crate implements the whole grammar." )
                (copy-file "target/assets/shell-completions/sq.elv"
                           (string-append elvish-completions-dir "/sq"))))))))
     (inputs
-     (list nettle openssl sqlite))
+     (list nettle openssl pcsc-lite sqlite))
     (native-inputs
      (list capnproto clang pkg-config))
     (home-page "https://sequoia-pgp.org/")
@@ -989,7 +1091,8 @@ rules are rather complex.  This crate implements the whole grammar." )
     (description "This package provides the command-line frontend for Sequoia
 OpenPGP.
 
-This Guix package is built to use the nettle cryptographic library.")
+This Guix package is built to use the nettle cryptographic library and the
+gpg-agent, openpgp-card and softkeys keystore backends.")
     (license license:lgpl2.0+)))
 
 (define-public sequoia-sqv
@@ -1062,15 +1165,48 @@ constraints on the signature into account.
 This Guix package is built to use the nettle cryptographic library.")
     (license license:lgpl2.0+)))
 
-(define-public sequoia-wot
+;; There hasn't been a release cut since the tools were split from the library
+;; so we use the 0.1.0 number from tools/Cargo.toml and the tag from the library.
+(define-public sequoia-wot-tools
   (package
-    (inherit rust-sequoia-wot-0.12)
-    (name "sequoia-wot")
+    (name "sequoia-wot-tools")
+    (version "0.1.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+              (url "https://gitlab.com/sequoia-pgp/sequoia-wot")
+              (commit "sequoia-wot/v0.13.2")))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0vvq2izz2088x9jvii1xj14z4hls948wn18wb53fpahyhx8kkbvx"))))
+    (build-system cargo-build-system)
     (arguments
-     (substitute-keyword-arguments (package-arguments rust-sequoia-wot-0.12)
-       ((#:install-source? _ #t) #f)
-       ((#:phases phases '%standard-phases)
-        `(modify-phases ,phases
+     (list
+       #:features '(list "sequoia-openpgp/crypto-nettle")
+       #:cargo-test-flags '(list "--" "--skip=gpg_trust_roots")
+       #:install-source? #f
+       #:cargo-inputs
+       (list rust-anyhow-1
+             rust-chrono-0.4
+             rust-clap-4
+             rust-clap-complete-4
+             rust-clap-mangen-0.2
+             rust-dot-writer-0.1
+             rust-enumber-0.3
+             rust-sequoia-cert-store-0.6
+             rust-sequoia-openpgp-1
+             rust-sequoia-policy-config-0.7)
+       #:cargo-development-inputs
+       (list rust-assert-cmd-2
+             rust-predicates-3
+             rust-tempfile-3)
+       #:phases
+       #~(modify-phases %standard-phases
+           (add-after 'unpack 'chdir
+             (lambda _
+               (delete-file "Cargo.lock")
+               (chdir "tools")))
            (add-after 'install 'install-more
              (lambda* (#:key outputs #:allow-other-keys)
                (let* ((out   (assoc-ref outputs "out"))
@@ -1091,17 +1227,25 @@ This Guix package is built to use the nettle cryptographic library.")
                             (string-append share "/elvish/lib/sq-wot"))
                  (install-file (car (find-files "target/release" "_sq-wot"))
                                (string-append
-                                 share "/zsh/site-functions")))))))))
-    (description "An implementation of OpenPGP's web of trust.
+                                 share "/zsh/site-functions"))))))))
+    (inputs
+     (list nettle openssl sqlite))
+    (native-inputs
+     (list clang pkg-config))
+    (home-page "https://sequoia-pgp.org/")
+    (synopsis "Implementation of OpenPGP's web of trust")
+    (description
+     "This package provides an implementation of @code{OpenPGP's} web of trust.
 
-This Guix package is built to use the nettle cryptographic library.")))
+This Guix package is built to use the nettle cryptographic library.")
+    (license license:lgpl2.0+)))
 
 ;;
 
 (define-public sequoia
   (package
     (name "sequoia")
-    (version "1.21.2")
+    (version "1.22.0")
     (source #f)
     (build-system trivial-build-system)
     (arguments
@@ -1132,7 +1276,7 @@ This Guix package is built to use the nettle cryptographic library.")))
      (list ;glibc ;; for ldconfig in make-dynamic-linker-cache
            sequoia-sq
            sequoia-sqv
-           sequoia-wot))
+           sequoia-wot-tools))
     (home-page "https://sequoia-pgp.org")
     (synopsis "New OpenPGP implementation (meta-package)")
     (description "Sequoia is a new OpenPGP implementation, written in Rust,

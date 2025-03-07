@@ -17,7 +17,7 @@
 ;;; Copyright © 2019 Alex Griffin <a@ajgrf.com>
 ;;; Copyright © 2019 Ben Sturmfels <ben@sturm.com.au>
 ;;; Copyright © 2019,2020 Hartmut Goebel <h.goebel@crazy-compilers.com>
-;;; Copyright © 2020-2024 Nicolas Goaziou <mail@nicolasgoaziou.fr>
+;;; Copyright © 2020-2025 Nicolas Goaziou <mail@nicolasgoaziou.fr>
 ;;; Copyright © 2020, 2022 Michael Rohleder <mike@rohleder.de>
 ;;; Copyright © 2020, 2024 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2020, 2022, 2023, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
@@ -124,7 +124,7 @@
 (define-public capypdf
   (package
     (name "capypdf")
-    (version "0.8.0")
+    (version "0.14.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -132,35 +132,26 @@
                     (commit version)))
               (file-name (git-file-name name version))
               (sha256
-               (base32 "0kp1dcww5zl04wnbqbi8vjzpc5qgr8gr8rcx0s6s4xbjnzvqqw8d"))))
+               (base32 "05rpicxw76z4q48ax0dx5rm1k4lhp4lbdr2aw58kly402w8kjdwb"))))
     (build-system meson-build-system)
     (arguments
      (list #:configure-flags #~(list "-Dcpp_std=c++23")
-           #:test-options '(list "plainc")
-           #:phases
-           #~(modify-phases %standard-phases
-               (add-after 'unpack 'fix-glib-application-flags
-                 (lambda _
-                   ;; XXX: remove when bumping glib
-                   (substitute* "src/pdfviewer.cpp"
-                     (("G_APPLICATION_DEFAULT_FLAGS")
-                      "G_APPLICATION_FLAGS_NONE")))))))
-    (inputs (list fmt
-                  freetype
+           #:test-options '(list "plainc")))
+    (inputs (list freetype
                   gtk
                   lcms
                   libjpeg-turbo
                   libpng
                   zlib))
     (native-inputs (list font-google-noto
-                         gcc-12
+                         gcc-14         ; for std::format
                          ghostscript
                          pkg-config
                          python
                          python-pillow))
     (home-page "https://github.com/jpakkane/a4pdf")
     (synopsis "Color-managed PDF generator")
-    (description "A4PDF is a low-level libray for generating PDF files.
+    (description "A4PDF is a low-level library for generating PDF files.
 It does not have a document model and instead uses PDF primitives
 directly.  It uses LittleCMS for color management but otherwise does not
 convert data in any way.")
@@ -184,10 +175,10 @@ convert data in any way.")
                 (sha256
                  (base32
                   "1vwgv28b291lrcs9fljnlbnicv16lwj4vvl4bz6w3ldp9n5isjmf"))))
-      (build-system cmake-build-system)
+      (build-system qt-build-system)
       (arguments
        `(#:tests? #f))
-      (inputs (list qtbase-5 qttools-5 poppler-qt5))
+      (inputs (list qtbase-5 qttools-5 qtwayland-5 poppler-qt5))
       (native-inputs (list pkg-config extra-cmake-modules))
       (home-page "http://www.qtrac.eu/diffpdf-foss.html")
       (synopsis "Compare two PDF files")
@@ -831,14 +822,14 @@ and based on PDF specification 1.7.")
 (define-public mupdf
   (package
     (name "mupdf")
-    (version "1.24.7")
+    (version "1.25.2")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://mupdf.com/downloads/archive/"
                            "mupdf-" version "-source.tar.lz"))
        (sha256
-        (base32 "0hydmp8sdnkrkpqyysa6klkxbwv9awf1xc753r27gcj7ds7375fj"))
+        (base32 "0lg45wp3ici2g2i49fmwa1k32bgkqqgl51nxnqqk0i8ilmdh8hnx"))
        (modules '((guix build utils)
                   (ice-9 ftw)
                   (srfi srfi-1)))
@@ -913,6 +904,31 @@ line tools for batch rendering @command{pdfdraw}, rewriting files
                    license:x11          ;thirdparty/lcms2
                    license:silofl1.1    ;resources/fonts/{han,noto,sil,urw}
                    license:asl2.0)))) ; resources/fonts/droid
+
+(define-public mupdf-1.24 ; Needed for sioyek
+  (package
+    (inherit mupdf)
+    (name "mupdf")
+    (version "1.24.7")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://mupdf.com/downloads/archive/"
+                           "mupdf-" version "-source.tar.lz"))
+       (sha256
+        (base32 "0hydmp8sdnkrkpqyysa6klkxbwv9awf1xc753r27gcj7ds7375fj"))
+       (modules '((guix build utils)
+                  (ice-9 ftw)
+                  (srfi srfi-1)))
+       (snippet
+        ;; Remove bundled software.  Keep patched variants.
+        #~(with-directory-excursion "thirdparty"
+            (let ((keep '("README" "extract" "freeglut" "lcms2")))
+              (for-each delete-file-recursively
+                        (lset-difference string=?
+                                         (scandir ".")
+                                         (cons* "." ".." keep))))))))))
+
 
 (define-public qpdf
   (package
@@ -1039,7 +1055,7 @@ using a stylus.")
 (define-public xournalpp
   (package
     (name "xournalpp")
-    (version "1.2.5")
+    (version "1.2.6")
     (source
      (origin
        (method git-fetch)
@@ -1048,7 +1064,7 @@ using a stylus.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1clh9hqdzmdlcjah60j7r7kgbpvf86amfqm3hcipqfhba46wsv8y"))))
+        (base32 "1wsks4wwv4d6y2drd64c0p8986l5sv09pnlvpd7hl4asszxmybjm"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -1074,6 +1090,9 @@ using a stylus.")
               (invoke "cmake" "--build" "." "--target" "test-units")))
           (add-after 'install 'glib-or-gtk-wrap
             (assoc-ref glib-or-gtk:%standard-phases 'glib-or-gtk-wrap))
+          (add-after 'unpack 'generate-gdk-pixbuf-loaders-cache-file
+            (assoc-ref glib-or-gtk:%standard-phases
+                       'generate-gdk-pixbuf-loaders-cache-file))
           (add-after 'glib-or-gtk-wrap 'wrap-gdk-pixbuf
             ;; This phase is necessary for xournalpp to load SVG icons.
             (lambda _
@@ -1116,7 +1135,7 @@ selected)
 @item Eraser with multiple configurations
 @item LaTeX support
 @item bug reporting, autosave, and auto backup tools
-@item Customizeable toolbar, with multiple configurations, e.g., to
+@item Customizable toolbar, with multiple configurations, e.g., to
 optimize toolbar for portrait / landscape
 @item Page Template definitions
 @item Shape drawing (line, arrow, circle, rectangle)
@@ -1733,11 +1752,12 @@ Keywords: html2pdf, htmltopdf")
        ;; XXX: Fix build with mupdf-0.23.0+.
        ;; See also: https://github.com/ahrm/sioyek/issues/804
        (patches (search-patches "sioyek-fix-build.patch"))))
-    (build-system gnu-build-system)
+    (build-system qt-build-system)
     (arguments
      (list
       #:configure-flags
       #~(list (string-append "PREFIX=" #$output))
+      #:test-target "check"
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'patch-paths
@@ -1761,10 +1781,11 @@ Keywords: html2pdf, htmltopdf")
            jbig2dec
            libjpeg-turbo
            mujs
-           mupdf
+           mupdf-1.24
            openjpeg
            qt3d-5
            qtbase-5
+           qtwayland-5
            zlib))
     (home-page "https://sioyek.info/")
     (synopsis "PDF viewer with a focus on technical books and research papers")

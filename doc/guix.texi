@@ -22,14 +22,14 @@
 @set SUBSTITUTE-URLS https://@value{SUBSTITUTE-SERVER-1} https://@value{SUBSTITUTE-SERVER-2}
 
 @copying
-Copyright @copyright{} 2012-2024 Ludovic Courtès@*
+Copyright @copyright{} 2012--2025 Ludovic Courtès@*
 Copyright @copyright{} 2013, 2014, 2016, 2024 Andreas Enge@*
 Copyright @copyright{} 2013 Nikita Karetnikov@*
 Copyright @copyright{} 2014, 2015, 2016 Alex Kost@*
 Copyright @copyright{} 2015, 2016 Mathieu Lirzin@*
 Copyright @copyright{} 2014 Pierre-Antoine Rault@*
 Copyright @copyright{} 2015 Taylan Ulrich Bayırlı/Kammer@*
-Copyright @copyright{} 2015, 2016, 2017, 2019, 2020, 2021, 2023 Leo Famulari@*
+Copyright @copyright{} 2015, 2016, 2017, 2019, 2020, 2021, 2023, 2025 Leo Famulari@*
 Copyright @copyright{} 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Ricardo Wurmus@*
 Copyright @copyright{} 2016 Ben Woodcroft@*
 Copyright @copyright{} 2016, 2017, 2018, 2021 Chris Marusich@*
@@ -43,7 +43,7 @@ Copyright @copyright{} 2016, 2017, 2018, 2019, 2020, 2021 Christopher Baines@*
 Copyright @copyright{} 2017, 2018, 2019 Clément Lassieur@*
 Copyright @copyright{} 2017, 2018, 2020, 2021, 2022 Mathieu Othacehe@*
 Copyright @copyright{} 2017 Federico Beffa@*
-Copyright @copyright{} 2017, 2018, 2024 Carlo Zancanaro@*
+Copyright @copyright{} 2017, 2018, 2024, 2025 Carlo Zancanaro@*
 Copyright @copyright{} 2017 Thomas Danckaert@*
 Copyright @copyright{} 2017 humanitiesNerd@*
 Copyright @copyright{} 2017, 2021 Christine Lemmer-Webber@*
@@ -53,7 +53,7 @@ Copyright @copyright{} 2017, 2019, 2020, 2021, 2022, 2023, 2024 Maxim Cournoyer@
 Copyright @copyright{} 2017–2022 Tobias Geerinckx-Rice@*
 Copyright @copyright{} 2017 George Clemmer@*
 Copyright @copyright{} 2017 Andy Wingo@*
-Copyright @copyright{} 2017, 2018, 2019, 2020, 2023, 2024 Arun Isaac@*
+Copyright @copyright{} 2017, 2018, 2019, 2020, 2023, 2024, 2025 Arun Isaac@*
 Copyright @copyright{} 2017 nee@*
 Copyright @copyright{} 2018 Rutger Helling@*
 Copyright @copyright{} 2018, 2021, 2023 Oleg Pykhalov@*
@@ -111,20 +111,20 @@ Copyright @copyright{} 2022 (@*
 Copyright @copyright{} 2022 John Kehayias@*
 Copyright @copyright{} 2022⁠–⁠2023 Bruno Victal@*
 Copyright @copyright{} 2022 Ivan Vilata-i-Balaguer@*
-Copyright @copyright{} 2023-2024 Giacomo Leidi@*
+Copyright @copyright{} 2023-2025 Giacomo Leidi@*
 Copyright @copyright{} 2022 Antero Mejr@*
 Copyright @copyright{} 2023 Karl Hallsby@*
 Copyright @copyright{} 2023 Nathaniel Nicandro@*
 Copyright @copyright{} 2023 Tanguy Le Carrour@*
-Copyright @copyright{} 2023, 2024 Zheng Junjie@*
+Copyright @copyright{} 2023-2024 Zheng Junjie@*
 Copyright @copyright{} 2023 Brian Cully@*
 Copyright @copyright{} 2023 Felix Lechner@*
 Copyright @copyright{} 2023 Foundation Devices, Inc.@*
 Copyright @copyright{} 2023 Thomas Ieong@*
 Copyright @copyright{} 2023 Saku Laesvuori@*
 Copyright @copyright{} 2023 Graham James Addis@*
-Copyright @copyright{} 2023, 2024 Tomas Volf@*
-Copyright @copyright{} 2024 Herman Rimm@*
+Copyright @copyright{} 2023-2025 Tomas Volf@*
+Copyright @copyright{} 2024, 2025 Herman Rimm@*
 Copyright @copyright{} 2024 Matthew Trzcinski@*
 Copyright @copyright{} 2024 Richard Sent@*
 Copyright @copyright{} 2024 Dariqq@*
@@ -134,6 +134,10 @@ Copyright @copyright{} 2024 Arnaud Daby-Seesaram@*
 Copyright @copyright{} 2024 Nigko Yerden@*
 Copyright @copyright{} 2024 Troy Figiel@*
 Copyright @copyright{} 2024 Sharlatan Hellseher@*
+Copyright @copyright{} 2024 45mg@*
+Copyright @copyright{} 2025 Sören Tempel@*
+Copyright @copyright{} 2025 Rostislav Svoboda@*
+Copyright @copyright{} 2025 Zacchaeus@*
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -393,7 +397,7 @@ Services
 
 * Base Services::               Essential system services.
 * Scheduled Job Execution::     The mcron service.
-* Log Rotation::                The rottlog service.
+* Log Rotation::                Archiving and deleting old logs.
 * Networking Setup::            Setting up network interfaces.
 * Networking Services::         Firewall, SSH daemon, etc.
 * Unattended Upgrades::         Automated system upgrades.
@@ -418,7 +422,7 @@ Services
 * Network File System::         NFS related services.
 * Samba Services::              Samba services.
 * Continuous Integration::      Cuirass and Laminar services.
-* Power Management Services::   Extending battery life.
+* Power Management Services::   Extending battery life, etc.
 * Audio Services::              The MPD.
 * Virtualization Services::     Virtualization services.
 * Version Control Services::    Providing remote access to Git repositories.
@@ -2592,8 +2596,9 @@ unless your configuration specifies otherwise
 @node After System Installation
 @section After System Installation
 
-Success, you've now booted into Guix System!  You can upgrade the system
-whenever you want by running:
+Success, you've now booted into Guix System!  Login to the system using
+the non-@code{root} user that you created during installation.  You can
+upgrade the system whenever you want by running:
 
 @example
 guix pull
@@ -3976,7 +3981,14 @@ finding out about non-deterministic package builds (@pxref{Invoking guix
 challenge}).  Similarly, the @option{--check} option of @command{guix
 build} allows users to check whether previously-installed substitutes
 are genuine by rebuilding them locally (@pxref{build-check,
-@command{guix build --check}}).
+@command{guix build --check}}).  To force a full rebuild of a package
+(ignoring security updates via grafts (@pxref{Security Updates}), if any
+grafts exist—which is not always the case), use @option{--check}
+together with @option{--no-grafts} (@pxref{Common Build Options,
+@option{--no-grafts}}).  Because grafts are built as their own
+derivation, if the package you want to rebuild is subject to being
+grafted, merely using @option{--check} will only rebuild the grafting
+derivation, and not actually recompile the package.
 
 In the future, we want Guix to have support to publish and retrieve
 binaries to/from other users, in a peer-to-peer fashion.  If you would
@@ -4642,6 +4654,14 @@ instructs it to not perform any such verification.
 Make sure you understand its security implications before using
 @option{--disable-authentication}.
 @end quotation
+
+@item --no-check-certificate
+Do not validate the X.509 certificates of HTTPS servers.
+
+When using this option, you have @emph{absolutely no guarantee} that you
+are communicating with the authentic server responsible for the given
+URL.  Unless the channel is authenticated, this makes you vulnerable to
+``man-in-the-middle'' attacks.
 
 @item --system=@var{system}
 @itemx -s @var{system}
@@ -10181,17 +10201,30 @@ build system (@command{zig build} command).
 Selecting this build system adds @code{zig} to the package inputs, in
 addition to the packages of @code{gnu-build-system}.
 
-There is no @code{configure} phase because Zig packages typically do not
-need to be configured.  The @code{#:zig-build-flags} parameter is a list of
-flags that are passed to the @code{zig} command during the build.  The
-@code{#:zig-test-flags} parameter is a list of flags that are passed to the
-@code{zig test} command during the @code{check} phase.  The default compiler
-package can be overridden with the @code{#:zig} argument.
+This build system by default installs package source to output.  This
+behavior can be disabled by setting @code{#:install-source?} parameter
+to @code{#f}.
 
-The optional @code{zig-release-type} parameter declares the type of release.
-Possible values are: @code{safe}, @code{fast}, or @code{small}. The default
-value is @code{#f}, which causes the release flag to be omitted from the
-@code{zig} command.  That results in a @code{debug} build.
+For packages that don't install anything and don't come with a test
+suite (likely library packages to be used by other Zig packages), you
+can set @code{#:skip-build?} parameter to @code{#t}, which skips
+@code{build} and @code{check} phases.
+
+The @code{configure} phase sets up environment for @command{zig build}.
+You need to add custom phases after it if you want to invoke
+@command{zig}.
+
+The @code{#:zig-build-flags} parameter is a list of flags that are
+passed to @command{zig build} in @code{build} phase.  The
+@code{#:zig-test-flags} parameter is a list of flags that are passed to
+@command{zig build test} in @code{check} phase.  The default compiler
+package can be overridden with the @code{#:zig} parameter.
+
+The optional @code{#:zig-release-type} parameter declares the type of
+release.  Possible values are: @code{"safe"}, @code{"fast"}, or
+@code{"small"}.  The default value is @code{#f}, which causes the
+release flag to be omitted from the @code{zig} command and results in a
+@code{"debug"} build.
 @end defvar
 
 @defvar scons-build-system
@@ -14656,6 +14689,10 @@ imported as well.
 @item --allow-yanked
 If no non-yanked version of a crate is available, use the latest yanked
 version instead instead of aborting.
+@item --mark-missing
+If a crate dependency is not (yet) packaged, make the corresponding
+input in @code{#:cargo-inputs} or @code{#:cargo-development-inputs} into
+a comment.
 @end table
 
 @item elm
@@ -14938,6 +14975,7 @@ gnu/packages/guile.scm:147:2: guile: updating from version 2.0.10 to version 2.0
 @dots{}
 @end example
 
+@cindex target version, guix refresh
 In some specific cases, you may have many packages specified via a
 manifest or a module selection which should all be updated together; for
 these cases, the @option{--target-version} option can be provided to have
@@ -14956,6 +14994,17 @@ gnu/packages/qt.scm:1202:13: qtdeclarative would be upgraded from 5.15.8 to 5.15
 gnu/packages/qt.scm:1762:13: qtserialbus would be upgraded from 5.15.8 to 5.15.10
 gnu/packages/qt.scm:2070:13: qtquickcontrols2 would be upgraded from 5.15.8 to 5.15.10
 @dots{}
+@end example
+
+@cindex partial target version, guix refresh
+The @option{--target-version} option accepts partial version prefixes,
+which can be useful to update to the latest major or major-minor
+prefixed version:
+
+@example
+$ guix refresh qtbase@@5 qtdeclarative@@5 --target-version=5
+gnu/packages/qt.scm:1472:13: qtdeclarative would be upgraded from 5.15.8 to 5.15.10
+gnu/packages/qt.scm:452:13: qtbase would be upgraded from 5.15.8 to 5.15.10
 @end example
 
 Sometimes the upstream name differs from the package name used in Guix,
@@ -15298,7 +15347,12 @@ Never try to download missing OpenPGP keys.  Instead just bail out.
 
 @item interactive
 When a package signed with an unknown OpenPGP key is encountered, ask
-the user whether to download it or not.  This is the default behavior.
+the user whether to download it or not.
+
+@item auto
+Automatically selects the @code{interactive} policy when the standard
+input is connected to a pseudo terminal (TTY), else @code{always}.  This
+is the default behavior.
 @end table
 
 @item --key-server=@var{host}
@@ -17021,6 +17075,7 @@ The available targets are:
    - i586-pc-gnu
    - i686-linux-gnu
    - i686-w64-mingw32
+   - loongarch64-linux-gnu
    - mips64el-linux-gnu
    - or1k-elf
    - powerpc-linux-gnu
@@ -19207,7 +19262,7 @@ declaration.
 @menu
 * Base Services::               Essential system services.
 * Scheduled Job Execution::     The mcron service.
-* Log Rotation::                The rottlog service.
+* Log Rotation::                Archiving and deleting old logs.
 * Networking Setup::            Setting up network interfaces.
 * Networking Services::         Firewall, SSH daemon, etc.
 * Unattended Upgrades::         Automated system upgrades.
@@ -19232,7 +19287,7 @@ declaration.
 * Network File System::         NFS related services.
 * Samba Services::              Samba services.
 * Continuous Integration::      Cuirass and Laminar services.
-* Power Management Services::   Extending battery life.
+* Power Management Services::   Extending battery life, etc.
 * Audio Services::              The MPD.
 * Virtualization Services::     Virtualization services.
 * Version Control Services::    Providing remote access to Git repositories.
@@ -19843,11 +19898,17 @@ privacy---often the result of host name lookups is in local cache, so
 external name servers do not even need to be queried.
 @end defvar
 
-@cindex syslog
-@cindex logging
+@cindex syslog, with external syslogd
+@cindex logging, syslog
 @defvar syslog-service-type
-Type of the service that runs the syslog daemon, whose value is a
-@code{<syslog-configuration>} object.
+Type of the service that runs the syslog daemon (@command{syslogd}),
+whose value is a @code{<syslog-configuration>} object (see below).
+
+@quotation Note
+This service is redundant with and for the most part superseded by
+@code{shepherd-system-log-service-type} (@pxref{shepherd-system-log, the
+Shepherd system log}).
+@end quotation
 @end defvar
 
 To have a modified @code{syslog-configuration} come into effect after
@@ -19901,6 +19962,13 @@ Name of the group for build user accounts.
 
 @item @code{build-accounts} (default: @code{10})
 Number of build user accounts to create.
+
+@item @code{chroot?} (default: @code{'default})
+The value should be one of @code{#t} or @code{#f}, in which
+case chroot is enabled or disabled, respectively;
+or it should be @code{'default}, which amounts to @code{#f} in
+Docker containers (so that they can be run in non-privileged mode)
+or @code{#t} otherwise.
 
 @item @code{authorize-key?} (default: @code{#t})
 @cindex substitutes, authorization thereof
@@ -20488,13 +20556,21 @@ Here is an example of switching from @code{mingetty-service-type} to
                  (terminal-vt "2")
                  (default-session-command
                    (greetd-agreety-session
-                    (extra-env '(("MY_VAR" . "1")))
-                    (xdg-env? #f))))
+                    (command
+                     (greetd-user-session
+                      (extra-env '(("MY_VAR" . "1")))
+                      (xdg-env? #f))))))
                 ;; we can use different shell instead of default bash
                 (greetd-terminal-configuration
                  (terminal-vt "3")
                  (default-session-command
-                   (greetd-agreety-session (command (file-append zsh "/bin/zsh")))))
+                   (greetd-agreety-session
+                    (command
+                     (greetd-user-session
+                      (command (file-append zsh "/bin/zsh"))
+                      (command-args '("-l"))
+                      (extra-env '(("MY_VAR" . "1")))
+                      (xdg-env? #f))))))
                 ;; we can use any other executable command as greeter
                 (greetd-terminal-configuration
                  (terminal-vt "4")
@@ -20539,6 +20615,12 @@ Configuration record for per terminal greetd daemon service.
 @item @code{greetd} (default: @code{greetd})
 The greetd package to use.
 
+@item @code{extra-shepherd-requirement} (default: @code{'()})
+This option can be used to provide a list of @emph{additional} symbols
+naming Shepherd services that this service will depend on, such as
+@code{'seatd} or @code{'elogind} when the terminal session is a
+graphical greeter.
+
 @item @code{config-file-name}
 Configuration file name to use for greetd daemon. Generally, autogenerated
 derivation based on @code{terminal-vt} value.
@@ -20562,8 +20644,41 @@ exist.
 The user to use for running the greeter.
 
 @item @code{default-session-command} (default: @code{(greetd-agreety-session)})
-Can be either instance of @code{greetd-agreety-session} configuration or
-@code{gexp->script} like object to use as greeter.
+Can be either @code{greetd-agreety-session},
+@code{greetd-wlgreet-sway-session}, @code{greetd-gtkgreet-sway-session}
+or a file-like object to use as greeter.
+
+@end table
+@end deftp
+
+@deftp {Data Type} greetd-user-session
+Configuration record for the user session command.  Greeters require the
+user command to be specified in some or another way.
+@code{greetd-user-session} provides a common command for that.  Users
+should prefer POSIX shell commands like @command{bash}, which can start
+an actual user terminal shell, window manager or desktop environment
+with their own mechanism, for example via @file{~/.bashrc} in the case
+of Bash.
+
+@table @asis
+@item @code{command} (default: @code{(file-append bash "/bin/bash")})
+Command to be started by @command{agreety} on successful login.
+
+@item @code{command-args} (default: @code{'("-l")})
+Command arguments to pass to command.
+
+@item @code{extra-env} (default: @code{'()})
+Extra environment variables to set on login.
+
+@item @code{xdg-session-type} (default: @code{"tty"})
+Specify the value of @code{XDG_SESSION_TYPE}.  The user environment may
+adapt depending on its value (normally by using @file{.bashrc} or
+similar).
+
+@item @code{xdg-env?} (default: @code{#t})
+If true @code{XDG_RUNTIME_DIR} and @code{XDG_SESSION_TYPE} will be set
+before starting command.  One should note that, @code{extra-env} variables
+are set right after mentioned variables, so that they can be overridden.
 
 @end table
 @end deftp
@@ -20573,38 +20688,19 @@ Configuration record for the agreety greetd greeter.
 
 @table @asis
 @item @code{agreety} (default: @code{greetd})
-The package with @command{/bin/agreety} command.
+The package providing the @command{agreety} command.
 
-@item @code{command} (default: @code{(file-append bash "/bin/bash")})
-Command to be started by @command{/bin/agreety} on successful login.
-
-@item @code{command-args} (default: @code{'("-l")})
-Command arguments to pass to command.
-
-@item @code{extra-env} (default: @code{'()})
-Extra environment variables to set on login.
-
-@item @code{xdg-env?} (default: @code{#t})
-If true @code{XDG_RUNTIME_DIR} and @code{XDG_SESSION_TYPE} will be set
-before starting command. One should note that, @code{extra-env} variables
-are set right after mentioned variables, so that they can be overridden.
+@item @code{command} (default: @code{(greetd-user-session)})
+Command to be started by @command{agreety} on successful login, an
+instance of @code{greetd-user-session}.
 
 @end table
 @end deftp
 
-@deftp {Data Type} greetd-wlgreet-session
+@deftp {Data Type} greetd-wlgreet-configuration
 Generic configuration record for the wlgreet greetd greeter.
 
 @table @asis
-@item @code{wlgreet} (default: @code{wlgreet})
-The package with the @command{/bin/wlgreet} command.
-
-@item @code{command} (default: @code{(file-append sway "/bin/sway")})
-Command to be started by @command{/bin/wlgreet} on successful login.
-
-@item @code{command-args} (default: @code{'()})
-Command arguments to pass to command.
-
 @item @code{output-mode} (default: @code{"all"})
 Option to use for @code{outputMode} in the TOML configuration file.
 
@@ -20626,9 +20722,6 @@ RGBA list to use as the error colour of the UI popup.
 @item @code{border} (default: @code{'(1 1 1 1)})
 RGBA list to use as the border colour of the UI popup.
 
-@item @code{extra-env} (default: @code{'()})
-Extra environment variables to set on login.
-
 @end table
 @end deftp
 
@@ -20641,11 +20734,22 @@ A @code{greetd-wlgreet-session} record for generic wlgreet configuration,
 on top of the Sway-specific @code{greetd-wlgreet-sway-session}.
 
 @item @code{sway} (default: @code{sway})
-The package providing the @command{/bin/sway} command.
+The package providing the @command{sway} command.
 
 @item @code{sway-configuration} (default: #f)
 File-like object providing an additional Sway configuration file to be
 prepended to the mandatory part of the configuration.
+
+@item @code{wlgreet} (default: @code{wlgreet})
+The package providing the @command{wlgreet} command.
+
+@item @code{wlgreet-configuration} (default: @code{(greetd-wlgreet-configuration)})
+Configuration of @code{wlgreet} represented
+by @code{greetd-wlgreet-configuration}.
+
+@item @code{command} (default: @code{(greetd-user-session)})
+Command to be started by @command{wlgreet} on successful login, an
+instance of @code{greetd-user-session}.
 
 @end table
 
@@ -20653,18 +20757,64 @@ Here is an example of a greetd configuration that uses wlgreet and Sway:
 
 @lisp
   (greetd-configuration
-   ;; We need to give the greeter user these permissions, otherwise
-   ;; Sway will crash on launch.
+   ;; The graphical greeter requires additional group membership.
    (greeter-supplementary-groups (list "video" "input" "seat"))
    (terminals
     (list (greetd-terminal-configuration
+           ;; Sway requires seatd service.
+           (extra-shepherd-requirement '(seatd))
            (terminal-vt "1")
            (terminal-switch #t)
            (default-session-command
             (greetd-wlgreet-sway-session
              (sway-configuration
+              ;; Optional extra sway configuration.
               (local-file "sway-greetd.conf"))))))))
 @end lisp
+@end deftp
+
+@deftp {Data Type} greetd-gtkgreet-sway-session
+Configuration record for the gtkgreet greetd greeter.  It can be used as
+follows:
+
+@lisp
+  (greetd-configuration
+   ;; The graphical greeter requires additional groups membership.
+   (greeter-supplementary-groups (list "video" "input" "seat"))
+   (terminals
+    (list (greetd-terminal-configuration
+           ;; Sway requires the seatd service.
+           (extra-shepherd-requirement '(seatd))
+           (terminal-vt "1")
+           (terminal-switch #t)
+           (default-session-command
+            (greetd-gtkgreet-sway-session
+             (command
+              (greetd-user-session
+               ;; Optionally signal to .bashrc that we want the Wayland
+               ;; compositor.
+               (xdg-session-type "wayland")))))))))
+@end lisp
+
+@table @asis
+@item @code{sway} (default: @code{sway})
+The package providing the @command{sway} and @command{swaymsg} commands.
+
+@item @code{sway-configuration} (default: @code{#f})
+Extra file-like configuration for sway to be included before executing
+the greeter.
+
+@item @code{gtkgreet} (default: @code{gtkgreet})
+The package providing the @command{gtkgreet} command.
+
+@item @code{gtkgreet-style} (default: @code{#f})
+Extra file-like CSS stylesheet to customize the GTK look.
+
+@item @code{command} (default: @code{(greetd-user-session)})
+The command to be started by @command{gtkgreet} on successful login, an
+instance of @code{greetd-user-session}.
+
+@end table
 @end deftp
 
 @node Scheduled Job Execution
@@ -20850,11 +21000,94 @@ is also prefixed by a timestamp by GNU Shepherd.
 Log files such as those found in @file{/var/log} tend to grow endlessly,
 so it's a good idea to @dfn{rotate} them once in a while---i.e., archive
 their contents in separate files, possibly compressed.  The @code{(gnu
-services admin)} module provides an interface to GNU@tie{}Rot[t]log, a
-log rotation tool (@pxref{Top,,, rottlog, GNU Rot[t]log Manual}).
+services admin)} module provides an interface to the log rotation
+service provided by the Shepherd (@pxref{Log Rotation Service,,,
+shepherd, The GNU Shepherd Manual}).
+
+This log rotation service is made available through
+@code{log-rotation-service-type}, which takes a
+@code{log-rotation-configuration} record as its value.  By default,
+this provides @code{log-rotation}, a Shepherd ``timed service'' that
+runs periodically---once a week by default.  It automatically knows
+about the log files produced by Shepherd services and can be taught
+about external log files.  You can inspect the service and see when it's
+going to run the usual way:
+
+@example
+$ sudo herd status log-rotation
+Status of log-rotation:
+  It is running since Mon 09 Dec 2024 03:27:47 PM CET (2 days ago).
+  @dots{}
+
+Upcoming timer alarms:
+  Sun 15 Dec 2024 10:00:00 PM CET (in 4 days)
+  Sun 22 Dec 2024 10:00:00 PM CET (in 11 days)
+  Sun 29 Dec 2024 10:00:00 PM CET (in 18 days)
+@end example
+
+You can also list files subject to rotation with @command{herd files
+log-rotation} and trigger rotation manually with @command{herd trigger
+log-rotation}.
 
 This service is part of @code{%base-services}, and thus enabled by
-default, with the default settings, for commonly encountered log files.
+default, with the default settings.
+
+@defvar log-rotation-service-type
+This is the type of the log rotation service.  Its associated value must
+be a @code{log-rotation-configuration} record, as discussed below.
+@end defvar
+
+@anchor{log-rotation-configuration}
+@c %start of fragment
+
+@deftp {Data Type} log-rotation-configuration
+Available @code{log-rotation-configuration} fields are:
+
+@table @asis
+@item @code{provision} (default: @code{'(log-rotation)}) (type: list-of-symbols)
+The name(s) of the log rotation Shepherd service.
+
+@item @code{requirement} (default: @code{'(user-processes)}) (type: list-of-symbols)
+Dependencies of the log rotation Shepherd service.
+
+@item @code{calendar-event} (type: gexp)
+Gexp containing the @dfn{calendar event} when log rotation occurs.
+@xref{Timers,,,shepherd,The GNU Shepherd Manual}, for more information
+on calendar events.
+
+@item @code{external-log-files} (default: @code{()}) (type: list-of-strings)
+List of file names, external log files that should also be rotated.
+
+@item @code{compression} (default: @code{zstd}) (type: symbol)
+The compression method used for rotated log files, one of @code{'none},
+@code{'gzip}, and @code{'zstd}.
+
+@item @code{expiry} (type: gexp-or-integer)
+Age in seconds after which a log file is deleted.
+
+@item @code{size-threshold} (type: gexp-or-integer)
+Size in bytes below which a log file is @emph{not} rotated.
+
+@end table
+
+@end deftp
+
+
+@c %end of fragment
+
+@subheading Rottlog
+
+An alternative log rotation service relying on GNU@tie{}Rot[t]log, a log
+rotation tool (@pxref{Top,,, rottlog, GNU Rot[t]log Manual}), is also
+provided.
+
+@quotation Warning
+The Rottlog service presented here is deprecated in favor of
+@code{log-rotation-service-type} (see above).  The
+@code{rottlog-service-type} variable and related tools will be removed
+after 2025-06-15.
+@end quotation
+
 The example below shows how to extend it with an additional
 @dfn{rotation}, should you need to do that (usually, services that
 produce log files already take care of that):
@@ -20988,8 +21221,9 @@ Age in seconds after which a file is subject to deletion (six months by
 default).
 
 @item @code{schedule} (default: @code{"30 12 01,08,15,22 * *"})
-String or gexp denoting the corresponding mcron job schedule
-(@pxref{Scheduled Job Execution}).
+Schedule of the log cleanup job written either as a string in
+traditional cron syntax or as a gexp representing a Shepherd calendar
+event (@pxref{Timers,,, shepherd, The GNU Shepherd Manual}).
 @end table
 @end deftp
 
@@ -21432,6 +21666,29 @@ NetworkManager will not modify @code{resolv.conf}.
 This is the list of available plugins for virtual private networks
 (VPNs).  An example of this is the @code{network-manager-openvpn}
 package, which allows NetworkManager to manage VPNs @i{via} OpenVPN.
+
+@item @code{extra-configuration-files} (default: @code{'()})
+A list of two-element lists; the first element of each list is a file
+name (as a string), and the second is a file-like object.  Used to
+specify configuration files which will be added to the
+@file{/etc/NetworkManager/conf.d}.  NetworkManager will read additional
+configuration from this directory.  For details on configuration file
+precedence and the configuration file format, see @samp{man 5
+NetworkManager.conf}.
+
+For example, to add two files named @file{001-basic.conf} and
+@file{002-unmanaged.conf}:
+
+@lisp
+(service network-manager-service-type
+         (network-manager-configuration
+          (extra-configuration-files
+           `(("001-basic.conf" ,(local-file "basic.conf"))
+             ("002-unmanaged.conf" ,(plain-file "constructed-unmanaged.conf"
+                                                "\
+[keyfile]
+unmanaged-devices=interface-name:wlo1_ap\n"))))))
+@end lisp
 
 @end table
 @end deftp
@@ -22512,7 +22769,7 @@ client.
 The @code{(gnu services syncthing)} module provides the following services:
 @cindex syncthing
 
-You might want a syncthing daemon if you have files between two or more
+You might want a Syncthing daemon if you have files between two or more
 computers and want to sync them in real time, safely protected from
 prying eyes.
 
@@ -22558,11 +22815,342 @@ The group as which the Syncthing service is to be run.
 This assumes that the specified group exists.
 
 @item @code{home} (default: @var{#f})
-Common configuration and data directory.  The default configuration
-directory is @file{$HOME} of the specified Syncthing @code{user}.
+Sets the @code{HOME} variable for the Syncthing daemon.  The default is
+@file{$HOME} of the specified Syncthing @code{user}.
+
+@item @code{config-file} (default: @var{#f})
+Either a file-like object that resolves to a Syncthing configuration XML
+file, or a @code{syncthing-config-file} record (see below).  If set to
+@code{#f}, Guix will not try to generate a config file, and Syncthing
+will generate a default configuration which will not be touched on
+reconfigure.  Specifying this in a system service moves Syncthing's
+common configuration and data directory (@code{--home} in
+@uref{https://docs.syncthing.net/users/syncthing.html}) to
+@file{/var/lib/syncthing-<user>}.
 
 @end table
 @end deftp
+
+This section documents a subset of the Syncthing configuration
+options—specifically those related to Guix or those affecting how your
+computer will connect to other computers over the network (such as
+Syncthing relays or discovery servers).  The configuration is fully
+documented in the upstream
+@uref{https://docs.syncthing.net/users/config.html, Syncthing config
+documentation}; camelCase there is converted to kebab-case here.  If you
+are migrating from a Syncthing-managed configuration to one managed by
+Guix, you can check what changes were introduced by @code{diff}ing the
+respective @file{config.xml} files.  Note that you will need to add
+whitespace with 4-space indentation to the file generated by Guix, using
+the @code{xmllint} program from the @code{libxml2} package like so:
+
+@example
+XMLLINT_INDENT="    " xmllint --format /path/to/new/config.xml | diff /path/to/old/config.xml -
+@end example
+
+When generating a configuration file through Guix, you can still
+temporarily modify Syncthing from the GUI or through @code{introducer}
+and @code{autoAcceptFolders} mechanisms, but such changes will be reset
+on reconfigure.
+
+@deftp {Data Type} syncthing-config-file
+Data type representing the configuration file read by the Syncthing
+daemon.
+
+@table @asis
+@item @code{folders} (default: @var{(list (syncthing-folder (id "default") (label "Default Folder") (path "~/Sync")))}
+The default here is the same as Syncthing's default.  The value should
+be a list of @code{syncthing-folder}s.
+
+@item @code{devices} (default: @var{'()}
+This should be a list of @code{syncthing-device}s.  Guix will
+automatically add any devices specified in any `folders' to this list.
+There are instances when you want to connect to a device despite not
+(initially) sharing any folders (such as a device with
+autoAcceptFolders).  In such instances, you should specify those devices
+here.  If multiple versions of the same device (as determined by
+comparing device ID) are discovered, the one in this list is
+prioritized.  Otherwise, the first instance in the first folder is used.
+
+@item @code{gui-enabled} (default: @var{"true"})
+By default, any user on the computer can access the GUI and make changes
+to Syncthing.  If you leave this enabled, you should probably set
+@code{gui-user} and @code{gui-password} (see below).
+
+@item @code{gui-tls} (default: @var{"false"})
+@item @code{gui-debugging} (default: @var{"false"})
+@item @code{gui-send-basic-auth-prompt} (default: @var{"false"})
+@item @code{gui-address} (default: @var{"127.0.0.1:8384"})
+@item @code{gui-user} (default: @var{#f})
+@item @code{gui-password} (default: @var{#f})
+A bcrypt hash of the GUI password.  Remember that this will be globally
+exposed in @file{/gnu/store}.
+
+@item @code{gui-apikey} (default: @var{#f})
+You must specify this to use the Syncthing REST interface.  This key is
+kept in @file{/gnu/store} and is accessible to all users of the system.
+
+@item @code{gui-theme} (default: @var{"default"})
+@item @code{ldap-enabled} (default: @var{#f})
+@item @code{ldap-address} (default: @var{""})
+@item @code{ldap-bind-dn} (default: @var{""})
+@item @code{ldap-transport} (default: @var{""})
+@item @code{ldap-insecure-skip-verify} (default: @var{""})
+@item @code{ldap-search-base-dn} (default: @var{""})
+@item @code{ldap-search-filter} (default: @var{""})
+@item @code{listen-address} (default: @var{"default"})
+@item @code{global-announce-server} (default: @var{"default"})
+@item @code{global-announce-enabled} (default: @var{"true"})
+Global discovery servers can be used to help connect devices at unknown
+IP addresses by storing the last known IP address.
+
+@item @code{local-announce-enabled} (default: @var{"true"})
+This makes devices find each other very easily on the same LAN.  Often,
+this will allow you to just plug an Ethernet between two devices, or
+connect one device to the other's hotspot and start syncing.
+
+@item @code{local-announce-port} (default: @var{"21027"})
+@item @code{local-announce-mcaddr} (default: @var{"[ff12::8384]:21027"})
+@item @code{max-send-kbps} (default: @var{"0"})
+@item @code{max-recv-kbps} (default: @var{"0"})
+@item @code{reconnection-interval-s} (default: @var{"60"})
+@item @code{relays-enabled} (default: @var{"true"})
+This option allows your Syncthing instance to use a global network of
+@uref{https://docs.syncthing.net/users/relaying.html, relays} to enable
+syncing between devices when all other methods fail.  As always,
+Syncthing traffic is encrypted in transport and the relays are unable to
+decrypt it.
+
+@item @code{relay-reconnect-interval-m} (default: @var{"10"})
+@item @code{start-browser} (default: @var{"true"})
+@item @code{nat-enabled} (default: @var{"true"})
+@item @code{nat-lease-minutes} (default: @var{"60"})
+@item @code{nat-renewal-minutes} (default: @var{"30"})
+@item @code{nat-timeout-seconds} (default: @var{"10"})
+@item @code{ur-accepted} (default: @var{"0"})
+Options whose names begin with `ur-' control usage reporting.  Set to -1
+to disable, or to a positive value to enable.  The default (0) disables
+reporting, but causes a usage reporting consent prompt to be displayed
+in the Syncthing GUI.
+
+@item @code{ur-seen} (default: @var{"0"})
+@item @code{ur-unique-id} (default: @var{""})
+@item @code{ur-url} (default: @var{"https://data.syncthing.net/newdata"})
+@item @code{ur-post-insecurely} (default: @var{"false"})
+@item @code{ur-initial-delay-s} (default: @var{"1800"})
+@item @code{auto-upgrade-interval-h} (default: @var{"12"})
+@item @code{upgrade-to-pre-releases} (default: @var{"false"})
+@item @code{keep-temporaries-h} (default: @var{"24"})
+@item @code{cache-ignored-files} (default: @var{"false"})
+@item @code{progress-update-interval-s} (default: @var{"5"})
+@item @code{limit-bandwidth-in-lan} (default: @var{"false"})
+@item @code{min-home-disk-free-unit} (default: @var{"%"})
+@item @code{min-home-disk-free} (default: @var{"1"})
+@item @code{releases-url} (default: @var{"https://upgrades.syncthing.net/meta.json"})
+@item @code{overwrite-remote-device-names-on-connect} (default: @var{"false"})
+@item @code{temp-index-min-blocks} (default: @var{"10"})
+@item @code{unacked-notification-id} (default: @var{"authenticationUserAndPassword"})
+@item @code{traffic-class} (default: @var{"0"})
+@item @code{set-low-priority} (default: @var{"true"})
+@item @code{max-folder-concurrency} (default: @var{"0"})
+@item @code{crash-reporting-url} (default: @var{"https://crash.syncthing.net/newcrash"})
+@item @code{crash-reporting-enabled} (default: @var{"true"})
+@item @code{stun-keepalive-start-s} (default: @var{"180"})
+@item @code{stun-keepalive-min-s} (default: @var{"20"})
+@item @code{stun-server} (default: @var{"default"})
+@item @code{database-tuning} (default: @var{"auto"})
+@item @code{max-concurrent-incoming-request-kib} (default: @var{"0"})
+@item @code{announce-lan-addresses} (default: @var{"true"})
+@item @code{send-full-index-on-upgrade} (default: @var{"false"})
+@item @code{connection-limit-enough} (default: @var{"0"})
+@item @code{connection-limit-max} (default: @var{"0"})
+@item @code{insecure-allow-old-tls-versions} (default: @var{"false"})
+@item @code{connection-priority-tcp-lan} (default: @var{"10"})
+@item @code{connection-priority-quic-lan} (default: @var{"20"})
+@item @code{connection-priority-tcp-wan} (default: @var{"30"})
+@item @code{connection-priority-quic-wan} (default: @var{"40"})
+@item @code{connection-priority-relay} (default: @var{"50"})
+@item @code{connection-priority-upgrade-threshold} (default: @var{"0"})
+@item @code{default-folder} (default: @var{(syncthing-folder (label ""))})
+@item @code{default-device} (default: @var{(syncthing-device (id ""))})
+@item @code{default-ignores} (default: @var{"")})
+Options whose names begin with `default-' above do not affect folders
+and devices added through the Guix configuration interface.  They will,
+however, affect folders and devices that are added through the Syncthing
+GUI, by an @code{introducer}, or a device with
+@code{auto-accept-folders}.
+@end table
+@end deftp
+
+@deftp {Data Type} syncthing-folder
+Data type representing a folder to be synchronized.
+
+@table @asis
+@item @code{id} (default: @var{#f})
+This ID cannot match the ID of any other folder on this device.  If left
+unspecified, it will default to the label (see below).
+
+@item @code{label}
+A human readable label for the folder.
+
+@item @code{path}
+The path at which to store this folder.
+
+@item @code{type} (default: @var{"sendreceive"})
+@item @code{rescan-interval-s} (default: @var{"3600"})
+@item @code{fs-watcher-enabled} (default: @var{"true"})
+@item @code{fs-watcher-delay-s} (default: @var{"10"})
+@item @code{ignore-perms} (default: @var{"false"})
+@item @code{auto-normalize} (default: @var{"true"})
+@item @code{devices} (default: @var{'()})
+This should be a list of other Syncthing devices.  You do not need to
+specify the current device.  Each device can be listed as a a
+@code{syncthing-device} record or a @code{syncthing-folder-device}
+record if you want files to be encrypted on disk.  See below.
+
+@item @code{filesystem-type} (default: @var{"basic"})
+@item @code{min-disk-free-unit} (default: @var{"%"})
+@item @code{min-disk-free} (default: @var{"1"})
+@item @code{versioning-type} (default: @var{#f})
+@item @code{versioning-fs-path} (default: @var{""})
+@item @code{versioning-fs-type} (default: @var{"basic"})
+@item @code{versioning-cleanup-interval-s} (default: @var{"3600"})
+@item @code{versioning-cleanout-days} (default: @var{#f})
+@item @code{versioning-keep} (default: @var{#f})
+@item @code{versioning-max-age} (default: @var{#f})
+@item @code{versioning-command} (default: @var{#f})
+@item @code{copiers} (default: @var{"0"})
+@item @code{puller-max-pending-kib} (default: @var{"0"})
+@item @code{hashers} (default: @var{"0"})
+@item @code{order} (default: @var{"random"})
+@item @code{ignore-delete} (default: @var{"false"})
+@item @code{scan-progress-interval-s} (default: @var{"0"})
+@item @code{puller-pause-s} (default: @var{"0"})
+@item @code{max-conflicts} (default: @var{"10"})
+@item @code{disable-sparse-files} (default: @var{"false"})
+@item @code{disable-temp-indexes} (default: @var{"false"})
+@item @code{paused} (default: @var{"false"})
+@item @code{weak-hash-threshold-pct} (default: @var{"25"})
+@item @code{marker-name} (default: @var{".stfolder"})
+@item @code{copy-ownership-from-parent} (default: @var{"false"})
+@item @code{mod-time-window-s} (default: @var{"0"})
+@item @code{max-concurrent-writes} (default: @var{"2"})
+@item @code{disable-fsync} (default: @var{"false"})
+@item @code{block-pull-order} (default: @var{"standard"})
+@item @code{copy-range-method} (default: @var{"standard"})
+@item @code{case-sensitive-fs} (default: @var{"false"})
+@item @code{junctions-as-dirs} (default: @var{"false"})
+@item @code{sync-ownership} (default: @var{"false"})
+@item @code{send-ownership} (default: @var{"false"})
+@item @code{sync-xattrs} (default: @var{"false"})
+@item @code{send-xattrs} (default: @var{"false"})
+@item @code{xattr-filter-max-single-entry-size} (default: @var{"1024"})
+@item @code{xattr-filter-max-total-size} (default: @var{"4096")})
+@end table
+@end deftp
+
+@deftp {Data Type} syncthing-device
+Data type representing a device to synchronize folders with.
+
+@table @asis
+@item @code{id}
+A long hash representing the keys generated by Syncthing on the first
+launch.  You can obtain this from the Syncthing GUI or by inspecting an
+existing Syncthing configuration file.
+
+@item @code{name} (default: @var{""})
+A human readable device name for viewing in the GUI or in Scheme.
+
+@item @code{compression} (default: @var{"metadata"})
+@item @code{introducer} (default: @var{"false"})
+@item @code{skip-introduction-removals} (default: @var{"false"})
+@item @code{introduced-by} (default: @var{""})
+@item @code{addresses} (default: @var{'("dynamic")})
+List of addresses at which to search for this device.  When the special
+value ``dynamic'' is included, Syncthing will search for the device
+locally as well as via the Syncthing project's
+@uref{https://docs.syncthing.net/users/security.html#global-discovery,
+global discovery} servers.
+
+@item @code{paused} (default: @var{"false"})
+@item @code{auto-accept-folders} (default: @var{"false"})
+@item @code{max-send-kbps} (default: @var{"0"})
+@item @code{max-recv-kbps} (default: @var{"0"})
+@item @code{max-request-kib} (default: @var{"0"})
+@item @code{untrusted} (default: @var{"false"})
+@item @code{remote-gui-port} (default: @var{"0"})
+@item @code{num-connections} (default: @var{"0")})
+
+@end table
+@end deftp
+
+@deftp {Data Type} syncthing-folder-device
+This data type offers two folder-specific device options:
+@code{introduced-by} and @code{encryption-password}.
+
+@code{syncthing-folder-device} corresponds to the
+@uref{https://docs.syncthing.net/users/config.html#config-option-folder.device,
+`device'} option in the upstream `folder' element.
+
+If you don't need to use these options, then you can just use
+@code{syncthing-device} instead of @code{syncthing-folder-device} in the
+@code{devices} field of a @code{syncthing-folder} instance.
+
+@table @asis
+@item @code{device}
+The @code{syncthing-device} for which this configuration applies.
+
+@item @code{introduced-by} (default: @var{""})
+The name of the device that "introduced" our device to the device
+sharing this folder.  This is only used when "introduced" devices are
+removed by the introducer.  See
+@uref{https://docs.syncthing.net/users/introducer.html, Syncthing
+introductions}.
+
+@item @code{encryption-password} (default: @var{""})
+The password used to encrypt data that is synchronized to untrusted
+devices.
+
+Beware: specifying this field will include this password as plain text
+(not encrypted) and globally visible in @file{/gnu/store/}.  If the
+encryption-password is non-empty, then it will be used as a password to
+encrypt file chunks as they are synchronized to untrusted devices.  For
+more information on syncing to devices you don't totally trust, see
+Syncthing's documentation on
+@uref{https://docs.syncthing.net/users/untrusted.html, Untrusted
+(Encrypted) Devices}.  Note that data transfer is always encrypted while
+in transport ("end-to-end encryption"), regardless of this setting.
+
+@end table
+@end deftp
+
+Here is a more complex example configuration for illustrative purposes:
+
+@lisp
+(service syncthing-service-type
+         (let ((laptop (syncthing-device (id "VHOD2D6-...-7XRMDEN")))
+               (desktop (syncthing-device (id "64SAZ37-...-FZJ5GUA")
+                                          (addresses '("tcp://example.com"))))
+               (bob-desktop (syncthing-device (id "KYIMEGO-...-FT77EAO"))))
+           (syncthing-configuration
+            (user "alice")
+            (config-file
+             (syncthing-config-file
+               (folders (list (syncthing-folder
+                               (label "some-files")
+                               (path "~/data")
+                               (devices (list desktop laptop)))
+                              (syncthing-folder
+                               (label "critical-files")
+                               (path "~/secrets")
+                               (devices
+                                (list desktop
+                                      laptop
+                                      (syncthing-folder-device
+                                       (device bob-desktop)
+                                       (encryption-password "mypassword"))))))))))))
+@end lisp
+
 
 Furthermore, @code{(gnu services ssh)} provides the following services.
 @cindex SSH
@@ -23314,10 +23902,10 @@ vrrp_instance my-group @{
 
 @cindex unattended upgrades
 @cindex upgrades, unattended
-Guix provides a service to perform @emph{unattended upgrades}:
-periodically, the system automatically reconfigures itself from the
-latest Guix.  Guix System has several properties that make unattended
-upgrades safe:
+The @code{(gnu services admin)} module provides a service to perform
+@emph{unattended upgrades}: periodically, the system automatically
+reconfigures itself from the latest Guix.  Guix System has several
+properties that make unattended upgrades safe:
 
 @itemize
 @item
@@ -23374,9 +23962,9 @@ service.  The following fields are available:
 
 @table @asis
 @item @code{schedule} (default: @code{"30 01 * * 0"})
-This is the schedule of upgrades, expressed as a gexp containing an
-mcron job schedule (@pxref{Guile Syntax, mcron job specifications,,
-mcron, GNU@tie{}mcron}).
+This is the schedule of upgrades, expressed as a string in traditional
+cron syntax or as a gexp evaluating to a Shepherd calendar event
+(@pxref{Timers,,, shepherd, The GNU Shepherd Manual}).
 
 @item @code{channels} (default: @code{#~%default-channels})
 This gexp specifies the channels to use for the upgrade
@@ -23425,7 +24013,7 @@ When @code{reboot?} is @code{#t}, services are not restarted before
 rebooting.  This means that the value for @code{services-to-restart} is
 ignored.  The updated services will be started after the system reboots.
 
-@item @code{services-to-restart} (default: @code{'(mcron)})
+@item @code{services-to-restart} (default: @code{'(unattended-upgrade)})
 This field specifies the Shepherd services to restart when the upgrade
 completes.
 
@@ -23440,8 +24028,9 @@ Use @command{herd status} to find out candidates for restarting.
 @xref{Services}, for general information about services.  Common
 services to restart would include @code{ntpd} and @code{ssh-daemon}.
 
-By default, the @code{mcron} service is restarted.  This ensures that
-the latest version of the unattended upgrade job will be used next time.
+By default, the @code{unattended-upgrade} service is restarted.  This
+ensures that the latest version of the unattended upgrade job will be
+used next time.
 
 @item @code{system-expiration} (default: @code{(* 3 30 24 3600)})
 This is the expiration time in seconds for system generations.  System
@@ -23995,7 +24584,7 @@ SLiM@.  Thus, the configuration of these display managers aggregates an
 @table @asis
 @item @code{modules} (default: @code{%default-xorg-modules})
 This is a list of @dfn{module packages} loaded by the Xorg
-server---e.g., @code{xf86-video-vesa}, @code{xf86-input-keyboard}, and so on.
+server---e.g., @code{xf86-video-vesa}, @code{xf86-input-libinput}, and so on.
 
 @item @code{fonts} (default: @code{%default-xorg-fonts})
 This is a list of font directories to add to the server's @dfn{font path}.
@@ -24991,7 +25580,7 @@ environments to a system.
 @item @code{enlightenment-desktop-service-type} adds Enlightenment,
 @item @code{lxqt-desktop-service-type} adds LXQt,
 @item @code{mate-desktop-service-type} adds MATE, and
-@item @code{xfce-desktop-service} adds Xfce.
+@item @code{xfce-desktop-service-type} adds Xfce.
 @end itemize
 
 These service types add ``metapackages'' such as @code{gnome} or
@@ -25211,7 +25800,7 @@ them by default.  To add GNOME, Xfce or MATE, just @code{cons} them onto
   ...
   ;; cons* adds items to the list given as its last argument.
   (services (cons* (service gnome-desktop-service-type)
-                   (service xfce-desktop-service)
+                   (service xfce-desktop-service-type)
                    %desktop-services))
   ...)
 @end lisp
@@ -25365,6 +25954,32 @@ Data type representing the configuration of @command{elogind}.
 
 @item @code{suspend-estimation-seconds} (default: @code{*unspecified*}) (type: integer)
 ...
+
+@item @code{system-sleep-hook-files} (default: @code{'()}) (type: list)
+A list of executables (file-like objects) that will be installed into
+the @file{/etc/elogind/system-sleep/} hook directory. For example:
+
+@lisp
+(elogind-configuration
+ (system-sleep-hook-files
+  (list (local-file "sleep-script"))))
+@end lisp
+
+See `Hook directories' in the @code{loginctl(1)} man page for more information.
+
+@item @code{system-shutdown-hook-files} (default: @code{'()}) (type: list)
+A list of executables (file-like objects) that will be installed into
+the @file{/etc/elogind/system-shutdown/} hook directory.
+
+@item @code{allow-power-off-interrupts?} (default: @code{#f}) (type: boolean)
+@itemx @code{allow-suspend-interrupts?} (default: @code{#f}) (type: boolean)
+Whether the executables in elogind's hook directories (see above) can
+cause a power-off or suspend action to be cancelled (interrupted) by
+printing an appropriate error message to stdout.
+
+@item @code{broadcast-power-off-interrupts?} (default: @code{#t}) (type: boolean)
+@itemx @code{broadcast-suspend-interrupts?} (default: @code{#t}) (type: boolean)
+Whether an interrupt of a power-off or suspend action is broadcasted.
 
 @end table
 @end deftp
@@ -26322,6 +26937,49 @@ details.
 
 @end defvar
 
+@subsubheading Speaker Safety Daemon System Service
+
+@uref{https://github.com/AsahiLinux/speakersafetyd, Speaker Safety
+Daemon} is a user-space daemon that implements an analogue of the Texas
+Instruments Smart Amp speaker protection model.  It can be used to
+protect the speakers on Apple Silicon devices.
+
+@defvar speakersafetyd-service-type
+This is the type for the @code{speakersafetyd} system service, whose
+value is a @command{speakersafetyd-configuration} record.
+
+@lisp
+(service speakersafetyd-service-type)
+@end lisp
+
+See below for details about @code{speakersafetyd-configuration}.
+@end defvar
+
+@c %start of fragment
+@deftp {Data Type} speakersafetyd-configuration
+Available @code{speakersafetyd-configuration} fields are:
+
+@table @asis
+@item @code{blackbox-directory} (default: @code{"/var/lib/speakersafetyd/blackbox"}) (type: string)
+The directory to which blackbox files are written when the speakers are
+getting too hot.  The blackbox files contain audio and debug information
+which the developers of @code{speakersafetyd} might ask for when
+reporting bugs.
+
+@item @code{configuration-directory} (type: file-like)
+The base directory as a G-expression (@pxref{G-Expressions}) that
+contains the configuration files of the speaker models.
+
+@item @code{maximum-gain-reduction} (default: @code{7}) (type: integer)
+Maximum gain reduction before panicking, useful for debugging.
+
+@item @code{speakersafetyd} (default: @code{speakersafetyd}) (type: file-like)
+The Speaker Safety Daemon package to use.
+
+@end table
+@end deftp
+@c %end of fragment
+
 @node File Search Services
 @subsection File Search Services
 
@@ -26847,6 +27505,25 @@ Available @code{dovecot-configuration} fields are:
 
 @deftypevr {@code{dovecot-configuration} parameter} package dovecot
 The dovecot package.
+@end deftypevr
+
+@deftypevr {@code{dovecot-configuration} parameter} package-list extensions
+A list of additional Dovecot plugin packages to make available at runtime. During
+service activation, the @file{lib/dovecot} directory from each specified package
+is combined with Dovecot's core modules into a unified module directory.
+
+For example, to enable Sieve filtering:
+
+@lisp
+(extensions (list dovecot-pigeonhole))
+@end lisp
+
+Each package in the list must provide its modules at @file{lib/dovecot},
+as this is where @code{make-dovecot-moduledir} expects to find its
+extensions. The service combines these directories to create a unified
+module structure.
+
+The default value is an empty list, providing only core Dovecot functionality.
 @end deftypevr
 
 @deftypevr {@code{dovecot-configuration} parameter} comma-separated-string-list listen
@@ -28855,7 +29532,7 @@ The package that provides rspamd.
 
 @item @code{config-file} (default: @code{%default-rspamd-config-file}) (type: file-like)
 File-like object of the configuration file to use.  By default all
-workers are enabled except fuzzy and they are binded to their usual
+workers are enabled except fuzzy and they are bound to their usual
 ports, e.g localhost:11334, localhost:11333 and so on
 
 @item @code{local.d-files} (default: @code{()}) (type: directory-tree)
@@ -28884,7 +29561,7 @@ Ignore running workers as privileged users.
 @item @code{skip-template?} (default: @code{#f}) (type: boolean)
 Do not apply Jinja templates.
 
-@item @code{shepherd-requirements} (default: @code{(loopback)}) (type: list-of-symbols)
+@item @code{shepherd-requirements} (default: @code{(user-processes loopback)}) (type: list-of-symbols)
 This is a list of symbols naming Shepherd services that this service
 will depend on.
 
@@ -32354,10 +33031,19 @@ started.
 @item @code{log-directory} (default: @code{"/var/log/nginx"})
 The directory to which NGinx will write log files.
 
+@item @code{log-format} (default: @code{'combined}) (type: symbol)
+Logging format for the access log. Nginx defaults to the httpd-like
+format named @code{'combined}.  Other formats can be defined using
+@code{log-formats}.
+
+@item @code{log-formats} (default: @code{'()})
+A list of additional @dfn{log formats} to define, the elements should be
+of type @code{<nginx-log-format-configuration>}.
+
 @item @code{log-level} (default: @code{'error}) (type: symbol)
-Logging level, which can be any of the following values: @code{'debug},
-@code{'info}, @code{'notice}, @code{'warn}, @code{'error}, @code{'crit},
-@code{'alert}, or @code{'emerg}.
+Logging level for the error log, which can be any of the following
+values: @code{'debug}, @code{'info}, @code{'notice}, @code{'warn},
+@code{'error}, @code{'crit}, @code{'alert}, or @code{'emerg}.
 
 @item @code{run-directory} (default: @code{"/var/run/nginx"})
 The directory in which NGinx will create a pid file, and write temporary
@@ -32486,6 +33172,31 @@ flattened into one line.
 (extra-content `("include /etc/nginx/custom-config.conf;"
                  ("include " ,%custom-config.conf ";")))
 @end lisp
+
+@end table
+@end deftp
+
+@deftp {Data Type} nginx-log-format-configuration
+Data type representing the configuration of a custom Nginx log format.
+This type has the following parameters:
+
+@table @asis
+@item @code{name} (type: symbol)
+The name of the log format as a symbol.
+
+@item @code{escape} (default: @code{'default}) (type: symbol)
+The mode used to escape values of variables in the format.  The
+supported values are:
+
+@itemize
+@item @code{'default}, to escape all characters outside of the ASCII
+      printable range.
+@item @code{'json}, to escape all characters invalid in JSON strings.
+@item @code{'none}, to disable escaping.
+@end itemize
+
+@item @code{format} (type: string)
+The format as accepted by the @code{log_format} directive.
 
 @end table
 @end deftp
@@ -34121,6 +34832,10 @@ Data type representing the configuration of dnsmasq.
 @item @code{package} (default: @var{dnsmasq})
 Package object of the dnsmasq server.
 
+@item @code{provision} (default: @code{'(dnsmasq)})
+A list of symbols for the Shepherd service corresponding to this dnsmasq
+configuration.
+
 @item @code{no-hosts?} (default: @code{#f})
 When true, don't read the hostnames in /etc/hosts.
 
@@ -34244,6 +34959,102 @@ network or obtained a DHCP lease from dnsmasq.
 @item @code{extra-options} (default: @code{'()})
 This option provides an ``escape hatch'' for the user to provide arbitrary
 command-line arguments to @command{dnsmasq} as a list of strings.
+
+@end table
+@end deftp
+
+@subsubheading Unbound Service
+
+@defvar unbound-service-type
+This is the type of the service to run @uref{https://www.unbound.net,
+Unbound}, a validating, recursive, and caching DNS resolver.  Its value
+must be a @code{unbound-configuration} object as in this example:
+
+@lisp
+(service unbound-service-type
+         (unbound-configuration
+          (forward-zone
+           (list
+            (unbound-zone
+             (name ".")
+             (forward-addr '("149.112.112.112#dns.quad9.net"
+                             "2620:fe::9#dns.quad9.net"))
+             (forward-tls-upstream #t))))))
+@end lisp
+@end defvar
+
+@deftp {Data Type} unbound-configuration
+Available @code{unbound-configuration} fields are:
+
+@table @asis
+@item @code{server} (type: unbound-server)
+General options for the Unbound server.
+
+@item @code{remote-control} (type: unbound-remote)
+Remote control options for the daemon.
+
+@item @code{forward-zone} (default: @code{()}) (type: list-of-unbound-zone)
+A zone for which queries should be forwarded to another resolver.
+
+@item @code{extra-content} (type: maybe-string)
+Raw content to add to the configuration file.
+
+@end table
+@end deftp
+
+@deftp {Data Type} unbound-server
+Available @code{unbound-server} fields are:
+
+@table @asis
+@item @code{interface} (type: maybe-list-of-strings)
+Interfaces listened on for queries from clients.
+
+@item @code{hide-version} (type: maybe-boolean)
+Refuse the version.server and version.bind queries.
+
+@item @code{hide-identity} (type: maybe-boolean)
+Refuse the id.server and hostname.bind queries.
+
+@item @code{tls-cert-bundle} (type: maybe-string)
+Certificate bundle file, used for DNS over TLS.
+
+@item @code{extra-options} (default: @code{()}) (type: alist)
+An association list of options to append.
+
+@end table
+@end deftp
+
+@deftp {Data Type} unbound-remote
+Available @code{unbound-remote} fields are:
+
+@table @asis
+@item @code{control-enable} (type: maybe-boolean)
+Enable remote control.
+
+@item @code{control-interface} (type: maybe-string)
+IP address or local socket path to listen on for remote control.
+
+@item @code{extra-options} (default: @code{()}) (type: alist)
+An association list of options to append.
+
+@end table
+@end deftp
+
+@deftp {Data Type} unbound-zone
+Available @code{unbound-zone} fields are:
+
+@table @asis
+@item @code{name} (type: string)
+Zone name.
+
+@item @code{forward-addr} (type: maybe-list-of-strings)
+IP address of server to forward to.
+
+@item @code{forward-tls-upstream} (type: maybe-boolean)
+Whether the queries to this forwarder use TLS for transport.
+
+@item @code{extra-options} (default: @code{()}) (type: alist)
+An association list of options to append.
 
 @end table
 @end deftp
@@ -34765,6 +35576,12 @@ special values: @code{"off"} that disables the creation of routes
 altogether, and @code{"auto"} (the default) that adds routes to the
 default table and enables special handling of default routes.
 
+@item @code{auto-start?} (default: @code{#t"})
+Whether the Wireguard network should be started automatically by the
+Shepherd.  If it is @code{#f} the service has to be started manually
+with @code{herd start wireguard-$interface} (for example: @code{herd
+start wireguard-wg0}).
+
 @end table
 @end deftp
 
@@ -35232,6 +36049,10 @@ Cuirass jobs.
 
 @item @code{ttl} (default: @code{2592000})
 Duration to keep build results' GC roots alive, in seconds.
+
+@item @code{build-expiry} (default: 4 months)
+Duration in seconds after which pending builds are canceled.  This helps
+ensure that the backlog does not grow indefinitely.
 
 @item @code{threads} (default: @code{#f})
 Number of kernel threads to use for Cuirass. The default value should be appropriate for most cases.
@@ -36019,6 +36840,20 @@ Defaults to @samp{#f}.
 
 @end deftypevr
 
+@deftypevr {@code{tlp-configuration} parameter} string cpu-energy-perf-policy-on-ac
+Set CPU energy/performance policy when on AC mode.  Possible values, in
+order of increasing power saving, are performance, balance_performance,
+default, balance_power and power.
+
+@end deftypevr
+
+@deftypevr {@code{tlp-configuration} parameter} string cpu-energy-perf-policy-on-bat
+Set CPU energy/performance policy when on BAT mode.  Possible values, in
+order of increasing power saving, are performance, balance_performance,
+default, balance_power and power.
+
+@end deftypevr
+
 @cindex thermald
 @cindex CPU frequency scaling with thermald
 @subsubheading Thermald daemon
@@ -36072,6 +36907,382 @@ The PowerTOP package.  Defaults to @code{powertop} in the @code{(gnu
 packages linux)} module
 
 @end deftypevr
+
+@end table
+@end deftp
+
+The @code{(gnu services power)} module provides a service definition for
+@uref{http://www.apcupsd.org/, apcupsd}, a utility to interact with
+@acronym{APC, APC by Schneider Electric or formerly American Power
+Conversion Corporation} @acronym{UPS, Uninterruptible Power Supply}
+devices.  Apcupsd also works with some @acronym{OEM, Original Equipment
+Manufacturer}-branded products manufactured by APC.
+
+@defvar apcupsd-service-type
+The service type for apcupsd.  For USB UPSes no configuration is
+necessary, however tweaking some fields to better suit your needs might
+be desirable.  The defaults are taken from the upstream configuration
+and they are not very conservative (for example, the default
+@code{battery-level} of 5% may be considered too low by some).
+
+The default event handlers do send emails, read more in
+@ref{apcupsd-event-handlers}.
+
+@lisp
+(service apcupsd-service-type)
+@end lisp
+@end defvar
+
+@deftp {Data Type} apcupsd-configuration
+
+Available @code{apcupsd-configuration} fields are:
+
+@table @asis
+@item @code{apcupsd} (default: @code{apcupsd}) (type: package)
+The @code{apcupsd} package to use.
+
+@item @code{shepherd-service-name} (default: @code{apcupsd}) (type: symbol)
+The name of the shepherd service.  You can add the service multiple
+times with different names to manage multiple UPSes.
+
+@item @code{auto-start?} (default: @code{#t}) (type: boolean)
+Should the shepherd service auto-start?
+
+@item @code{pid-file} (default: @code{"/var/run/apcupsd.pid"}) (type: string)
+The file name of the pid file.
+
+@item @code{debug-level} (default: @code{0}) (type: integer)
+The logging verbosity.  Bigger number means more logs.  The source code
+uses up to @code{300} as debug level value, so a value of @code{999}
+seems reasonable to enable all the logs.
+
+@item @code{run-dir} (default: @code{"/var/run/apcupsd"}) (type: string)
+The directory containing runtime information.  You need to change this
+if you desire to run multiple instances of the daemon.
+
+@item @code{name} (type: maybe-string)
+Use this to give your UPS a name in log files and such.  This is
+particularly useful if you have multiple UPSes.  This does not set the
+EEPROM.  It should be 8 characters or less.
+
+@item @code{cable} (default: @code{usb}) (type: enum-cable)
+The type of a cable connecting the UPS to your computer.  Possible
+generic choices are @code{'simple}, @code{'smart}, @code{'ether} and
+@code{'usb}.
+
+Alternatively, a specific cable model number may be used:
+@code{'940-0119A}, @code{'940-0127A}, @code{'940-0128A},
+@code{'940-0020B}, @code{'940-0020C}, @code{'940-0023A},
+@code{'940-0024B}, @code{'940-0024C}, @code{'940-1524C},
+@code{'940-0024G}, @code{'940-0095A}, @code{'940-0095B},
+@code{'940-0095C}, @code{'940-0625A}, @code{'M-04-02-2000}.
+
+@item @code{type} (default: @code{usb}) (type: enum-type)
+The type of the UPS you have.
+
+@table @code
+@item apcsmart
+Newer serial character device, appropriate for SmartUPS models using a
+serial cable (not an USB).
+
+@item usb
+Most new UPSes are an USB.
+
+@item net
+Network link to a master apcupsd through apcupsd's Network Information
+Server.  This is used if the UPS powering your computer is connected to
+a different computer for monitoring.
+
+@item snmp
+SNMP network link to an SNMP-enabled UPS device.
+
+@item netsnmp
+Same as the SNMP above but requires use of the net-snmp library.  Unless
+you have a specific need for this old driver, you should use the
+@code{'snmp} instead.
+
+@item dumb
+An old serial character device for use with simple-signaling UPSes.
+
+@item pcnet
+A PowerChute Network Shutdown protocol which can be used as an
+alternative to an SNMP with the AP9617 family of smart slot cards.
+
+@item modbus
+A serial device for use with newest SmartUPS models supporting the
+MODBUS protocol.
+
+@end table
+
+@item @code{device} (default: @code{""}) (type: string)
+For USB UPSes, usually you want to set this to an empty string (the
+default).  For other UPS types, you must specify an appropriate port or
+address.
+
+@table @code
+@item apcsmart
+Set to the appropriate @file{/dev/tty**} device.
+
+@item usb
+A null string setting enables auto-detection, which is the best choice
+for most installations.
+
+@item net
+Set to @code{@var{hostname}:@var{port}}.
+
+@item snmp
+Set to @code{@var{hostname}:@var{port}:@var{vendor}:@var{community}}.
+The @var{hostname} is the ip address or hostname of the UPS on the
+network.  The @var{vendor} can be can be "APC" or "APC_NOTRAP".
+"APC_NOTRAP" will disable SNMP trap catching; you usually want "APC".
+The @var{port} is usually 161.  The @var{community} is usually
+"private".
+
+@item netsnmp
+Same as the @code{'snmp}.
+
+@item dumb
+Set to the appropriate @file{/dev/tty**} device.
+
+@item pcnet
+Set to @code{@var{ipaddr}:@var{username}:@var{passphrase}:@var{port}}.
+The @var{ipaddr} is the IP address of the UPS management card.  The
+@var{username} and the @var{passphrase} are the credentials for which
+the card has been configured.  The @var{port} is the port number on
+which to listen for messages from the UPS, normally 3052.  If this
+parameter is empty or missing, the default of 3052 will be used.
+
+@item modbus
+Set to the appropriate @file{/dev/tty**} device.  You can also leave it
+empty for MODBUS over USB or set to the serial number of the UPS.
+
+@end table
+
+@item @code{poll-time} (default: @code{60}) (type: integer)
+The interval (in seconds) at which apcupsd polls the UPS for status.
+This setting applies both to directly-attached UPSes (apcsmart, usb,
+dumb) and networked UPSes (net, snmp).  Lowering this setting will
+improve the apcupsd's responsiveness to certain events at the cost of
+higher CPU utilization.
+
+@item @code{on-batery-delay} (default: @code{6}) (type: integer)
+The time in seconds from when a power failure is detected until we react
+to it with an onbattery event.  The @code{'powerout} event will be
+triggered immediately when a power failure is detected.  However, the
+@code{'onbattery} event will be trigger only after this delay.
+
+@item @code{battery-level} (default: @code{5}) (type: integer)
+If during a power failure, the remaining battery percentage (as reported
+by the UPS) is below or equal to this value, the apcupsd will initiate a
+system shutdown.
+
+@quotation Note
+@code{battery-level}, @code{remaining-minutes}, and @code{timeout} work
+in a conjunction, so the first that occurs will cause the initation of a
+shutdown.
+@end quotation
+
+@item @code{remaining-minutes} (default: @code{3}) (type: integer)
+If during a power failure, the remaining runtime in minutes (as
+calculated internally by the UPS) is below or equal to this value,
+apcupsd will initiate a system shutdown.
+
+@quotation Note
+@code{battery-level}, @code{remaining-minutes}, and @code{timeout} work
+in a conjunction, so the first that occurs will cause the initation of a
+shutdown.
+@end quotation
+
+@item @code{timeout} (default: @code{0}) (type: integer)
+If during a power failure, the UPS has run on batteries for this many
+seconds or longer, apcupsd will initiate a system shutdown.  The value
+of 0 disables this timer.
+
+@quotation Note
+@code{battery-level}, @code{remaining-minutes}, and @code{timeout} work
+in a conjunction, so the first that occurs will cause the initation of a
+shutdown.
+@end quotation
+
+@item @code{annoy-interval} (default: @code{300}) (type: integer)
+The time in seconds between annoying users (via the @code{'annoyme}
+event) to sign off prior to system shutdown.  0 disables.
+
+@item @code{annoy-delay} (default: @code{60}) (type: integer)
+The initial delay in seconds after a power failure before warning users
+to get off the system.
+
+@item @code{no-logon} (default: @code{disable}) (type: enum-no-logon)
+The condition which determines when users are prevented from logging in
+during a power failure.
+
+@item @code{kill-delay} (default: @code{0}) (type: integer)
+If this is non-zero, the apcupsd will continue running after a shutdown
+has been requested, and after the specified time in seconds attempt to
+kill the power.  This is for use on systems where apcupsd cannot regain
+control after a shutdown.
+
+@item @code{net-server} (default: @code{#f}) (type: boolean)
+If enabled, a network information server process will be started.
+
+@item @code{net-server-ip} (default: @code{"127.0.0.1"}) (type: string)
+An IP address on which the NIS server will listen for incoming
+connections.
+
+@item @code{net-server-port} (default: @code{3551}) (type: integer)
+An IP port on which the NIS server will listen for incoming connections.
+
+@item @code{net-server-events-file} (type: maybe-string)
+If you want the last few EVENTS to be available over the network by the
+network information server, you must set this to a file name.
+
+@item @code{net-server-events-file-max-size} (default: @code{10}) (type: integer)
+The maximum size of the events file in kilobytes.
+
+@item @code{class} (default: @code{standalone}) (type: enum-class)
+Normally standalone unless you share an UPS using an APC ShareUPS card.
+
+@item @code{mode} (default: @code{disable}) (type: enum-mode)
+Normally disable unless you share an UPS using an APC ShareUPS card.
+
+@item @code{stat-time} (default: @code{0}) (type: integer)
+The time interval in seconds between writing the status file, 0
+disables.
+
+@item @code{log-stats} (default: @code{#f}) (type: boolean)
+Also write the stats as a logs.  This generates a lot of output.
+
+@item @code{data-time} (default: @code{0}) (type: integer)
+The time interval in seconds between writing the data records to the log
+file, 0 disables.
+
+@item @code{facility} (type: maybe-string)
+The logging facility for the syslog.
+
+@item @code{event-handlers} (type: apcupsd-event-handlers)
+Handlers for events produced by apcupsd.
+
+@end table
+@end deftp
+
+@anchor{apcupsd-event-handlers}
+@deftp {Data Type} apcupsd-event-handlers
+
+For a description of the events please refer to @samp{man 8 apccontrol}.
+
+Each handler shall be a gexp.  It is spliced into the control script for
+the daemon.  In addition to the standard Guile programming environment,
+the following procedures and variables are also available:
+
+@table @code
+@item conf
+Variable containing the file name of the configuration file.
+
+@item powerfail-file
+Variable containing the file name of the powerfail file.
+
+@item cmd
+The event currently being handled.
+
+@item name
+The name of the UPS as specified in the configuration file.
+
+@item connected?
+Is @code{#t} if @command{apcupsd} is connected to the UPS via a serial
+port (or a USB port).  In most configurations, this will be the case.
+In the case of a Slave machine where apcupsd is not directly connected
+to the UPS, this value will be @code{#f}.
+
+@item powered?
+Is @code{#t} if the computer on which @command{apcupsd} is running is
+powered by the UPS and @code{#f} if not.  At the moment, this value is
+unimplemented and always @code{#f}.
+
+@item (err @var{fmt} @var{args...})
+Wrapper around @code{format} outputting to @code{(current-error-port)}.
+
+@item (wall @var{fmt} @var{args...})
+Wrapper around @code{format} outputting via @command{wall}.
+
+@item (apcupsd @var{args...})
+Call @command{apcupsd} while passing the correct configuration file and
+all the arguments.
+
+@item (mail-to-root @var{subject} @var{body})
+Send an email to the local administrator.  This procedure assumes the
+@command{sendmail} is located at @command{/run/privileged/bin/sendmail}
+(as would be the case with @code{opensmtpd-service-type}).
+
+@end table
+
+Available @code{apcupsd-event-handlers} fields are:
+
+@table @asis
+@item @code{modules} (type: gexp)
+Additional modules to import into the generated handler script.
+
+@item @code{killpower} (type: gexp)
+The handler for the killpower event.
+
+@item @code{commfailure} (type: gexp)
+The handler for the commfailure event.
+
+@item @code{commok} (type: gexp)
+The handler for the commfailure event.
+
+@item @code{powerout} (type: gexp)
+The handler for the powerout event.
+
+@item @code{onbattery} (type: gexp)
+The handler for the onbattery event.
+
+@item @code{offbattery} (type: gexp)
+The handler for the offbattery event.
+
+@item @code{mainsback} (type: gexp)
+The handler for the mainsback event.
+
+@item @code{failing} (type: gexp)
+The handler for the failing event.
+
+@item @code{timeout} (type: gexp)
+The handler for the timeout event.
+
+@item @code{loadlimit} (type: gexp)
+The handler for the loadlimit event.
+
+@item @code{runlimit} (type: gexp)
+The handler for the runlimit event.
+
+@item @code{doreboot} (type: gexp)
+The handler for the doreboot event.
+
+@item @code{doshutdown} (type: gexp)
+The handler for the doshutdown event.
+
+@item @code{annoyme} (type: gexp)
+The handler for the annoyme event.
+
+@item @code{emergency} (type: gexp)
+The handler for the emergency event.
+
+@item @code{changeme} (type: gexp)
+The handler for the changeme event.
+
+@item @code{remotedown} (type: gexp)
+The handler for the remotedown event.
+
+@item @code{startselftest} (type: gexp)
+The handler for the startselftest event.
+
+@item @code{endselftest} (type: gexp)
+The handler for the endselftest event.
+
+@item @code{battdetach} (type: gexp)
+The handler for the battdetach event.
+
+@item @code{battattach} (type: gexp)
+The handler for the battattach event.
 
 @end table
 @end deftp
@@ -36153,7 +37364,7 @@ local syslog daemon.  Alternatively, a log file name can be specified,
 for example @file{/var/log/mpd.log}.
 
 @item @code{log-level} (type: maybe-string)
-Supress any messages below this threshold.  The available values, in
+Suppress any messages below this threshold.  The available values, in
 decreasing order of verbosity, are: @code{verbose}, @code{info},
 @code{notice}, @code{warning} and @code{error}.
 
@@ -37330,6 +38541,101 @@ File name of the device or socket the agent uses to communicate with the
 host.  If empty, QEMU uses a default file name.
 @end table
 @end deftp
+
+@subsubheading Xen Guest Agent
+
+@cindex Xen
+@cindex Xen guest agent
+
+The Xen guest agent allows a Xen host to control the emulated system.
+The @code{xe-guest-utilities} service runs the agent on Guix guests.
+
+@url{https://github.com/xenserver/xe-guest-utilities, xe-guest-utilities} collects information about the running virtualized guest. This includes:
+@itemize
+@item
+static information
+@itemize
+@item
+The operating system running
+@item
+The Linux kernel version
+@end itemize
+
+@item
+dynamic information
+@itemize
+@item
+Network interfaces (devices) being added/removed
+@item
+Network connections being unplugged/plugged-in
+@item
+CPUs being added or removed
+@item
+The guest migrating, being paused/resumed, etc.
+@end itemize
+
+@item
+ephemeral information
+@itemize
+@item
+The amount of memory currently in-use and free
+@item
+The amount of disk-space used
+@end itemize
+@end itemize
+
+@quotation Note
+The default Linux-libre kernel that Guix ships already enables the
+necessary paravirtualization features for a guest.  There is nothing you
+need to do for the guest to support Xen's paravirtualization features.
+
+The guest utilities are used to have the guest report information
+@emph{back} to the virtualizing host and support tasks that require
+cooperation between host and guest, like CPU hotplugging.
+@end quotation
+
+@defvar xe-guest-utilities-service-type
+Service type for the Xen guest utilities service.
+@end defvar
+
+@deftp {Data Type} xe-guest-utilities-configuration
+Configuration for the @code{xe-guest-utilities} service.
+
+@table @asis
+@item @code{package} (default: @code{xe-guest-utilities})
+The Xen guest utilities package to use.
+
+@item @code{pid-file} (default: @code{"/var/run/xe-daemon.pid"})
+Name of the file holding the PID of @code{xe-deamon}.
+
+@item @code{log-file} (default: @code{"/var/log/xe-guest-utilities.log"})
+Name of the @code{xe-guest-utilities} log file.
+@end table
+@end deftp
+
+@code{xe-guest-utilities} is the standard guest utilities used for Xen
+guests.  More recently the Xen Project has been working to develop
+@code{xen-guest-agent}, a modern drop-in replacement for
+@code{xe-guest-utilities}.  While they nearly have feature-parity,
+@code{xen-guest-agent} currently lacks some of the features of its
+predecessor, namely disk metrics and ``PV drivers version''.
+
+@defvar xen-guest-agent-service-type
+Service type for the Xen guest agent service.
+@end defvar
+
+@deftp {Data Type} xen-guest-agent-configuration
+Configuration for the @code{xen-guest-agent} service.
+
+@table @asis
+@item @code{package} (default: @code{xen-guest-agent})
+The Xen guest agent package to use.
+@end table
+@end deftp
+
+@quotation Warning
+@code{xe-guest-utilities} and @code{xen-guest-agent} are mutually exclusive.
+@end quotation
 
 
 @anchor{build-vm}
@@ -40101,6 +41407,10 @@ Hooks can be configured to run in parallel.  This parameter is an
 association list of hooks to do in parallel, where the key is the symbol
 for the hook and the value is the number of threads to run.
 
+@item @code{listen-repl} (default: @var{#f})
+Port or filename to spawn a REPL listening on, pass @code{#t} to listen
+on the default port or @code{#f} to disable.
+
 @item @code{guile} (default: @code{guile-3.0-latest})
 The Guile package with which to run the Guix Build Coordinator.
 
@@ -40326,7 +41636,7 @@ environments, as in this example:
 
 @lisp
 (simple-service 'my-extra-home guix-home-service-type
-                `(("bob" ,my-extra-home))))
+                `(("bob" ,my-extra-home)))
 @end lisp
 @end defvar
 
@@ -40684,7 +41994,7 @@ Print debugging output to stderr.
 Log to syslog facility instead of stdout.
 
 @item @code{scan?} (default: @code{#t}) (type: boolean)
-Scan for cachable objects.
+Scan for cacheable objects.
 
 @item @code{cache-directory} (type: maybe-string)
 Location of the cache directory.
@@ -41170,7 +42480,25 @@ A @code{<dicod-database>} object serving the GNU Collaborative International
 Dictionary of English using the @code{gcide} package.
 @end defvar
 
-The following is an example @code{dicod-service-type} configuration.
+@deffn {Procedure} dicod-freedict-database dictionary-name
+Returns a record of type @code{dicod-database} for purpose of
+configuring a database for the FreeDict multilingual dictionary named by
+@var{dictionary-name}, a string such as @code{"kur-eng"} for the
+Kurdish-to-English dictionary, into a service of type
+@code{dicod-service-type}.
+@end deffn
+
+@defvar %dicod-databases:freedict
+A relatively large list of records of type @code{dicod-database}, made
+available for users who wish to configure all the FreeDict multilingual
+dictionaries provided by the @code{freedict-dictionaries} package into a
+service of type @code{dicod-service-type}.
+@end defvar
+
+The following is an example @code{dicod-service-type} configuration,
+extending a @command{dicod} daemon serving databases for the wordnet and
+gcide dictionaries, as well as a selection of FreeDict multilingual
+dictionaries.
 
 @lisp
 (service dicod-service-type
@@ -41181,12 +42509,15 @@ The following is an example @code{dicod-service-type} configuration.
                       (module "wordnet")
                       (options
                        (list #~(string-append "wnhome=" #$wordnet))))))
-          (databases (list
+          (databases (cons*
                       (dicod-database
                        (name "wordnet")
                        (complex? #t)
                        (handler "wordnet"))
-                      %dicod-database:gcide))))
+                      %dicod-database:gcide
+                      (map
+                       dicod-freedict-database
+                       '("fra-eng" "eng-fra" "eng-spa" "spa-eng"))))))
 @end lisp
 
 @cindex Docker
@@ -41372,8 +42703,9 @@ BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
 Available @code{rootless-podman-configuration} fields are:
 
 @table @asis
-@item @code{podman} (default: @code{podman}) (type: package)
+@item @code{podman} (default: @code{podman}) (type: package-or-#f)
 The Podman package that will be installed in the system profile.
+Pass @code{#f} to not install Podman.
 
 @item @code{group-name} (default: @code{"cgroup"}) (type: string)
 The name of the group that will own /sys/fs/cgroup resources.  Users that
@@ -41765,13 +43097,13 @@ Whether to automatically configure subuids and subgids for root.
 @item @code{subgids} (default: @code{'()}) (type: list-of-subid-ranges)
 The list of @code{subid-range}s that will be serialized to @code{/etc/subgid}.
 If a range doesn't specify a start it will be fitted based on its number of
-requrested subids.  If a range doesn't specify a count the default size
+requested subids.  If a range doesn't specify a count the default size
 of 65536 will be assumed.
 
 @item @code{subuids} (default: @code{'()}) (type: list-of-subid-ranges)
 The list of @code{subid-range}s that will be serialized to @code{/etc/subuid}.
 If a range doesn't specify a start it will be fitted based on its number of
-requrested subids.  If a range doesn't specify a count the default size
+requested subids.  If a range doesn't specify a count the default size
 of 65536 will be assumed.
 
 @end table
@@ -42306,7 +43638,7 @@ systems.
 
 @table @asis
 
-@item @code{file-system} (default: @code{#f}) (type: file-system)
+@item @code{file-system} (type: file-system)
 The file-system object to resize (@pxref{File Systems}).  This object
 must have the @code{device} and @code{type} fields set.  Other fields
 are ignored.
@@ -42365,19 +43697,16 @@ following configuration:
                                     "/etc/guix/signing-key.sec"))))))))))
 @end lisp
 
-Each @code{restic-backup-job} translates to an mcron job which sets the
+Each @code{restic-backup-job} translates to a Shepherd timer which sets the
 @env{RESTIC_PASSWORD} environment variable by reading the first line of
 @code{password-file} and runs @command{restic backup}, creating backups
 using rclone of all the files listed in the @code{files} field.
 
-The @code{restic-backup-service-type} installs as well @code{restic-guix}
-to the system profile, a @code{restic} utility wrapper that allows for easier
-interaction with the Guix configured backup jobs.  For example the following
-could be used to instantaneusly trigger a backup for the above shown
-configuration, without waiting for the scheduled job:
+The @code{restic-backup-service-type} provides the ability to instantaneously
+trigger a backup with the @code{trigger} Shepherd action:
 
 @example
-restic-guix backup remote-ftp
+sudo herd trigger remote-ftp
 @end example
 
 @c %start of fragment
@@ -42408,6 +43737,23 @@ The restic package to be used for the current job.
 @item @code{user} (default: @code{"root"}) (type: string)
 The user used for running the current job.
 
+@item @code{group} (default: @code{"root"}) (type: string)
+The group used for running the current job.
+
+@item @code{log-file} (type: maybe-string)
+The file system path to the log file for this job.  By default the file will
+have be @file{/var/log/restic-backup/@var{job-name}.log}, where @var{job-name} is the
+name defined in the @code{name} field.
+
+@item @code{max-duration} (type: maybe-number)
+The maximum duration in seconds that a job may last.  Past
+@code{max-duration} seconds, the job is forcefully terminated.
+
+@item @code{wait-for-termination?} (default: @code{#f}) (type: boolean)
+Wait until the job has finished before considering executing it again;
+otherwise, perform it strictly on every occurrence of event, at the risk of
+having multiple instances running concurrently.
+
 @item @code{repository} (type: string)
 The restic repository target of this job.
 
@@ -42420,9 +43766,12 @@ that will be used to set the @env{RESTIC_PASSWORD} environment variable
 for the current job.
 
 @item @code{schedule} (type: gexp-or-string)
-A string or a gexp that will be passed as time specification in the
-mcron job specification (@pxref{Syntax, mcron job specifications,,
-mcron,GNU@tie{}mcron}).
+A string or a gexp representing the frequency of the backup.  Gexp must
+evaluate to @code{calendar-event} records or to strings.  Strings must contain
+Vixie cron date lines.
+
+@item @code{requirement} (default: @code{'()}) (type: list-of-symbols)
+The list of Shepherd services that this backup job depends upon.
 
 @item @code{files} (default: @code{'()}) (type: list-of-lowerables)
 The list of files or directories to be backed up.  It must be a list of
@@ -42434,7 +43783,7 @@ Whether to enable verbose output for the current backup job.
 @item @code{extra-flags} (default: @code{'()}) (type: list-of-lowerables)
 A list of values that are lowered to strings.  These will be passed as
 command-line arguments to the current job @command{restic backup}
-invokation.
+invocation.
 
 @end table
 
@@ -42592,7 +43941,7 @@ previous example to your operating system declaration by appending it to
   (privileged-programs
     (append (list (privileged-program
                     (program (file-append nfs-utils "/sbin/mount.nfs"))
-                    (setuid? #t))
+                    (setuid? #t)))
             %default-privileged-programs)))
 @end lisp
 
@@ -43591,10 +44940,19 @@ list-generations}).  If that generation already exists, it will be
 overwritten.  This behavior mirrors that of @command{guix package}
 (@pxref{Invoking guix package}).
 
-It also adds a bootloader menu entry for the new OS configuration,
+It adds a bootloader menu entry for the new OS configuration,
 ---unless @option{--no-bootloader} is passed.  For GRUB, it moves
 entries for older configurations to a submenu, allowing you to choose
 an older system generation at boot time should you need it.
+
+@cindex kexec, for fast reboots
+@cindex rebooting @i{via} Linux kexec
+On Linux, @command{guix system reconfigure} also loads the new system
+for fast reboot @i{via} kexec: running @command{reboot --kexec} will
+boot the new system by directly executing its kernel, thus bypassing the
+BIOS initialization phase and bootloader (@pxref{Invoking reboot,,,
+shepherd, The GNU Shepherd Manual}).  You can avoid this behavior by
+passing the @option{--no-kexec} option.
 
 @cindex provenance tracking, of the operating system
 Upon completion, the new system is deployed under
@@ -44293,6 +45651,14 @@ guix deploy @var{file} -x -- herd restart @var{service}
 The @command{guix deploy -x} command returns zero if and only if the
 command succeeded on all the machines.
 
+You may also wish to roll back configurations on machines to a previous
+generation.  You can do that using the @option{--roll-back} or
+@option{-r} option like so:
+
+@example
+guix deploy --roll-back @var{file}
+@end example
+
 @c FIXME/TODO: Separate the API doc from the CLI doc.
 
 Below are the data types you need to know about when writing a
@@ -44389,6 +45755,137 @@ A Digital Ocean size slug, such as @code{"s-1vcpu-1gb"}
 @item @code{enable-ipv6?}
 Whether or not the droplet should be created with IPv6 networking.
 @end table
+@end deftp
+
+@deftp {Data Type} hetzner-configuration
+This is the data type describing the server that should be created for a
+machine with an @code{environment} of
+@code{hetzner-environment-type}. It allows you to configure deployment
+to a @acronym{VPS, virtual private server} hosted by
+@uref{https://www.hetzner.com, Hetzner}.
+
+@table @asis
+
+@item @code{allow-downgrades?} (default: @code{#f})
+Whether to allow potential downgrades.
+
+@item @code{authorize?} (default: @code{#t})
+If true, the public signing key @code{"/etc/guix/signing-key.pub"} of
+the machine that invokes @command{guix deploy} will be added to the
+operating system ACL keyring of the target machine.
+
+@item @code{build-locally?} (default: @code{#t})
+If true, system derivations will be built on the machine that invokes
+@command{guix deploy}, otherwise derivations are build on the target
+machine.  Set this to @code{#f} if the machine you are deploying from
+has a different architecture than the target machine and you can't build
+derivations for the target architecture by other means, like offloading
+(@pxref{Daemon Offload Setup}) or emulation
+(@pxref{transparent-emulation-qemu, Transparent Emulation with QEMU}).
+
+@item @code{delete?} (default: @code{#t})
+If true, the server will be deleted when an error happens in the
+provisioning phase. If false, the server will be kept in order to debug
+any issues.
+
+@item @code{labels} (default: @code{'()})
+A user defined alist of key/value pairs attached to the SSH key and the
+server on the Hetzner API.  Keys and values must be strings,
+e.g. @code{'(("environment" . "development"))}.  For more information,
+see @uref{https://docs.hetzner.cloud/#labels, Labels}.
+
+@item @code{location} (default: @code{"fsn1"})
+The name of a @uref{https://docs.hetzner.com/cloud/general/locations,
+location} to create the server in.  For example, @code{"fsn1"}
+corresponds to the Hetzner site in Falkenstein, Germany, while
+@code{"sin"} corresponds to its site in Singapore.
+
+@item @code{server-type} (default: @code{"cx42"})
+The name of the
+@uref{https://docs.hetzner.com/cloud/servers/overview#server-types,
+server type} this virtual server should be created with.  For example,
+@code{"cx42"} corresponds to a x86_64 server that has 8 VCPUs, 16 GB of
+memory and 160 GB of storage, while @code{"cax31"} to the AArch64
+equivalent.  Other server types and their current prices can be found
+@uref{https://www.hetzner.com/cloud/#pricing, here}.  The @code{"cpx11"}
+server type is currently not supported, since its rescue system is too
+small to bootstrap a Guix system from.
+
+@item @code{ssh-key}
+The file name of the SSH private key to use to authenticate with the
+remote host.
+
+@end table
+
+When deploying a machine for the first time, the following steps are
+taken to provision a server for the machine on the
+@uref{https://www.hetzner.com/cloud, Hetzner Cloud} service:
+
+@itemize
+
+@item
+Create the SSH key of the machine on the Hetzner API.
+
+@item
+Create a server for the machine on the Hetzner API.
+
+@item
+Format the root partition of the disk using the file system of the
+machine's operating system.  Supported file systems are btrfs and ext4.
+
+@item
+Install a minimal Guix operating system on the server using the
+@uref{https://docs.hetzner.com/cloud/servers/getting-started/rescue-system,
+rescue mode}.  This minimal system is used to install the machine's
+operating system, after rebooting.
+
+@item
+Reboot the server and apply the machine's operating system on the
+server.
+
+@end itemize
+
+Once the server has been provisioned and SSH is available, deployment
+continues by delegating it to the @code{managed-host-environment-type}.
+
+Servers on the Hetzner Cloud service can be provisioned on the AArch64
+architecture using UEFI boot mode, or on the x86_64 architecture using
+BIOS boot mode.  The @code{(gnu machine hetzner)} module exports the
+@code{%hetzner-os-arm} and @code{%hetzner-os-x86} operating systems that
+are compatible with those two architectures, and can be used as a base
+for defining your custom operating system.
+
+The following example shows the definition of two machines that are
+deployed on the Hetzner Cloud service.  The first one uses the
+@code{%hetzner-os-arm} operating system to run a server with 16 shared
+vCPUs and 32 GB of RAM on the @code{aarch64} architecture, the second
+one uses the @code{%hetzner-os-x86} operating system on a server with 16
+shared vCPUs and 32 GB of RAM on the @code{x86_64} architecture.
+
+@lisp
+(use-modules (gnu machine)
+             (gnu machine hetzner))
+
+(list (machine
+       (operating-system %hetzner-os-arm)
+       (environment hetzner-environment-type)
+       (configuration (hetzner-configuration
+                       (server-type "cax41")
+                       (ssh-key "/home/charlie/.ssh/id_rsa"))))
+      (machine
+       (operating-system %hetzner-os-x86)
+       (environment hetzner-environment-type)
+       (configuration (hetzner-configuration
+                       (server-type "cpx51")
+                       (ssh-key "/home/charlie/.ssh/id_rsa")))))
+@end lisp
+
+@vindex GUIX_HETZNER_API_TOKEN
+Passing this file to @command{guix deploy} with the environment variable
+@env{GUIX_HETZNER_API_TOKEN} set to a valid Hetzner
+@uref{https://docs.hetzner.com/cloud/api/getting-started/generating-api-token,
+API key} should provision two machines for you.
+
 @end deftp
 
 @node Running Guix in a VM
@@ -45093,6 +46590,13 @@ shepherd, The GNU Shepherd Manual}, for details.
 @item @code{requirement} (default: @code{'()})
 List of symbols denoting the Shepherd services this one depends on.
 
+@cindex @code{user-processes} Shepherd service
+With very few exceptions, services that start a daemon must depend at
+least on the @code{user-processes} service; this ensures that these
+daemons are started after all the file systems have been mounted and
+that, during shutdown, they are stopped before attempting to terminate
+remaining user processes.
+
 @cindex one-shot services, for the Shepherd
 @item @code{one-shot?} (default: @code{#f})
 Whether this service is @dfn{one-shot}.  One-shot services stop immediately
@@ -45330,6 +46834,99 @@ system:
                                             (inherit config)
                                             (shepherd my-shepherd))))))
 @end lisp
+
+@anchor{shepherd-transient-timer-services}
+@cindex @code{transient} service, Shepherd
+@defvar shepherd-transient-service-type
+This service type represents the Shepherd's @code{transient} service,
+which lets you spawn commands in the background and interact with them
+as regular Shepherd services; it is similar to @command{systemd-run}.
+
+For example, the command below spawns @command{rsync} in the background,
+in an environment where the @env{SSH_AUTH_SOCK} environment variable has
+the given value:
+
+@example
+herd spawn transient -E SSH_AUTH_SOCK=$SSH_AUTH_SOCK -- \
+  rsync -e ssh -vur . backup.example.org:
+@end example
+
+@xref{Transient Service Maker,,, shepherd, The GNU Shepherd Manual}, for
+more info on the @code{transient} service.
+@end defvar
+
+@cindex @code{timer} service, Shepherd
+@defvar shepherd-timer-service-type
+This is the service type representing the Shepherd's @code{timer}
+service, which lets you schedule the execution of commands, similar to
+the venerable @command{at} command.  Here is an example:
+
+@example
+herd schedule timer at 07:00 -- mpg123 Music/alarm.mp3
+@end example
+
+@xref{Timer Service,,, shepherd, The GNU Shepherd Manual}, for more info
+on the @code{timer} service.
+@end defvar
+
+@anchor{shepherd-system-log}
+@cindex system log service, from Shepherd
+@cindex syslogd, Shepherd system log service
+@defvar shepherd-system-log-service-type
+This service implements a @dfn{system log}, reading messages
+applications send to @file{/dev/log} and writing them to files or
+terminals according to user-defined rules.  It provides functionality
+traditionally implemented by @command{syslogd} programs.
+
+The value of services of this type must be a
+@code{system-log-configuration} record, as described below.
+
+This service is part of @code{%base-services} (@pxref{Base Services}).
+@end defvar
+
+@c %start of fragment
+
+@deftp {Data Type} system-log-configuration
+Available @code{system-log-configuration} fields are:
+
+@table @asis
+@item @code{provision} (default: @code{'(system-log syslogd)}) (type: list-of-symbols)
+The name(s) of the system log service.
+
+@item @code{requirement} (default: @code{'(root-file-system)}) (type: list-of-symbols)
+Dependencies of the system log service.
+
+@item @code{kernel-log-file} (type: gexp-or-string-or-false)
+File from which kernel messages are read, @file{/dev/kmsg} by default.
+
+@item @code{message-destination} (default: @code{#f}) (type: gexp-or-false)
+This gexp must evaluate to a procedure that, when passed a log message,
+returns the list of files to write it to; @code{#f} is equivalent to
+using @code{(default-message-destination-procedure)}.  @xref{System Log
+Service,,,shepherd,The GNU Shepherd Manual}, for information on how to
+write that procedure.
+
+@item @code{date-format} (type: gexp-or-string)
+String or string-valued gexp specifying how to format timestamps in log
+files.  It must be a valid string for @code{strftime} (@pxref{Time,,,
+guile,GNU Guile Reference Manual}), including delimiting space---e.g.,
+@code{"%c "} for a format identical to that of traditional syslogd
+implementations.
+
+@item @code{history-size} (type: gexp-or-integer)
+Number of logging messages kept in memory for the purposes of making
+them available to @command{herd status system-log}.
+
+@item @code{max-silent-time} (type: gexp-or-integer)
+Time after which a mark is written to log files if nothing was logged
+during that time frame.
+
+@end table
+
+@end deftp
+
+
+@c %end of fragment
 
 @defvar %shepherd-root-service
 This service represents PID@tie{}1.
@@ -45919,6 +47516,7 @@ it manually. (@pxref{Configuring the Shell}).
 @end quotation
 
 @findex home-environment
+@vindex %base-home-services
 @lisp
 @include he-config-bare-bones.scm
 @end lisp
@@ -46291,8 +47889,9 @@ dotfiles/
 @end example
 
 For an informal specification please refer to the Stow manual
-(@pxref{Top,,, stow, Introduction}). This tree structure is installed following
-GNU Stow's logic to the home directory upon @command{guix home reconfigure}.
+(@pxref{Introduction,,, stow, The GNU Stow Manual}). This tree structure
+is installed following GNU Stow's logic to the home directory upon
+@command{guix home reconfigure}.
 
 A suitable configuration with a @code{'plain} layout could be:
 
@@ -46325,7 +47924,7 @@ The expected home directory state would then be:
 @end example
 
 @defvar home-dotfiles-service-type
-Return a service which is very similiar to @code{home-files-service-type}
+Return a service which is very similar to @code{home-files-service-type}
 (and actually extends it), but designed to ease the way into using Guix
 Home for users that already track their dotfiles under some kind of version
 control.  This service allows users to point Guix Home to their dotfiles
@@ -46943,6 +48542,33 @@ You should probably use the service extension
 mechanism instead (@pxref{Shepherd Services}).
 @end table
 @end deftp
+
+@cindex log rotation, for user services
+The Shepherd also comes with a @dfn{log rotation service}, which
+compresses and then deletes old log files produced by services and
+daemons that it runs.  This service is made available through
+@code{home-log-rotation-service-type} as described below.
+
+@defvar home-log-rotation-service-type
+This is the service type for the user Shepherd log rotation service
+(@pxref{Log Rotation Service,,, shepherd, The GNU Shepherd Manual}).
+Its value must be a @code{log-rotation-configuration} record, exactly as
+for its system-wide counterpart.  @xref{log-rotation-configuration}, for
+its reference.
+
+This service is part of @code{%base-home-services}.
+@end defvar
+
+@defvar home-shepherd-transient-service-type
+@defvarx home-shepherd-timer-service-type
+These are the @code{timer} and @code{transient} Shepherd services.  The
+former lets you schedule command execution for later, while the latter
+can run commands in the background as a regular service.
+
+@xref{shepherd-transient-timer-services, the system @code{timer} and
+@code{transient} services}, which are their Guix System counterparts,
+for more info.
+@end defvar
 
 @node Secure Shell
 @subsection Secure Shell
@@ -47780,6 +49406,9 @@ The WirePlumber package to use.
 @item @code{enable-pulseaudio?} (default: @code{#t}) (type: boolean)
 When true, enable PipeWire's PulseAudio emulation support, allowing
 PulseAudio clients to use PipeWire transparently.
+
+@item @code{extra-content} (default: @code{""}) (type: string)
+Extra content to add to the end of @file{~/.config/alsa/asoundrc}.
 @end table
 @end deftp
 
@@ -48984,6 +50613,10 @@ Platform targeting ARM v7 CPU running GNU/Linux.
 Platform targeting ARM v8 CPU running GNU/Linux.
 @end defvar
 
+@defvar loongarch64-linux
+Platform targeting loongarch 64-bit CPU running GNU/Linux.
+@end defvar
+
 @defvar mips64-linux
 Platform targeting MIPS little-endian 64-bit CPU running GNU/Linux.
 @end defvar
@@ -49746,9 +51379,9 @@ will not have the desired effect.  @xref{Package Transformation Options,
 @cindex @LaTeX{} packages
 Guix provides packages for the @TeX{}, @LaTeX{}, ConTeXt, LuaTeX, and
 related typesetting systems, taken from the
-@uref{https://www.tug.org/texlive/, @TeX{} Live distribution}.  However,
-because @TeX{} Live is so huge and because finding one's way in this
-maze is tricky, so this section provides some guidance on how to deploy
+@uref{https://www.tug.org/texlive/, @TeX{} Live distribution}.
+Because @TeX{} Live is so huge and because finding one's way in this
+maze is tricky, this section provides some guidance on how to deploy
 the relevant packages to compile @TeX{} and @LaTeX{} documents.
 
 @TeX{} Live currently comes in two mutually exclusive flavors in Guix:
@@ -49761,10 +51394,10 @@ single @TeX{} Live package} (roughly 4,200), but it is huge---more than
 
 @item
 A ``modular'' @TeX{} Live distribution, in which you only install the
-packages, always prefixed with @samp{texlive-}, you need.
+packages you need, whose name is always prefixed with @samp{texlive-}.
 @end itemize
 
-So to insist, these two flavors cannot be combined@footnote{No rule
+To insist, these two flavors cannot be combined@footnote{No rule
 without exception! As the monolithic @TeX{} Live does not contain the
 @command{biber} executable, it is okay to combine it with
 @code{texlive-biber}, which does.}.  If in the modular setting your

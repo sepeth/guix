@@ -48,6 +48,7 @@
             guix-build-coordinator-configuration-allocation-strategy
             guix-build-coordinator-configuration-hooks
             guix-build-coordinator-configuration-parallel-hooks
+            guix-build-coordinator-configuration-listen-repl
             guix-build-coordinator-configuration-guile
             guix-build-coordinator-configuration-extra-environment-variables
 
@@ -176,6 +177,8 @@
                                    (default '()))
   (parallel-hooks                  guix-build-coordinator-configuration-parallel-hooks
                                    (default '()))
+  (listen-repl                     guix-build-coordinator-configuration-listen-repl
+                                   (default #f))
   (guile                           guix-build-coordinator-configuration-guile
                                    (default guile-next))
   (extra-environment-variables
@@ -255,7 +258,8 @@
                                                    client-communication-uri-string
                                                    (hooks '())
                                                    (parallel-hooks '())
-                                                   (guile guile-next))
+                                                   (guile guile-next)
+                                                   listen-repl)
   (program-file
    "start-guix-build-coordinator"
    (with-extensions (cons guix-build-coordinator-package
@@ -311,7 +315,8 @@
             #:parallel-hooks (list #$@(map (match-lambda
                                              ((name . val)
                                               #~(cons '#$name #$val)))
-                                           parallel-hooks))))))
+                                           parallel-hooks))
+            #:listen-repl #$listen-repl))))
    #:guile guile))
 
 (define (guix-build-coordinator-shepherd-services config)
@@ -322,13 +327,14 @@
              allocation-strategy
              hooks
              parallel-hooks
+             listen-repl
              guile
              extra-environment-variables)
     (list
      (shepherd-service
       (documentation "Guix Build Coordinator")
       (provision '(guix-build-coordinator))
-      (requirement '(networking))
+      (requirement '(user-processes networking))
       (start #~(lambda args
                  (parameterize ((%current-logfile-date-format ""))
                    (apply
@@ -344,13 +350,14 @@
                               client-communication-uri-string
                               #:hooks hooks
                               #:parallel-hooks parallel-hooks
+                              #:listen-repl listen-repl
                               #:guile guile))
                      #:user #$user
                      #:group #$group
                      #:directory "/var/lib/guix-build-coordinator"
                      #:pid-file "/var/run/guix-build-coordinator/pid"
                      ;; Allow time for migrations to run
-                     #:pid-file-timeout 60
+                     #:pid-file-timeout 240
                      #:environment-variables
                      `("LC_ALL=en_US.utf8"
                        "PATH=/run/current-system/profile/bin" ; for hooks
@@ -578,7 +585,7 @@ ca-certificates.crt file in the system profile."
      (shepherd-service
       (documentation "Guix Data Service web server")
       (provision '(guix-data-service))
-      (requirement '(postgres networking))
+      (requirement '(user-processes postgres networking))
       (start #~(make-forkexec-constructor
                 (list #$(file-append package
                                      "/bin/guix-data-service")
@@ -605,7 +612,7 @@ ca-certificates.crt file in the system profile."
      (shepherd-service
       (documentation "Guix Data Service setup database")
       (provision '(guix-data-service-setup-database))
-      (requirement '(postgres))
+      (requirement '(user-processes postgres))
       (one-shot? #t)
       (start
        (with-extensions (cons package
@@ -640,7 +647,7 @@ ca-certificates.crt file in the system profile."
      (shepherd-service
       (documentation "Guix Data Service process jobs")
       (provision '(guix-data-service-process-jobs))
-      (requirement '(postgres networking))
+      (requirement '(user-processes postgres networking))
       (start #~(make-forkexec-constructor
                 (list
                  #$(file-append package
@@ -916,7 +923,7 @@ ca-certificates.crt file in the system profile."
      (shepherd-service
       (documentation "Nar Herder")
       (provision '(nar-herder))
-      (requirement '(networking))
+      (requirement '(user-processes networking))
       (start #~(make-forkexec-constructor
                 (list #$(file-append package
                                      "/bin/nar-herder")
@@ -1090,7 +1097,7 @@ ca-certificates.crt file in the system profile."
      (shepherd-service
       (documentation "Build Farm Front-end")
       (provision '(bffe))
-      (requirement '(networking))
+      (requirement '(user-processes networking))
       (start #~(make-forkexec-constructor
                 (list #$start-script)
                 #:user #$user

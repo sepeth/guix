@@ -1,12 +1,12 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2013 Nikita Karetnikov <nikita@karetnikov.org>
 ;;; Copyright © 2013 Cyril Roelandt <tipecaml@gmail.com>
-;;; Copyright © 2013-2022, 2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2013-2022, 2024-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2013, 2014 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2015, 2016 Mathieu Lirzin <mthl@gnu.org>
 ;;; Copyright © 2014, 2015, 2016 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2014, 2016, 2019, 2021 Eric Bavier <bavier@posteo.net>
-;;; Copyright © 2015-2024 Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015-2025 Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2015, 2018, 2020, 2021, 2022 Kyle Meyer <kyle@kyleam.com>
 ;;; Copyright © 2015, 2017, 2018, 2020 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2016, 2017 Leo Famulari <leo@famulari.name>
@@ -47,18 +47,23 @@
 ;;; Copyright © 2022 Maxime Devos <maximedevos@telenet.be>
 ;;; Copyright © 2022 Dhruvin Gandhi <contact@dhruvin.dev>
 ;;; Copyright © 2015, 2022 David Thompson <davet@gnu.org>
-;;; Copyright © 2023 Nicolas Graves <ngraves@ngraves.fr>
+;;; Copyright © 2023, 2025 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;;; Copyright © 2023 Steve George <steve@futurile.net>
 ;;; Copyright © 2023 Josselin Poiret <dev@jpoiret.xyz>
 ;;; Copyright © 2024 Hilton Chain <hako@ultrarare.space>
 ;;; Copyright © 2023, 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2023 Ryan Desfosses <rdesfo@sdf.org>
 ;;; Copyright © 2024 Suhail Singh <suhail@bayesians.ca>
 ;;; Copyright © 2024 Simon Tournier <zimon.toutoune@gmail.com>
 ;;; Copyright © 2024 Javier Olaechea <pirata@gmail.com>
-;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
+;;; Copyright © 2024, 2025 Ashish SHUKLA <ashish.is@lostca.se>
 ;;; Copyright © 2024 Wilko Meyer <w@wmeyer.eu>
+;;; Copyright © 2024 Herman Rimm <herman@rimm.ee>
+;;; Copyright © 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
+;;; Copyright © 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2025 Dariqq <dariqq@posteo.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -87,6 +92,7 @@
   #:use-module (guix build-system cargo)
   #:use-module (guix build-system cmake)
   #:use-module (guix build-system copy)
+  #:use-module (guix build-system emacs)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system go)
   #:use-module (guix build-system perl)
@@ -103,8 +109,10 @@
   #:use-module (gnu packages boost)
   #:use-module (gnu packages check)
   #:use-module (gnu packages cook)
+  #:use-module (gnu packages crates-compression)
   #:use-module (gnu packages crates-io)
   #:use-module (gnu packages crates-vcs)
+  #:use-module (gnu packages crates-web)
   #:use-module (gnu packages crypto)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages databases)
@@ -122,6 +130,7 @@
   #:use-module (gnu packages golang-build)
   #:use-module (gnu packages golang-check)
   #:use-module (gnu packages golang-crypto)
+  #:use-module (gnu packages golang-vcs)
   #:use-module (gnu packages golang-web)
   #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages groff)
@@ -176,7 +185,7 @@
 (define-public breezy
   (package
     (name "breezy")
-    (version "3.2.2")
+    (version "3.3.9")
     (source
      (origin
        (method url-fetch)
@@ -188,51 +197,106 @@
        (snippet '(for-each delete-file (find-files "." "\\pyx.c$")))
        (sha256
         (base32
-         "1md4b6ajawf5h50fqizmjj0g833ihc674dh7fn0mvl4d412nwyhq"))
-       (patches (search-patches "breezy-fix-gio.patch"))))
-    (build-system python-build-system)
+         "1n6mqd1iy50537kb4lsr52289yyr1agmkxpchxlhb9682zr8nn62"))))
+    (build-system cargo-build-system)
     (arguments
      (list
-      #:tests? #f                       ;FIXME: the test suite hangs
+      #:cargo-inputs (list rust-lazy-static-1
+                           rust-pyo3-0.22
+                           rust-regex-1)
+      #:install-source? #f
+      #:modules
+      '((guix build cargo-build-system)
+        ((guix build python-build-system) #:prefix py:)
+        (guix build utils))
+      #:imported-modules
+      `(,@%cargo-build-system-modules
+        ,@%python-build-system-modules)
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'unpack 'ensure-no-mtimes-pre-1980
+            (assoc-ref py:%standard-phases 'ensure-no-mtimes-pre-1980))
+          (add-after 'ensure-no-mtimes-pre-1980 'enable-bytecode-determinism
+            (assoc-ref py:%standard-phases 'enable-bytecode-determinism))
+          (add-after 'enable-bytecode-determinism 'ensure-no-cythonized-files
+            (assoc-ref py:%standard-phases 'ensure-no-cythonized-files))
           (add-after 'unpack 'patch-test-shebangs
             (lambda _
               (substitute* (append (find-files "breezy/bzr/tests")
                                    (find-files "breezy/tests"))
                 (("#!/bin/sh")
                  (format #f "#!~a" (which "sh"))))))
-          (replace 'check
+          (add-before 'build 'adjust-for-python-3.10
+            (lambda _
+              (substitute* '("breezy/doc_generate/__init__.py"
+                             "breezy/tests/test_selftest.py")
+                ;; AttributeError: module 'datetime' has no attribute 'UTC'
+                ;; This only works for python >= 3.11
+                (("datetime.UTC") "datetime.timezone.utc"))))
+          (replace 'build
+            (assoc-ref py:%standard-phases 'build))
+          (delete 'check)             ;moved after the install phase
+          (replace 'install
+            (assoc-ref py:%standard-phases 'install))
+          (add-after 'install 'add-install-to-pythonpath
+            (assoc-ref py:%standard-phases 'add-install-to-pythonpath))
+          (add-after 'add-install-to-pythonpath 'add-install-to-path
+            (assoc-ref py:%standard-phases 'add-install-to-path))
+          (add-after 'add-install-to-path 'install-completion
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out  (assoc-ref outputs "out"))
+                     (bash (string-append out "/share/bash-completion"
+                                          "/completions")))
+                (install-file "contrib/bash/brz" bash))))
+          (add-after 'add-install-to-path 'wrap
+            (assoc-ref py:%standard-phases 'wrap))
+          (add-after 'wrap 'check
             (lambda* (#:key tests? #:allow-other-keys)
               (when tests?
-                ;; The test_read_bundle tests fails with "TypeError: a
-                ;; bytes-like object is required, not '_ResultTuple'" (see:
-                ;; https://bugs.launchpad.net/brz/+bug/1968415/comments/4).
-                (substitute* "breezy/bzr/tests/__init__.py"
-                  (("'test_read_bundle'," all)
-                   (string-append "# " all)))
                 (setenv "BZR_EDITOR" "nano")
-                (setenv "HOME" "/tmp")
-                (invoke "testr" "init")
-                (invoke "testr" "run")))))))
-    (native-inputs
-     (list nano                         ;for tests
-           python-cython
-           python-docutils
-           python-subunit
-           python-testrepository))
-    (inputs
-     (list gettext-minimal
-           python-configobj
-           python-dulwich
-           python-fastbencode
-           python-fastimport
-           python-launchpadlib
-           python-paramiko
-           python-patiencediff
-           python-pycryptodome
-           python-pygobject
-           python-pygpgme))
+                (invoke "brz" "selftest" "--verbose" "--parallel=fork"
+                        ;; This test hangs
+                        "-x" "breezy.tests.blackbox.test_serve"
+                        ;; No GnuPG key results for pattern: bazaar@example.com
+                        "-x" "breezy.tests.test_gpg"
+                        ;; compgen: command not found
+                        "-x" "bash_completion"
+                        ;; No such file or directory: '/etc/mtab'
+                        "-x" "breezy.tests.blackbox.test_diff.TestExternalDiff.test_external_diff"
+                        ;; Value "/etc/ssl/certs/ca-certificates.crt" is not valid for "ssl.ca_certs"
+                        "-x" "breezy.tests.test_https_urllib.CaCertsConfigTests.test_default_exists"
+                        ;; Unknown Failure
+                        "-x" "breezy.tests.test_plugins.TestLoadPluginAt.test_compiled_loaded"
+                        "-x" "breezy.tests.test_plugins.TestPlugins.test_plugin_get_path_pyc_only"
+                        "-x" "breezy.tests.test_selftest.TestActuallyStartBzrSubprocess.test_start_and_stop_bzr_subprocess_send_signal"))))
+          (add-before 'strip 'rename-pth-file
+            (assoc-ref py:%standard-phases 'rename-pth-file)))))
+    (native-inputs (list gettext-minimal
+                         python-wrapper
+                         python-cython
+                         python-setuptools
+                         python-setuptools-gettext
+                         python-setuptools-rust
+                         python-tomli
+                         python-wheel
+                         ;; tests
+                         nano
+                         python-testtools
+                         python-packaging
+                         python-subunit))
+    (inputs (list python-configobj
+                  python-dulwich
+                  python-fastbencode
+                  python-fastimport
+                  python-launchpadlib
+                  python-merge3
+                  python-paramiko
+                  python-gpg
+                  python-patiencediff
+                  python-pygithub
+                  python-pyyaml
+                  python-tzlocal
+                  python-urllib3))
     (home-page "https://www.breezy-vcs.org/")
     (synopsis "Decentralized revision control system")
     (description
@@ -258,14 +322,14 @@ Python 3.3 and later, rather than on Python 2.")
 (define-public git-minimal
   (package
     (name "git-minimal")
-    (version "2.47.1")
+    (version "2.48.1")
     (source (origin
              (method url-fetch)
              (uri (string-append "mirror://kernel.org/software/scm/git/git-"
                                  version ".tar.xz"))
              (sha256
               (base32
-               "046kdr5dhg31hjcg6wpfqnwwbaqdjyax7n8wx5s26fdf4fxzkn7k"))))
+               "1bc29w1cd1akbnpfjc7sl5ms7cc8vy7xjl1cbplm3sy1bmgm8p8w"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -427,7 +491,24 @@ Python 3.3 and later, rather than on Python 2.")
                 (for-each delete-file
                           '("t/t9128-git-svn-cmd-branch.sh"
                             "t/t9167-git-svn-cmd-branch-subproject.sh"
-                            "t/t9141-git-svn-multiple-branches.sh")))))
+                            "t/t9141-git-svn-multiple-branches.sh"))
+
+                #$@(if (version>=? (package-version this-package)
+                                   "2.48.0")
+                       ;; Purge the purged tests in meson.build
+                       #~((substitute
+                           "t/meson.build"
+                           (list (cons "^(.+')(t[^']+[.]sh)('.*)$"
+                                       (lambda (line matches)
+                                         (let* ((match-offset (vector-ref (car matches) 3))
+                                                (test-file (string-append "t/"
+                                                                          (substring line
+                                                                                     (car match-offset)
+                                                                                     (cdr match-offset)))))
+                                           (if (file-exists? test-file)
+                                               line
+                                               "")))))))
+                       #~()))))
           (add-after 'install 'install-shell-completion
             (lambda _
               (let ((bash (string-append #$output "/etc/bash_completion.d"))
@@ -559,6 +640,7 @@ everything from small to very large projects with speed and efficiency.")
                   (("/usr/bin/python") (which "python3")))))
             (add-after 'build 'build-subtree
               (lambda* (#:key native-inputs inputs #:allow-other-keys)
+                (invoke "make" "-C" "Documentation" "asciidoc.conf")
                 (with-directory-excursion "contrib/subtree"
                   (invoke "make")
                   (invoke "make" "install")
@@ -714,7 +796,7 @@ everything from small to very large projects with speed and efficiency.")
                                ".tar.xz"))
                          (sha256
                           (base32
-                           "04zfxwdhja82mm24isk2jxhp30q6l3nnnzv6gdrc0mmhi5d01hpz"))))))))))))
+                           "11k871fz119f6hbzvfg64hr7vdbaqd8x2brg5mhbyvadz9xdw3jc"))))))))))))
     (native-inputs
      (modify-inputs (package-native-inputs git-minimal)
        ;; For subtree documentation.
@@ -800,7 +882,7 @@ everything from small to very large projects with speed and efficiency.")
                               "tests/test_make_app.py")))))))
     (inputs (list git-minimal))
     (native-inputs
-     (list python-pytest))
+     (list python-pytest python-setuptools python-wheel))
     (propagated-inputs
      (list python-dulwich python-flask python-httpauth
            python-humanize python-pygments python-werkzeug))
@@ -976,10 +1058,129 @@ the date of the most recent commit that modified them
 @end itemize")
     (license license:gpl3+)))
 
+(define-public git-spice
+  (package
+    (name "git-spice")
+    (version "0.9.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/abhinav/git-spice")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1yvnd5a3ql905jrxh0sq9sdcfmyq38fsbqx0zbhxbd4rgs8hv5s3"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:go go-1.23
+      #:import-path "go.abhg.dev/gs"
+      #:install-source? #f
+      #:test-flags
+      #~(list "-skip"
+              (string-join
+               ;; XXX: Tests failing with various reasons; requiring
+               ;; networking config or write access, or outbound access, check
+               ;; if some of them may be fixed.
+               (list "TestDeviceFlowAuthenticator"
+                     "TestScript/auth_detect_forge"
+                     "TestScript/auth_explicit_forge"
+                     "TestScript/auth_insecure_storage"
+                     "TestScript/auth_prompt_forge"
+                     "TestScript/branch_split_reassign_submitted"
+                     "TestScript/branch_submit_ambiguous_branch"
+                     "TestScript/branch_submit_by_name"
+                     "TestScript/branch_submit_config_no_publish"
+                     "TestScript/branch_submit_create_update"
+                     "TestScript/branch_submit_detect_existing"
+                     "TestScript/branch_submit_detect_existing_conflict"
+                     "TestScript/branch_submit_detect_existing_upstream_name"
+                     "TestScript/branch_submit_force_push"
+                     "TestScript/branch_submit_long_body"
+                     "TestScript/branch_submit_many_upstream_names_taken"
+                     "TestScript/branch_submit_multiple_commits"
+                     "TestScript/branch_submit_multiple_pr_templates"
+                     "TestScript/branch_submit_navigation_.*_out_multiple"
+                     "TestScript/branch_submit_needs_restack"
+                     "TestScript/branch_submit_no_editor"
+                     "TestScript/branch_submit_no_publish"
+                     "TestScript/branch_submit_pr_template"
+                     "TestScript/branch_submit_pr_template_cache_invalidation"
+                     "TestScript/branch_submit_pr_template_no_body"
+                     "TestScript/branch_submit_pr_template_prompt"
+                     "TestScript/branch_submit_recover_prepared"
+                     "TestScript/branch_submit_remote_prompt"
+                     "TestScript/branch_submit_rename"
+                     "TestScript/branch_submit_rename_base"
+                     "TestScript/branch_submit_update_pr_is_closed"
+                     "TestScript/branch_submit_update_pr_is_merged"
+                     "TestScript/branch_submit_upstream_name"
+                     "TestScript/branch_submit_upstream_name_wrong_remote"
+                     "TestScript/branch_submit_use_git_editor"
+                     "TestScript/branch_submit_web"
+                     "TestScript/branch_submit_web_opt_out"
+                     "TestScript/downstack_submit"
+                     "TestScript/issue369_branch_.*_case_insensitive"
+                     "TestScript/issue369_branch_.*_remote_update"
+                     "TestScript/issue398_repo_sync_many_merged"
+                     "TestScript/repo_sync_after_merging_renamed_branch"
+                     "TestScript/repo_sync_detached_head"
+                     "TestScript/repo_sync_detect_externally_created_prs"
+                     "TestScript/repo_sync_external_pr_head_mismatch"
+                     "TestScript/repo_sync_manual_pull_merged_pr"
+                     "TestScript/repo_sync_merged_pr"
+                     "TestScript/repo_sync_remote_already_deleted"
+                     "TestScript/repo_sync_restack"
+                     "TestScript/repo_sync_trunk_dirty_tree"
+                     "TestScript/repo_sync_trunk_no_prs"
+                     "TestScript/repo_sync_unpushed_commits"
+                     "TestScript/stack_submit"
+                     "TestScript/stack_submit_update_leave_draft"
+                     "TestScript/stack_submit_web"
+                     "TestScript/upstack_submit_main")
+               "|"))))
+    (native-inputs
+     (list git-minimal ; for tests in testdata/scripts
+           go-github-com-alecthomas-kong
+           go-github-com-buildkite-shellwords
+           go-github-com-charmbracelet-bubbles
+           go-github-com-charmbracelet-bubbletea
+           go-github-com-charmbracelet-lipgloss
+           go-github-com-charmbracelet-log
+           go-github-com-cli-browser
+           go-github-com-creack-pty
+           go-github-com-dustin-go-humanize
+           go-github-com-mattn-go-isatty
+           go-github-com-rogpeppe-go-internal
+           go-github-com-sahilm-fuzzy
+           go-github-com-shurcool-githubv4
+           go-github-com-stretchr-testify
+           go-github-com-tidwall-gjson
+           go-github-com-vito-midterm
+           go-github-com-xanzy-go-gitlab
+           go-github-com-zalando-go-keyring
+           go-go-abhg-dev-komplete
+           go-go-abhg-dev-requiredfield
+           go-go-abhg-dev-testing-stub
+           go-go-uber-org-mock
+           go-golang-org-x-oauth2
+           go-gopkg-in-dnaeon-go-vcr-v4
+           go-gopkg-in-yaml-v3
+           go-pgregory-net-rapid))
+    (home-page "https://go.abhg.dev/gs")
+    (synopsis "Manage stacks of Git branches")
+    (description
+     "git-spice (@code{gs}) is a command line tool for stacking Git branches,
+a collection of branches expecting the trunk has a base branch.  It manages
+and navigates stacks of branches, conveniently modifies and rebases them also
+provides an integration with GitHub and GitLab.")
+    (license license:gpl3)))
+
 (define-public got
   (package
     (name "got")
-    (version "0.103")
+    (version "0.108")
     (source (origin
               (method url-fetch)
               (uri
@@ -988,7 +1189,7 @@ the date of the most recent commit that modified them
                   version ".tar.gz"))
               (sha256
                (base32
-                "0y18961xrj4rja850i31gadiaps2qnkfb4jlramlz9akyf9mwh1j"))))
+                "1qnk5d1vyxyyqr6sc6wkc7b7w274zr0jv8vdq13sx1rmvl5353bc"))))
     (inputs
      (list libevent
            `(,util-linux "lib")
@@ -1259,6 +1460,52 @@ write native speed custom Git applications in any language with bindings.")
                    ;; Tests may be disabled if cross-compiling.
                    (format #t "Test suite not run.~%"))))))))))
 
+(define-public git-issue
+  (let ((commit "d056998566d30235072b97982756ff607e9ecce9")
+        (revision "0"))
+    (package
+      (name "git-issue")
+      (version (git-version "0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/dspinellis/git-issue")
+                      (commit commit)))
+                (sha256
+                 (base32
+                  "0002bjzv6rgpxbbsjiswg73prl7iq217qvafbxhsjp2wjj00i0sm"))))
+      (build-system gnu-build-system)
+      (arguments
+       (list #:make-flags #~(list (string-append "PREFIX=" #$output))
+             #:test-target "test"
+             #:phases
+             #~(modify-phases %standard-phases
+                 (delete 'configure) ;no configure script
+                 (add-before 'build 'generate-docs
+                   (lambda _
+                     (invoke "make" "sync-docs")))
+                 (add-before 'check 'fix-tests
+                   (lambda _
+                     (substitute* "test.sh"
+                       ;; Skip 3 failing tests.
+                       (("fail \"Uncommitted files sync-docs.*")
+                        "ok \"ignored\"\n")
+                       (("try_grep '\\^Tags:\\.\\*cloned'")
+                        "ok \"ignored\"")
+                       (("try \"\\$gi\" tag \"\\$issue\" cloned")
+                        "ok \"ignored\"")
+                       ;; Fix a test.
+                       (("#!/bin/sh") (string-append "#!" (which "sh")))))))))
+      (native-inputs (list git-minimal util-linux))
+      (inputs (list jq curl))
+      (synopsis "Git-based decentralized issue management")
+      (description
+       "This is a minimalist decentralized issue management system based on
+Git, offering (optional) bidirectional integration with GitHub and GitLab
+issue management.")
+      (home-page "https://github.com/dspinellis/git-issue")
+      (license license:gpl3+))))
+
 (define-public git-crypt
   (package
     (name "git-crypt")
@@ -1279,7 +1526,7 @@ write native speed custom Git applications in any language with bindings.")
      (list docbook-xml-4.2 docbook-xsl libxslt))
     (arguments
      (list
-      #:tests? #f ; No tests.
+      #:tests? #f                       ; No tests.
       #:make-flags
       #~(list
          "ENABLE_MAN=yes"
@@ -1915,6 +2162,26 @@ Features include:
 @item Export and send a series of patches by email using @command{stg email}
 @end itemize")
     (license license:gpl2)))
+
+(define-public emacs-stgit
+  (package
+    (inherit stgit-2)
+    (name "emacs-stgit")
+    (build-system emacs-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'install 'enter-lisp-directory
+            (lambda _
+              (chdir "contrib")))
+          (add-before 'install-license-files 'leave-lisp-directory
+            (lambda _
+              (chdir ".."))))))
+    (synopsis "Emacs major mode for StGit interaction")
+    (description "This package a interactive tool to interact with git
+branches using StGit.")
+    (license license:gpl3+)))
 
 (define-public stgit
   (package
@@ -3011,7 +3278,7 @@ any project with more than one developer, is one of Aegis's major functions.")
 (define-public tig
   (package
     (name "tig")
-    (version "2.5.10")
+    (version "2.5.12")
     (source
      (origin
        (method git-fetch)
@@ -3020,7 +3287,7 @@ any project with more than one developer, is one of Aegis's major functions.")
              (commit (string-append "tig-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0m7v6xkvly3cbc5hs7plxdny4r41x3vkx7xylygjva4jcvnz0fjr"))))
+        (base32 "1ncrxvn7vbcyfvcczra6jx4mr5hv6p5xfa1wdvdfzwgfkj16hhys"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -3032,10 +3299,10 @@ any project with more than one developer, is one of Aegis's major functions.")
           (add-after 'install 'install-completions
             (lambda _
               (let ((share (string-append #$output "/share")))
-                (mkdir-p (string-append share "/bash-completion/completions"))
+                (mkdir-p (string-append #$output "/etc/bash_completion.d"))
                 (mkdir-p (string-append share "/zsh/site-functions"))
                 (copy-file "contrib/tig-completion.bash"
-                           (string-append share "/bash-completion/completions/tig"))
+                           (string-append #$output "/etc/bash_completion.d/tig"))
                 (copy-file "contrib/tig-completion.zsh"
                            (string-append share "/zsh/site-functions/_tig"))))))
       #:test-target "test"
@@ -3311,20 +3578,15 @@ by rclone usable with git-annex.")
 (define-public fossil
   (package
     (name "fossil")
-    (version "2.23")
+    (version "2.25")
     (source
      (origin
        (method url-fetch)
        (uri (string-append
-             "https://www.fossil-scm.org/home/tarball/"
-             "47362306a7dd7c6fc3cab77cebe5d25469b0a9448479d9718eb5c49c8337b29"
-             "/fossil-src-" version ".tar.gz"))
-       ;; XXX: Currently the above hash must be manually updated.
+	     "https://fossil-scm.org/home/tarball/version-" version
+	     "/fossil-" version ".tar.gz"))
        (sha256
-        (base32 "1r1kabvmlhc0qgyq8g9zhq8i0123x9dba9b71j4xc71k14kfqjm9"))
-       (modules '((guix build utils)))
-       (snippet
-        '(delete-file-recursively "compat"))))
+        (base32 "18gws90by2q6a6rk7h3mx46pn79lz4zi3saxlyrdz5982mw9rvp4"))))
     (build-system gnu-build-system)
     (native-inputs
      (list tcl                          ;for configuration only
@@ -3335,6 +3597,7 @@ by rclone usable with git-annex.")
      (list openssl zlib sqlite-next))
     (arguments
      `(#:configure-flags (list "--with-openssl=auto"
+                               "--enable-json"
                                "--disable-internal-sqlite")
        #:test-target "test"
        #:phases (modify-phases %standard-phases
@@ -3367,6 +3630,127 @@ a built-in wiki, built-in file browsing, built-in tickets system, etc.")
         . "https://fossil-scm.org/home/uv/latest-release.md")))
     (license (list license:public-domain        ;src/miniz.c, src/shell.c
                    license:bsd-2))))
+
+(define-public pijul
+  (package
+    (name "pijul")
+    (version "1.0.0-beta.9")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "pijul" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "1lk261rrk4xy60d4akfn8mrrqxls28kf9mzrjcrxdzbdysml66n5"))
+        (snippet
+         #~(begin (use-modules (guix build utils))
+                  (substitute* "Cargo.toml"
+                    (("\"= ?([[:digit:]]+(\\.[[:digit:]]+)*)" _ version)
+                     (string-append "\"^" version)))))))
+    (build-system cargo-build-system)
+    (arguments
+     (list
+       #:install-source? #f
+       #:cargo-inputs
+       (list rust-anyhow-1
+             rust-async-trait-0.1
+             rust-atty-0.2
+             rust-byteorder-1
+             rust-bytes-1
+             rust-canonical-path-2
+             rust-chrono-0.4
+             rust-clap-4
+             rust-clap-complete-4
+             rust-ctrlc-3
+             rust-data-encoding-2
+             rust-dateparser-0.1
+             rust-dirs-next-2
+             rust-edit-0.1
+             rust-env-logger-0.8
+             rust-futures-0.3
+             rust-futures-util-0.3
+             rust-git2-0.13
+             rust-human-panic-1
+             rust-hyper-0.14
+             rust-ignore-0.4
+             rust-keyring-2
+             rust-lazy-static-1
+             rust-libpijul-1
+             rust-log-0.4
+             rust-open-3
+             rust-pager-0.16
+             rust-path-slash-0.1
+             rust-pijul-config-0.0.1
+             rust-pijul-identity-0.0.1
+             rust-pijul-interaction-0.0.1
+             rust-pijul-remote-1
+             rust-pijul-repository-0.0.1
+             rust-ptree-0.4
+             rust-rand-0.8
+             rust-regex-1
+             rust-reqwest-0.11
+             rust-sanakirja-1
+             rust-serde-1
+             rust-serde-derive-1
+             rust-serde-json-1
+             rust-tempfile-3
+             rust-termcolor-1
+             rust-thiserror-1
+             rust-thrussh-0.33
+             rust-thrussh-config-0.5
+             rust-thrussh-keys-0.21
+             rust-tokio-1
+             rust-toml-0.5
+             rust-url-2
+             rust-validator-0.15
+             rust-whoami-1)
+       #:cargo-development-inputs
+       (list rust-exitcode-1
+             rust-expectrl-0.7)
+       #:phases
+       #~(modify-phases %standard-phases
+           (add-after 'install 'install-extras
+             (lambda* (#:key native-inputs outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (share (string-append out "/share"))
+                      (bash-completions-dir
+                       (string-append out "/etc/bash_completion.d/"))
+                      (zsh-completions-dir
+                       (string-append share "/zsh/site-functions"))
+                      (fish-completions-dir
+                       (string-append share "/fish/vendor_completions.d"))
+                      (elvish-completions-dir
+                       (string-append share "/elvish/lib"))
+                      (pijul (if #$(%current-target-system)
+                             (search-input-file native-inputs "/bin/pijul")
+                             (string-append out "/bin/pijul"))))
+                 (mkdir-p bash-completions-dir)
+                 (with-output-to-file
+                   (string-append bash-completions-dir "/pijul")
+                   (lambda _ (invoke pijul "completion" "bash")))
+                 (mkdir-p zsh-completions-dir)
+                 (with-output-to-file
+                   (string-append zsh-completions-dir "/_pijul")
+                   (lambda _ (invoke pijul "completion" "zsh")))
+                 (mkdir-p fish-completions-dir)
+                 (with-output-to-file
+                   (string-append fish-completions-dir "/pijul.fish")
+                   (lambda _ (invoke pijul "completion" "fish")))
+                 (mkdir-p elvish-completions-dir)
+                 (with-output-to-file
+                   (string-append elvish-completions-dir "/pijul")
+                   (lambda _ (invoke pijul "completion" "elvish")))))))))
+    (native-inputs
+     (append (if (%current-target-system)
+                 (list this-package)
+                 '())
+             (list pkg-config)))
+    (inputs (list libsodium openssl))
+    (home-page "https://nest.pijul.com/pijul/pijul")
+    (synopsis "Distributed version control system")
+    (description "This package provides pijul, a sound and fast distributed
+version control system based on a mathematical theory of asynchronous work.")
+    (license license:gpl2+)))
 
 (define-public stagit
   (package
@@ -3401,7 +3785,7 @@ be served with a HTTP file server of your choice.")
 (define-public gource
   (package
     (name "gource")
-    (version "0.54")
+    (version "0.55")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -3409,7 +3793,7 @@ be served with a HTTP file server of your choice.")
                     "/gource-" version "/gource-" version ".tar.gz"))
               (sha256
                (base32
-                "1rgsssff5ygafc5svg19p046r4h2q9a3wqqbzrllvkyjcpgwxjqx"))))
+                "0hh17h0pf4b7yq23xsr5zhl1cs02d2bijxj7ks6m01wbs89948y8"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -3675,7 +4059,7 @@ will reconstruct the object along its delta-base chain and return it.")
 (define-public git-lfs
   (package
     (name "git-lfs")
-    (version "3.4.0")
+    (version "3.6.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3684,13 +4068,14 @@ will reconstruct the object along its delta-base chain and return it.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0ljjs8kyznp2ifkqdcd9q3550sknyx5qxx247icwkd9djjq7x74m"))))
+                "09ry2nq5bpdxk446dyhc0d6d85wy5x2i5ckwwg9r00a3zdp5v4ry"))))
     (build-system go-build-system)
     (arguments
      (list
       #:embed-files #~(list "children" "nodes" "text")
       #:import-path "github.com/git-lfs/git-lfs"
       #:install-source? #f
+      #:test-flags #~(list "-skip" "TestHistoryRewriterUpdatesRefs")
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'patch-/bin/sh
@@ -3726,24 +4111,25 @@ will reconstruct the object along its delta-base chain and return it.")
                (list ronn-ng ruby-asciidoctor)
                '())))
     (propagated-inputs
-     (list go-github-com-xeipuuv-gojsonschema
-           go-github-com-xeipuuv-gojsonreference
-           go-github-com-xeipuuv-gojsonpointer
+     (list go-github-com-avast-retry-go
+           go-github-com-dpotapov-go-spnego
+           go-github-com-git-lfs-gitobj-v2
+           go-github-com-git-lfs-go-netrc
+           go-github-com-git-lfs-pktline
+           go-github-com-git-lfs-wildmatch-v2
+           go-github-com-jmhodges-clock
+           go-github-com-leonelquinteros-gotext
+           go-github-com-mattn-go-isatty
+           go-github-com-olekukonko-ts
+           go-github-com-pkg-errors
+           go-github-com-rubyist-tracerx
+           go-github-com-spf13-cobra
+           go-github-com-ssgelm-cookiejarparser
+           go-github-com-stretchr-testify
+           go-github-com-xeipuuv-gojsonschema
            go-golang-org-x-net
            go-golang-org-x-sync
-           go-github-com-ssgelm-cookiejarparser
-           go-github-com-rubyist-tracerx
-           go-github-com-olekukonko-ts
-           go-github-com-leonelquinteros-gotext
-           go-github-com-git-lfs-wildmatch-v2
-           go-github-com-git-lfs-pktline
-           go-github-com-git-lfs-go-netrc
-           go-github-com-git-lfs-gitobj-v2
-           go-github-com-dpotapov-go-spnego
-           go-github-com-avast-retry-go
-           go-github-com-mattn-go-isatty
-           go-github-com-pkg-errors
-           go-github-com-spf13-cobra))
+           go-golang-org-x-sys))
     (home-page "https://git-lfs.github.com/")
     (synopsis "Git extension for versioning large files")
     (description
@@ -3918,59 +4304,6 @@ of machine readable.  This helps improve code quality and helps you spot
 defects faster.")
     (license license:expat)))
 
-(define-public go-github-com-go-git-go-git-v5
-  (package
-    (name "go-github-com-go-git-go-git-v5")
-    (version "5.1.0")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/go-git/go-git")
-                    (commit (string-append "v" version))))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "1vkcmhh2qq8c38sjbnzf0wvg2rzr19wssaq177bsvrjwj1xz1qbs"))))
-    (build-system go-build-system)
-    (arguments
-     (list
-      #:tests? #f ;requires network connection
-      #:import-path "github.com/go-git/go-git/v5"
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-before 'build 'setup
-            (lambda* (#:key inputs #:allow-other-keys)
-              (let* ((git #$(this-package-native-input "git"))
-                     (git-bin (string-append git "/bin"))
-                     (git-exe (string-append git-bin "/git")))
-                (setenv "GIT_DIST_PATH=" git)
-                (setenv "GIT_EXEC_PATH=" git-bin)
-                (setenv "HOME" (getcwd))
-                (invoke git-exe "config" "--global" "user.email" "gha@example.com")
-                (invoke git-exe "config" "--global" "user.name" "GitHub Actions")))))))
-    (propagated-inputs
-     (list go-github-com-alcortesm-tgz
-           go-github-com-emirpasic-gods
-           go-github-com-go-git-gcfg
-           go-github-com-go-git-go-billy-v5
-           go-github-com-go-git-go-git-fixtures-v4
-           go-github-com-imdario-mergo
-           go-github-com-jbenet-go-context
-           go-github-com-kevinburke-ssh-config
-           go-github-com-mitchellh-go-homedir
-           go-github-com-sergi-go-diff
-           go-github-com-xanzy-ssh-agent
-           go-golang-org-x-crypto
-           go-golang-org-x-net
-           go-golang-org-x-text
-           go-gopkg-in-check-v1
-           go-gopkg-in-warnings))
-    (native-inputs (list git))
-    (home-page "https://github.com/go-git/")
-    (synopsis "Git implementation library")
-    (description "This package provides a Git implementation library.")
-    (license license:asl2.0)))
-
 (define-public gita
   (let ((commit "e41b504dca90a25e9be27f296da7ce22e5782893")
         (revision "1"))
@@ -4034,7 +4367,7 @@ If several repos are related, it helps to see their status together.")
 (define-public ghq
   (package
     (name "ghq")
-    (version "1.6.2")
+    (version "1.7.1")
     (home-page "https://github.com/x-motemen/ghq")
     (source (origin
               (method git-fetch)
@@ -4044,7 +4377,7 @@ If several repos are related, it helps to see their status together.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "00rrm0gykmj60i0lnr4js6d4193c92zm3cimimb03xva4n9frvxw"))))
+                "0ai3klp3fm5r0idnml5pm55wcvkav3w0s11snlmr0ab1ki8m9sg5"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -4067,13 +4400,14 @@ If several repos are related, it helps to see their status together.")
     (native-inputs
      (list git-minimal))
     (inputs
-     (list go-github-com-songmu-gitconfig
-           go-github-com-mattn-go-isatty
+     (list go-github-com-mattn-go-isatty
            go-github-com-motemen-go-colorine
            go-github-com-saracen-walker
+           go-github-com-songmu-gitconfig
            go-github-com-urfave-cli-v2
            go-golang-org-x-net
-           go-golang-org-x-sync))
+           go-golang-org-x-sync
+           go-golang-org-x-text))
     (synopsis "Manage remote repository clones")
     (description
      "@code{ghq} provides a way to organize remote repository clones, like
@@ -4165,7 +4499,7 @@ TkDiff is included for browsing and merging your changes.")
 (define-public git-filter-repo
   (package
     (name "git-filter-repo")
-    (version "2.38.0")
+    (version "2.45.0")
     (source
      (origin
        (method git-fetch)
@@ -4175,14 +4509,19 @@ TkDiff is included for browsing and merging your changes.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "1al43zpw1mdfy9i05w4xw178abypjwnkk52lqvmbl19lr1l47r4i"))
+         "03sjxscj7pkldvwcvlqi6k79rcxkd2fyy1rjvpwyp4jgni5kddkx"))
+       ;; TODO: Remove when updating to 2.47.0.
+       (modules '((guix build utils)))
+       (snippet
+        #~(substitute* "t/t9390-filter-repo.sh"
+            (("(test_expect_success) ('--version')" _ prefix suffix)
+             (string-append prefix " IN_FILTER_REPO_CLONE " suffix))))
        ;; Modified from <https://github.com/newren/git-filter-repo/pull/477>.
        ;; Used with 'unpack-git-source phase.
        (patches (search-patches "git-filter-repo-generate-doc.patch"))))
     (build-system gnu-build-system)
     (arguments
      (list
-      #:tests? #f                       ;No tests.
       #:imported-modules
       `(,@%default-gnu-imported-modules
         (guix build python-build-system))
@@ -4204,10 +4543,16 @@ TkDiff is included for browsing and merging your changes.")
                 (mkdir-p "git-source")
                 (chdir "git-source")
                 ((assoc-ref %standard-phases 'unpack)
-                 #:source #+(package-source git))
+                 #:source
+                 #+(package-source (this-package-native-input "git-minimal")))
                 (for-each
                  (cut install-file <> doc-source)
-                 (find-files "." "asciidoc\\.conf$|manpage.*\\.xsl$"))
+                 (find-files "." "asciidoc\\.conf\\.in$|manpage.*\\.xsl$"))
+                ;; These attributes are probably not needed.
+                (with-directory-excursion doc-source
+                  (substitute* "asciidoc.conf.in"
+                    (("@GIT_(VERSION|DATE)@") ""))
+                  (rename-file "asciidoc.conf.in" "asciidoc.conf"))
                 (chdir old-path)
                 (delete-file-recursively "git-source"))))
           (add-before 'build 'set-pythondir
@@ -4217,12 +4562,21 @@ TkDiff is included for browsing and merging your changes.")
                  (string-append pre (site-packages inputs outputs))))))
           (replace 'build
             (lambda* (#:key make-flags #:allow-other-keys)
-              (apply invoke "make" "doc" make-flags))))))
+              (apply invoke "make" "doc" make-flags)))
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (substitute* "t/t9391-filter-repo-lib-usage.sh"
+                (("/bin/bash") (which "bash")))
+              (when tests?
+                (invoke "t/run_tests")))))))
     (native-inputs
      (list asciidoc
            docbook-xsl
+           git-minimal
            libxml2                        ;for XML_CATALOG_FILES
-           xmlto))
+           xmlto
+           perl
+           rsync))
     (inputs (list python))                ;for the shebang
     (home-page "https://github.com/newren/git-filter-repo")
     (synopsis "Quickly rewrite Git repository history")
@@ -4464,7 +4818,12 @@ comes as a command line app and also an Emacs interface.")
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'fix-paths
-           (lambda* (#:key outputs #:allow-other-keys)
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             (substitute* '("src/github.com/github/git-sizer/git/git.go")
+               (("gitBin, err := findGitBin\\(\\)")
+                (string-append "gitBin := \""
+                               (search-input-file inputs "bin/git")
+                               "\"\n\tvar err error")))
              (substitute* '("src/github.com/github/git-sizer/git_sizer_test.go")
                (("bin/git-sizer")
                 (string-append (assoc-ref outputs "out")
@@ -4478,7 +4837,7 @@ comes as a command line app and also an Emacs interface.")
                          ;; Git repository.
                          '("TestBomb" "TestFromSubdir" "TestRefgroups"
                            "TestRefSelections" "TestTaggedTags"))))))))
-    (native-inputs (list git))
+    (inputs (list git-minimal/pinned))
     (propagated-inputs
      (list go-github-com-cli-safeexec
            go-github-com-davecgh-go-spew

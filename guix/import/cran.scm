@@ -478,7 +478,7 @@ empty list when the FIELD cannot be found."
     ("zlib1g-dev" "zlib")
     (_ sysname)))
 
-(define cran-guix-name (cut guix-name "r-" <>))
+(define cran-guix-name (cut downstream-package-name "r-" <>))
 
 (define (directory-needs-fortran? dir)
   "Check if the directory DIR contains Fortran source files."
@@ -1028,7 +1028,7 @@ s-expression corresponding to that package, or #f on failure."
              (_ #f)))
           (_ #f)))))
 
-(define* (latest-cran-release pkg #:key (version #f))
+(define* (latest-cran-release pkg #:key version partial-version?)
   "Return an <upstream-source> for the latest release of the package PKG."
   (when version
     (error
@@ -1051,7 +1051,7 @@ s-expression corresponding to that package, or #f on failure."
           (urls (cran-uri upstream-name version))
           (inputs (cran-package-inputs meta 'cran))))))
 
-(define* (latest-bioconductor-release pkg #:key (version #f))
+(define* (latest-bioconductor-release pkg #:key version partial-version?)
   "Return an <upstream-source> for the latest release of the package PKG."
   (when version
     (error

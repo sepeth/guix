@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2013-2016, 2018-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2013-2016, 2018-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2017 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2018 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;;; Copyright © 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
@@ -31,6 +31,7 @@
   #:use-module ((guix diagnostics)
                 #:select (define-with-syntax-properties formatted-message))
   #:use-module (gnu services)
+  #:use-module (gnu services configuration)
   #:use-module (gnu services herd)
   #:use-module (gnu packages admin)
   #:use-module (ice-9 match)
@@ -81,6 +82,19 @@
             shepherd-service-upgrade
 
             user-processes-service-type
+            shepherd-timer-service-type
+            shepherd-transient-service-type
+
+            system-log-configuration
+            system-log-configuration?
+            system-log-configuration-provision
+            system-log-configuration-requirement
+            system-log-configuration-message-destination
+            system-log-configuration-date-format
+            system-log-configuration-history-size
+            system-log-configuration-max-silent-time
+
+            shepherd-system-log-service-type
 
             assert-valid-graph))
 
@@ -503,8 +517,8 @@ symbols provided/required by a service."
 
 (define (shepherd-service-upgrade live target)
   "Return two values: the subset of LIVE (a list of <live-service>) that needs
-to be unloaded, and the subset of TARGET (a list of <shepherd-service>) that
-need to be restarted to complete their upgrade."
+to be unloaded, and the subset of LIVE that needs to be restarted to complete
+their upgrade."
   (define (essential? service)
     (memq (first (live-service-provision service))
           '(root shepherd)))
@@ -517,10 +531,6 @@ need to be restarted to complete their upgrade."
     (shepherd-service-lookup-procedure live
                                        live-service-provision))
 
-  (define (running? service)
-    (and=> (lookup-live (shepherd-service-canonical-name service))
-           live-service-running))
-
   (define live-service-dependents
     (shepherd-service-back-edges live
                                  #:provision live-service-provision
@@ -532,8 +542,14 @@ need to be restarted to complete their upgrade."
       (_  #f)))
 
   (define to-restart
-    ;; Restart services that are currently running.
-    (filter running? target))
+    ;; Restart services that appear in TARGET and are currently running.
+    (filter-map (lambda (service)
+                  (and=> (any lookup-live
+                              (shepherd-service-provision service))
+                         (lambda (live)
+                           (and (live-service-running live)
+                                live))))
+                target))
 
   (define to-unload
     ;; Unload services that are no longer required.  Essential services must
@@ -550,11 +566,6 @@ need to be restarted to complete their upgrade."
 ;;;
 ;;; User processes.
 ;;;
-
-(define %do-not-kill-file
-  ;; Name of the file listing PIDs of processes that must survive when halting
-  ;; the system.  Typical example is user-space file systems.
-  "/etc/shepherd/do-not-kill")
 
 (define (user-processes-shepherd-service requirements)
   "Return the 'user-processes' Shepherd service with dependencies on
@@ -573,77 +584,19 @@ system mounts, etc.  This is similar to the 'sysvinit' target in systemd."
          (requirement requirements)
          (start #~(const #t))
          (stop #~(lambda _
-                   (define (kill-except omit signal)
-                     ;; Kill all the processes with SIGNAL except those listed
-                     ;; in OMIT and the current process.
-                     (let ((omit (cons (getpid) omit)))
-                       (for-each (lambda (pid)
-                                   (unless (memv pid omit)
-                                     (false-if-exception
-                                      (kill pid signal))))
-                                 (processes))))
-
-                   (define omitted-pids
-                     ;; List of PIDs that must not be killed.
-                     (if (file-exists? #$%do-not-kill-file)
-                         (map string->number
-                              (call-with-input-file #$%do-not-kill-file
-                                (compose string-tokenize
-                                         (@ (ice-9 rdelim) read-string))))
-                         '()))
-
-                   (define (now)
-                     (car (gettimeofday)))
-
-                   (define (sleep* n)
-                     ;; Really sleep N seconds.
-                     ;; Work around <http://bugs.gnu.org/19581>.
-                     (define start (now))
-                     (let loop ((elapsed 0))
-                       (when (> n elapsed)
-                         (sleep (- n elapsed))
-                         (loop (- (now) start)))))
-
-                   (define lset= (@ (srfi srfi-1) lset=))
-
                    (display "sending all processes the TERM signal\n")
 
-                   (if (null? omitted-pids)
-                       (begin
-                         ;; Easy: terminate all of them.
-                         (kill -1 SIGTERM)
-                         (sleep* #$grace-delay)
-                         (kill -1 SIGKILL))
-                       (begin
-                         ;; Kill them all except OMITTED-PIDS.  XXX: We would
-                         ;; like to (kill -1 SIGSTOP) to get a fixed list of
-                         ;; processes, like 'killall5' does, but that seems
-                         ;; unreliable.
-                         (kill-except omitted-pids SIGTERM)
-                         (sleep* #$grace-delay)
-                         (kill-except omitted-pids SIGKILL)
-                         (delete-file #$%do-not-kill-file)))
+                   (kill -1 SIGTERM)
+                   (sleep #$grace-delay)
+                   (kill -1 SIGKILL)
 
                    (let wait ()
-                     ;; Reap children, if any, so that we don't end up with
-                     ;; zombies and enter an infinite loop.
-                     (let reap-children ()
-                       (define result
-                         (false-if-exception
-                          (waitpid WAIT_ANY (if (null? omitted-pids)
-                                                0
-                                                WNOHANG))))
-
-                       (when (and (pair? result)
-                                  (not (zero? (car result))))
-                         (reap-children)))
-
                      (let ((pids (processes)))
-                       (unless (lset= = pids (cons 1 omitted-pids))
+                       (unless (equal? '(1) pids)
                          (format #t "waiting for process termination\
  (processes left: ~s)~%"
                                  pids)
-                         (sleep* 2)
+                         (sleep 1)
                          (wait))))
 
                    (display "all processes have been terminated\n")
@@ -668,4 +621,138 @@ read-only, just before rebooting/halting.  Processes still running after a few
 seconds after @code{SIGTERM} has been sent are terminated with
 @code{SIGKILL}.")))
 
-;;; shepherd.scm ends here
+
+;;;
+;;; Timer and transient service maker.
+;;;
+
+(define shepherd-timer-service-type
+  (shepherd-service-type
+   'shepherd-timer
+   (lambda (requirement)
+     (shepherd-service
+      (provision '(timer))
+      (requirement requirement)
+      (modules '((shepherd service timer)))
+      (free-form #~(timer-service
+                    '#$provision
+                    #:requirement '#$requirement))))
+   '(user-processes)
+   (description "The Shepherd @code{timer} service lets you schedule commands
+dynamically, similar to the @code{at} command that your grandparents would use
+on that Slackware they got on a floppy disk.  For example, consider this
+command:
+
+@example
+herd schedule timer at 07:00 -- mpg123 Music/alarm.mp3
+@end example
+
+It does exactly what you would expect.")))
+
+(define shepherd-transient-service-type
+  (shepherd-service-type
+   'shepherd-transient
+   (lambda (requirement)
+     (shepherd-service
+      (provision '(transient))
+      (requirement requirement)
+      (modules '((shepherd service transient)))
+      (free-form #~(transient-service
+                    '#$provision
+                    #:requirement '#$requirement))))
+   '(user-processes)
+   (description "The Shepherd @code{transient} service lets you run commands
+asynchronously, in the background, similar to @command{systemd-run}, as in
+this example:
+
+@example
+herd spawn transient -E SSH_AUTH_SOCK=$SSH_AUTH_SOCK -- \\
+  rsync -e ssh -vur . backup.example.org:
+@end example
+
+This runs @command{rsync} in the background, as a service that you can inspect
+with @command{herd status} and stop with @command{herd stop}.")))
+
+
+;;;
+;;; System log.
+;;;
+
+(define (gexp-or-false? x)
+  (or (gexp? x) (not x)))
+
+(define (gexp-or-integer? x)
+  (or (gexp? x) (integer? x)))
+
+(define (gexp-or-string? x)
+  (or (gexp? x) (string? x)))
+
+(define (gexp-or-string-or-false? x)
+  (or (gexp-or-string? x) (not x)))
+
+(define-configuration/no-serialization system-log-configuration
+  (provision
+   (list-of-symbols '(system-log syslogd))
+   "The name(s) of the system log service.")
+  (requirement
+   (list-of-symbols '(root-file-system))
+   "Dependencies of the system log service.")
+  (kernel-log-file
+   (gexp-or-string-or-false #~(kernel-log-file))
+   "File from which kernel messages are read, @file{/dev/kmsg} by default.")
+  (message-destination
+   (gexp-or-false #f)
+   "This gexp must evaluate to a procedure that, when passed a log message,
+returns the list of files to write it to; @code{#f} is equivalent to using
+@code{(default-message-destination-procedure)}.  @xref{System Log Service,,,
+shepherd, The GNU Shepherd Manual}, for information on how to write that
+procedure.")
+  (date-format
+   (gexp-or-string #~default-logfile-date-format)
+   "String or string-valued gexp specifying how to format timestamps in log
+file.  It must be a valid string for @code{strftime} (@pxref{Time,,, guile,
+GNU Guile Reference Manual}), including delimiting space---e.g., @code{\"%c
+\"} for a format identical to that of traditional syslogd implementations.")
+  (history-size
+   (gexp-or-integer #~(default-log-history-size))
+   "Number of logging messages kept in memory for the purposes of making them
+available to @command{herd status system-log}.")
+  (max-silent-time
+   (gexp-or-integer #~(default-max-silent-time))
+   "Time after which a mark is written to log files if nothing was logged
+during that time frame."))
+
+(define shepherd-system-log-service-type
+  (shepherd-service-type
+   'shepherd-system-log
+   (lambda (config)
+     (match-record config <system-log-configuration>
+       (provision requirement message-destination
+        date-format history-size max-silent-time)
+       (shepherd-service
+        (documentation "Shepherd's built-in system log (syslogd).")
+        (provision (system-log-configuration-provision config))
+        (requirement (system-log-configuration-requirement config))
+        (modules '((shepherd service system-log)
+                   ((shepherd support) #:select (default-logfile-date-format))
+                   ((shepherd logger) #:select (default-log-history-size))))
+        (free-form
+         #~(system-log-service #:provision '#$provision
+                               #:requirement '#$requirement
+
+                               ;; XXX: As of Shepherd 1.0.1,
+                               ;; 'default-message-destination-procedure' is not
+                               ;; exported, hence this conditional.
+                               #$@(match message-destination
+                                    (#f #~())
+                                    (value #~(#:message-destination #$value)))
+
+                               #:date-format #$date-format
+                               #:history-size #$history-size
+                               #:max-silent-time #$max-silent-time)))))
+   (system-log-configuration)
+   (description
+    "The Shepherd's @code{system-log} service plays the role of traditional
+@command{syslogd} program, reading data logged by daemons to @file{/dev/log}
+and writing it to several files in @file{/var/log} according to user-provided
+dispatching rules.")))

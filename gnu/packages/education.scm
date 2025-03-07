@@ -47,7 +47,6 @@
   #:use-module (gnu packages gettext)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
-  #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-build)
   #:use-module (gnu packages golang-check)
   #:use-module (gnu packages golang-web)
@@ -220,7 +219,7 @@ of categories with some of the activities available in that category.
 (define-public gcompris-qt
   (package
     (name "gcompris-qt")
-    (version "4.1")
+    (version "25.0.12")
     (source
      (origin
        (method url-fetch)
@@ -228,38 +227,37 @@ of categories with some of the activities available in that category.
              "mirror://kde/stable/gcompris/qt/src/gcompris-qt-"
              version ".tar.xz"))
        (sha256
-        (base32 "1186ba3vn59fqdpgbvnvxqm8a3b7ginmw1sb3m5fr2az40xiqg9z"))))
+        (base32 "1my67r7x6j7snidnj47v3ndhf3i5sxn0zqj4d8apaw6mbqms96vj"))))
     (build-system qt-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-before 'check 'start-xorg-server
-           (lambda* (#:key inputs #:allow-other-keys)
-             ;; The test suite requires a running X server.
-             (system "Xvfb :1 &")
-             (setenv "DISPLAY" ":1")
-             ;; The test suite wants to write to /homeless-shelter
-             (setenv "HOME" (getcwd)))))
-       #:configure-flags (list "-DQML_BOX2D_MODULE=disabled"
-                               "-DBUILD_TESTING=TRUE")))
+     (list #:qtbase qtbase
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'start-xorg-server
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   ;; The test suite requires a running X server.
+                   (system "Xvfb :1 &")
+                   (setenv "DISPLAY" ":1")
+                   ;; The test suite wants to write to /homeless-shelter
+                   (setenv "HOME" (getcwd)))))
+           #:configure-flags #~(list "-DQML_BOX2D_MODULE=disabled"
+                                     "-DBUILD_TESTING=TRUE")))
     (native-inputs
      (list extra-cmake-modules
            gettext-minimal
            kdoctools
            perl
-           qttools-5
+           pkg-config
+           qttools
            xorg-server-for-tests))
     (inputs
      (list openssl
            python-wrapper
-           qtbase-5
-           qtcharts-5
-           qtdeclarative-5
-           qtgraphicaleffects
-           qtmultimedia-5
-           qtquickcontrols2-5
-           qtsensors-5
-           qtsvg-5))
+           qtcharts
+           qtdeclarative
+           qtmultimedia
+           qtsensors
+           qtsvg))
     (home-page "https://gcompris.net/index-en.html")
     (synopsis "Educational games for small children")
     (description
@@ -320,7 +318,8 @@ Currently available boards include:
                  (with-directory-excursion bin
                    (rename-file "v1" "gotypist"))))))))
       (native-inputs
-       (list go-github-com-gizak-termui go-github-com-stretchr-testify))
+       (list go-github-com-gizak-termui-v3
+             go-github-com-stretchr-testify))
       (home-page "https://github.com/KappaDistributive/gotypist")
       (synopsis "Simple typing trainer for text terminals")
       (description
@@ -501,7 +500,7 @@ specialized device.")
 (define-public openboard
   (package
     (name "openboard")
-    (version "1.7.1")
+    (version "1.7.3")
     (source
      (origin
        (method git-fetch)
@@ -510,7 +509,7 @@ specialized device.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1lxwf50n0bfjjnpq5z82f3apsv9mn834js7f2spw1k1f06a72z41"))))
+        (base32 "1098pys5p82sx97xrhw54vlkn6jly0rhq8b09grmmx2h4mcpj2i2"))))
     (build-system qt-build-system)
     (arguments
      (list
@@ -616,7 +615,7 @@ a pen-tablet display and a beamer.")
 (define-public fet
   (package
     (name "fet")
-    (version "6.22.2")
+    (version "6.28.4")
     (source
      (origin
        (method url-fetch)
@@ -625,7 +624,7 @@ a pen-tablet display and a beamer.")
               (list (string-append directory base)
                     (string-append directory "old/" base))))
        (sha256
-        (base32 "1h0yhqcpw6nhzj30fjmwwj63i1nsvrmggm56yqs4v14mli0c08y0"))))
+        (base32 "11mcbgi8lima4fng78lqdkd5km212drkk5l4bkzz1pz1k7wcykfn"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -680,14 +679,14 @@ language and very flexible regarding to new or unknown keyboard layouts.")
 (define-public kqtquickcharts
   (package
     (name "kqtquickcharts")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kde/stable/release-service/"
                                   version "/src/kqtquickcharts-" version ".tar.xz"))
               (sha256
                (base32
-                "0b0nqg77lzfw6accfsr4yg9fgq78skryd1qwkqf1zijhq4h65708"))))
+                "0a9rpp165s3ishc1jsaalgjixir591a8f6r9qqzji50jgf629ivc"))))
     (build-system qt-build-system)
     (native-inputs (list extra-cmake-modules))
     (inputs (list qtdeclarative-5))
@@ -701,14 +700,14 @@ charts.")
 (define-public ktouch
   (package
     (name "ktouch")
-    (version "24.05.2")
+    (version "24.12.2")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://kde/stable/release-service/"
                            version "/src/ktouch-" version ".tar.xz"))
        (sha256
-        (base32 "1636s1brigmd7wbmjlfgz2qlrrp592rrk9nylh9bi0j1nf3xa8c5"))))
+        (base32 "1bnzsvw81glw6clx6j0s0h9rxqdb9avqjnjxswjwsj1bv6r8g71j"))))
     (build-system qt-build-system)
     (native-inputs
      (list extra-cmake-modules kdoctools-5 pkg-config))
@@ -1111,7 +1110,7 @@ machine, and more.")
 (define-public exercism
   (package
     (name "exercism")
-    (version "3.1.0")
+    (version "3.5.4")
     (source
      (origin
        (method git-fetch)
@@ -1121,7 +1120,7 @@ machine, and more.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0ah5v4pqq31bvj7s4rg3jyjn7jwxa15w31cn4c317gsqmi0n8rzl"))
+         "0shh84g7j977kn9kcm09rj3lz6a3y5qq9yvklsldgb9zvass5szd"))
        (patches (search-patches "exercism-disable-self-update.patch"))))
     (build-system go-build-system)
     (arguments

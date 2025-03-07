@@ -1,15 +1,15 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015, 2016, 2020, 2021, 2022, 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015, 2016, 2020-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Federico Beffa <beffa@fbengineering.ch>
 ;;; Copyright © 2016 Ben Woodcroft <donttrustben@gmail.com>
 ;;; Copyright © 2016 Hartmut Goebel <h.goebel@crazy-compilers.com>
-;;; Copyright © 2016, 2022-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016, 2022-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016-2020, 2022 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2019 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2019, 2021, 2022, 2023, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2019 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2020 Pierre Langlois <pierre.langlois@gmx.com>
-;;; Copyright © 2020, 2021, 2022, 2023, 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2020-2025 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2021 Greg Hogan <code@greghogan.com>
 ;;; Copyright © 2021 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2021 Paul Garlick <pgarlick@tourbillion-technology.com>
@@ -23,7 +23,7 @@
 ;;; Copyright © 2022, 2024 Antero Mejr <antero@mailbox.org>
 ;;; Copyright © 2022 jgart <jgart@dismail.de>
 ;;; Copyright © 2023, 2024 Troy Figiel <troy@troyfigiel.com>
-;;; Copyright © 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
+;;; Copyright © 2024-2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2024 Marco Baggio <marco.baggio@mdc-berlin.de>
 ;;; Copyright © 2024 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2024 Rick Huijzer <ikbenrickhuyzer@gmail.com>
@@ -174,6 +174,33 @@ scientific codes by steering the implementation towards usability and
 maintainability.")
     (license license:bsd-3)))
 
+(define-public python-cmocean
+  (package
+    (name "python-cmocean")
+    (version "4.0.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "cmocean" version))
+       (sha256
+        (base32 "0z0d4ma6i228gwpgnkai8scs9bmzz41rirlnqpmb8hazzfcq71ip"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-matplotlib
+           python-numpy
+           python-packaging))
+    (home-page "https://github.com/matplotlib/cmocean")
+    (synopsis "Colormaps for Oceanography")
+    (description
+     "This package contains colormaps for commonly-used oceanographic
+variables.  Most of the colormaps started from @code{matplotlib} colormaps,
+but have now been adjusted using the viscm tool to be perceptually uniform.")
+    (license license:expat)))
+
 (define-public python-cvxpy
   (package
     (name "python-cvxpy")
@@ -195,7 +222,7 @@ maintainability.")
                              python-osqp
                              python-scipy
                              python-scs))
-    (native-inputs (list python-pytest python-setuptools))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://github.com/cvxpy/cvxpy")
     (synopsis "DSL for modeling convex optimization problems")
     (description
@@ -253,6 +280,52 @@ numerical software for solving convex second-order cone programs (SOCPs).")
 formulas for Python.")
     (license license:expat)))
 
+(define-public python-imagehash
+  (package
+    (name "python-imagehash")
+    (version "4.3.1")
+    (source
+     (origin
+       (method git-fetch) ;no tests in PyPI
+       (uri (git-reference
+             ;; It's an effective and maintained fork of
+             ;; <https://github.com/bunchesofdonald/photohash> project, which
+             ;; has the latest release in 2016.
+             (url "https://github.com/JohannesBuchner/imagehash")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1lw9lxzrzy9s5v3xc35vmh97hlyavnla087fp19k77va6v8vbjjf"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-numpy
+           python-pillow
+           python-pywavelets
+           python-scipy))
+    (home-page "https://github.com/JohannesBuchner/imagehash")
+    (synopsis "Perceptual Image Hashing library")
+    (description
+     "This package implements a functionality to tell whether two images look
+nearly identical.  The image hash algorithms (average, perceptual, difference,
+wavelet) analyse the image structure on luminance (without color information).
+The color hash algorithm analyses the color distribution and black & gray
+fractions (without position information).
+
+Features:
+@itemize
+@item average hashing
+@item perceptual hashing
+@item difference hashing
+@item wavelet hashing
+@item HSV color hashing (colorhash)
+@item crop-resistant hashing
+@end itemize")
+    (license license:bsd-2)))
+
 (define-public python-osqp
   (package
     (name "python-osqp")
@@ -298,7 +371,12 @@ formulas for Python.")
     (propagated-inputs (list python-numpy python-qdldl python-scipy))
     ;; We need setuptools-scm only for the version number.  Without it the
     ;; version number will be "0.0.0" and downstream packages will complain.
-    (native-inputs (list cmake-minimal python-pytest python-setuptools-scm))
+    (native-inputs
+     (list cmake-minimal
+           python-pytest
+           python-setuptools-scm
+           python-setuptools
+           python-wheel))
     (home-page "https://osqp.org/")
     (synopsis "OSQP: operator splitting QP solver")
     (description "The OSQP (Operator Splitting Quadratic Program) solver is a
@@ -316,7 +394,11 @@ numerical optimization package.")
        (sha256
         (base32 "1lspam0k8gnw1yglqxvdv350fq00nkgdfmkizmx7bk0hxjjkj5ab"))))
     (build-system pyproject-build-system)
-    (native-inputs (list cmake-minimal pybind11))
+    (native-inputs
+     (list cmake-minimal
+           pybind11
+           python-setuptools
+           python-wheel))
     (propagated-inputs (list python-numpy python-scipy))
     (home-page "https://github.com/oxfordcontrol/qdldl-python/")
     (synopsis "QDLDL LDL factorization routine")
@@ -423,13 +505,13 @@ routines such as routines for numerical integration and optimization.")
 (define-public python-scikit-allel
   (package
     (name "python-scikit-allel")
-    (version "1.3.5")
+    (version "1.3.13")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "scikit-allel" version))
+       (uri (pypi-uri "scikit_allel" version))
        (sha256
-        (base32 "1vg88ng6gd175gzk39iz1drxig5l91dyx398w2kbw3w8036zv8gj"))))
+        (base32 "0d9yadzhsjjqkh6rz273f53iwczk0c7pv9dajzcrmfnk036b8f4s"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -451,21 +533,18 @@ routines such as routines for numerical integration and optimization.")
            (lambda _
              (invoke "python" "setup.py" "build_ext" "--inplace"))))))
     (propagated-inputs
-     (list python-dask
-           python-numpy
-           python-click))
+     (list python-dask python-numpy))
     (native-inputs
-     (list python-cython
-           python-setuptools
-           python-wheel
-           ;; The following are all needed for the tests
-           htslib
+     (list htslib
+           python-cython
            python-h5py
            python-hmmlearn
            python-numexpr
+           python-numpy
            python-pytest
-           python-scipy
+           python-setuptools
            python-setuptools-scm
+           python-wheel
            python-zarr))
     (home-page "https://github.com/cggh/scikit-allel")
     (synopsis "Explore and analyze genetic variation data")
@@ -477,13 +556,13 @@ genetic variation data.")
 (define-public python-scikit-build-core
   (package
     (name "python-scikit-build-core")
-    (version "0.9.3")
+    (version "0.10.7")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "scikit_build_core" version))
        (sha256
-        (base32 "146k3w3kcamyyqassmsmp6h4f5lb3cdqnbjjcbf0jm1s8wz1279l"))))
+        (base32 "1y64d8rl39banfwdkszyd4sbzp795q8lj66yxrz2l84mwygvbjq4"))))
     (build-system pyproject-build-system)
     ;; Tests are aborted with the admonition: "setup.py install is
     ;; deprecated. Use build and pip and other standards-based tools."
@@ -496,7 +575,6 @@ genetic variation data.")
                              python-tomli
                              python-typing-extensions))
     (native-inputs (list pybind11
-                         python-pypa-build
                          python-cattrs
                          python-fastjsonschema
                          python-hatch-fancy-pypi-readme
@@ -504,7 +582,9 @@ genetic variation data.")
                          python-hatchling
                          python-numpy
                          python-pip
+                         python-pypa-build
                          python-pytest
+                         python-pytest-subprocess
                          python-rich
                          python-setuptools
                          python-setuptools-scm
@@ -575,7 +655,7 @@ and linear forms into vectors.")
      (list
       #:test-flags #~(list "--pyargs" "skfuzzy")))
     (native-inputs
-     (list python-pytest))
+     (list python-pytest python-setuptools python-wheel))
     (propagated-inputs
      (list python-networkx python-numpy python-scipy))
     (home-page "https://github.com/scikit-fuzzy/scikit-fuzzy")
@@ -645,6 +725,55 @@ logic, also known as grey logic.")
      "Scikit-image is a collection of algorithms for image processing.")
     (license license:bsd-3)))
 
+(define-public python-scikit-misc
+  (package
+    (name "python-scikit-misc")
+    (version "0.5.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "scikit_misc" version))
+       (sha256
+        (base32 "18sj7qa3kk4pqh3rzg2c64lf03nciv9cf985yh1h2kpqqndgdhf5"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags
+      '(list "--pyargs" "skmisc")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'fix-version
+            (lambda _
+              (call-with-output-file "skmisc/_version.py"
+                (lambda (port)
+                  (display (string-append "__version__ = \"" #$version "\"")
+                           port)))
+              (substitute* "meson.build"
+                (("^  version: run_command.*")
+                 (string-append "  version: '" #$version "',\n")))
+              (substitute* "pyproject.toml"
+                (("dynamic = \\['version'\\]")
+                 (string-append "version = \"" #$version "\""))))))))
+    (propagated-inputs (list meson-python
+                             python-numpy
+                             python-numpydoc
+                             python-spin
+                             python-twine))
+    (native-inputs (list gfortran
+                         pkg-config
+                         python-cython-3
+                         python-meson-python
+                         python-numpy
+                         python-pytest
+                         python-pytest-cov
+                         python-setuptools
+                         python-wheel))
+    (home-page "https://has2k1.github.io/scikit-misc/stable")
+    (synopsis "Miscellaneous tools for scientific computing.")
+    (description "This package provides miscellaneous tools for data analysis
+and scientific computing.")
+    (license license:bsd-3)))
+
 (define-public python-scikit-opt
   (package
     (name "python-scikit-opt")
@@ -657,6 +786,7 @@ logic, also known as grey logic.")
         (base32 "0ycqizgsj7q57asc1bphzhf1fx9zqn0vx5rli7q541bas64hfqiy"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-numpy python-pytorch python-scipy))
+    (native-inputs (list python-setuptools))
     (home-page "https://github.com/guofei9987/scikit-opt")
     (synopsis "Swarm intelligence algorithms in Python")
     (description
@@ -739,7 +869,7 @@ the following purposes in mind:
 @itemize
 @item Provide tools to handle downloaded or user-provided datasets.
 @item Provide ready-to-use prediction algorithms and similarity measures.
-@item Provide a base for creating custom algorithims.
+@item Provide a base for creating custom algorithms.
 @item Provide tools to evaluate, analyse and compare algorithm performance.
 @item Provide documentation with precise details regarding library algorithms.
 @end itemize")
@@ -791,6 +921,7 @@ the following purposes in mind:
              python-cython-3
              python-packaging
              python-pytest
+             python-setuptools
              python-setuptools-scm
              python-tomli
              python-tox))
@@ -828,7 +959,7 @@ cross-validation.")
     (synopsis "Test-driven data analysis library for Python")
     (description
      "The TDDA Python module provides command-line and Python API support
-for the overall process of data analysis, through tools that peform
+for the overall process of data analysis, through tools that perform
 reference testing, constraint discovery for data, automatic inference
 of regular expressions from text data and automatic test generation.")
     (license license:expat))) ; MIT License
@@ -868,7 +999,10 @@ of regular expressions from text data and automatic test generation.")
                           "test_simple_open"
                           "test_slice_onplane"
                           "test_spline_3D"
-                          "test_svg")
+                          "test_svg"
+                          ;; Following tests require network:
+                          "test_fuze"
+                          "test_remote")
                     " and not "))
       #:phases
       #~(modify-phases %standard-phases
@@ -945,13 +1079,13 @@ spheres, cubes, etc.")
 (define-public python-mpl-scatter-density
   (package
     (name "python-mpl-scatter-density")
-    (version "0.7")
+    (version "0.8")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "mpl-scatter-density" version))
+       (uri (pypi-uri "mpl_scatter_density" version))
        (sha256
-        (base32 "083n4xkwjmxvij9i1xhfnxz8vk39ay0baam4nf0khvcihw47bkna"))))
+        (base32 "0cynk1rk6k2xklgv69difphrz6id77x3xb58kbs4mc4q7z6bvfid"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -974,6 +1108,39 @@ spheres, cubes, etc.")
      "This package provides functionality to make it easy to make scatter
 density maps, both for interactive and non-interactive use.")
     (license license:bsd-2)))
+
+(define-public python-mpsplines
+  ;; No release on PyPI no git tag, use the latest commit.
+  (let ((commit "4967655fca8f4d0fc0685486c8ec2f1fe2f199d2")
+        (revision "0"))
+    (package
+      (name "python-mpsplines")
+      (version (git-version "0.0.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/jararias/mpsplines")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1wqfvjp1d6xzb07qnq72h76f0mx7za9pasgw3qp3ciaycmlkvdr3"))))
+      (build-system pyproject-build-system)
+      (arguments
+       (list #:tests? #f)) ; no tests provided
+      (native-inputs
+       (list python-setuptools
+             python-wheel))
+      (propagated-inputs
+       (list python-scipy
+             python-numpy
+             python-loguru))
+      (home-page "https://github.com/jararias/mpsplines")
+      (synopsis "Mean preserving interpolation with splines")
+      (description
+       "Thi package implements a functionality for mean-preserving
+interpolation of 1D data (for example, time series) with splines.")
+      (license license:bsd-3))))
 
 (define-public python-pyamg
   (package
@@ -1070,6 +1237,39 @@ density maps, both for interactive and non-interactive use.")
 Evapotranspiration using various standard methods.")
     (license license:expat)))
 
+(define-public python-nibabel
+  (package
+    (name "python-nibabel")
+    (version "5.3.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "nibabel" version))
+       (sha256
+        (base32 "16snprwgp7qzp51j3mx0zdn7brvx6r14ankldi24ny0w7d8adp0b"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      ;; AttributeError: 'dict' object has no attribute 'add'.
+      #:test-flags #~(list "-k" "not test_first and not test_second")))
+    (propagated-inputs (list python-importlib-resources python-numpy
+                             python-packaging python-typing-extensions))
+    (native-inputs (list python-hatch-vcs
+                         python-hatchling
+                         python-pytest
+                         python-pytest-httpserver
+                         python-pytest-xdist))
+    (home-page "https://nipy.org/nibabel/")
+    (synopsis "Read and write access to common neuroimaging file formats")
+    (description
+     "@code{nibabel} is a library that provides read and write access to
+common neuroimaging file formats, including: ANALYZE (plain, SPM99, SPM2
+and later), GIFTI, NIfTI1, NIfTI2, CIFTI-2, MINC1, MINC2, AFNI BRIK/HEAD,
+ECAT and Philips PAR/REC.  In addition, NiBabel also supports FreeSurfer’s
+MGH, geometry, annotation and morphometry files, and provides some limited
+support for DICOM.")
+    (license license:expat))) ; and other non-copyleft licenses
+
 (define-public python-tspex
   (package
     (name "python-tspex")
@@ -1141,6 +1341,8 @@ indices of @code{ndarrays}.")
               " and not test_read_non_existent"
               ;; Unknown failures
               " and not test_switch_options"
+              ;; These fail with: td64 doesn't return NotImplemented, see numpy#17017
+              " and not test_nat_comparisons"
               ;; Crashes
               " and not test_bytes_exceed_2gb"
               ;; get_subplotspec() returns None; possibly related to
@@ -1233,7 +1435,9 @@ doing practical, real world data analysis in Python.")
       #:test-flags
       #~(list "--pyargs" "pandas"
               ;; "--exitfirst"
-              "--numprocesses" (number->string (parallel-job-count))
+              ;; XXX The tests won't even start on my 16 core laptop, but they
+              ;; start with 4 processes.
+              "--numprocesses" (number->string (min 4 (parallel-job-count)))
               "-m" "not slow and not network and not db"
               ;; All tests errored.
               "--ignore=pandas/tests/io/test_clipboard.py"
@@ -1266,7 +1470,14 @@ doing practical, real world data analysis in Python.")
                      "test_savefig"
                      ;; It requires a fresh python-tzdata, including new
                      ;; timezones.
-                     "test_repr")
+                     "test_repr"
+                     ;; These tests should be skipped on 32bit systems:
+                     ;; Cannot cast array data from dtype('int64') to dtype('int32')
+                     #$@(if (not (target-64bit?))
+                            #~("test_inf_bound_infinite_recursion"
+                               "test_reindex_behavior_with_interval_index"
+                               "test_repeating_interval_index_with_infs")
+                            #~()))
                     " and not "))
       #:phases
       #~(modify-phases %standard-phases
@@ -1278,10 +1489,8 @@ doing practical, real world data analysis in Python.")
                    (string-append "__version__ = \""
                                   #$(package-version this-package)
                                   "\""))))))
-          (add-before 'check 'prepare-x
+          (add-before 'check 'pre-check
             (lambda _
-              (system "Xvfb &")
-              (setenv "DISPLAY" ":0")
               (setenv "HOME" ".")
               ;; Skip tests that require lots of resources.
               (setenv "PANDAS_CI" "1")))
@@ -1327,9 +1536,7 @@ doing practical, real world data analysis in Python.")
            python-pytest-localserver
            python-pytest-mock
            python-pytest-xdist
-           python-versioneer
-           ;; Needed to test clipboard support.
-           xorg-server-for-tests))
+           python-versioneer))
     (home-page "https://pandas.pydata.org")
     (synopsis "Data structures for data analysis, time series, and statistics")
     (description
@@ -1500,7 +1707,10 @@ idea of the remaining amount of computation to be done.")
                            "not test_python_std_list_dict_generics"
                            " and not test_python_std_list_dict_empty_and_none"
                            " and not test_pandas_modules_importable"
-                           " and not test_check_groups"))))
+                           " and not test_check_groups"
+                           ;; This is a test failure due to unexpected error
+                           ;; message format.  It is harmless.
+                           " and not test_pandas_stubs_false_positives"))))
     ;; Pandera comes with a lot of extras. We test as many as possible, but do
     ;; not include all of them in the propagated-inputs. Currently, we have to
     ;; skip the pyspark and io tests due to missing packages python-pyspark
@@ -1511,7 +1721,7 @@ idea of the remaining amount of computation to be done.")
                              python-packaging
                              python-pandas
                              python-pandas-stubs ;mypy extra
-                             python-pydantic
+                             python-pydantic-2
                              python-scipy ;hypotheses extra
                              python-typeguard
                              python-typing-inspect
@@ -1665,49 +1875,44 @@ y, z)}.")
 (define-public python-pythran
   (package
     (name "python-pythran")
-    (version "0.11.0")
+    (version "0.17.0")
     (home-page "https://github.com/serge-sans-paille/pythran")
     (source (origin
               (method git-fetch)
               (uri (git-reference (url home-page) (commit version)))
               (file-name (git-file-name name version))
               (sha256
-               (base32 "0cm7wfcyvkp1wmq7n1lyf2d3sj6158jf63bagjpjmfnjwij19n0p"))
-              (modules '((guix build utils)))
-              (snippet
-               '(begin
-                  ;; Remove bundled Boost and xsimd.
-                  (delete-file-recursively "third_party")))))
-    (build-system python-build-system)
+               (base32 "1rm9lfbz5qvah1m0rr5gaaahkf1gzwlw1ysvym2l2yh0clglav94"))))
+    (build-system pyproject-build-system)
     (arguments
-     (list #:phases
-           #~(modify-phases %standard-phases
-               (add-after 'unpack 'do-not-install-third-parties
-                 (lambda _
-                   (substitute* "setup.py"
-                     (("third_parties = .*")
-                      "third_parties = []\n"))))
-               (replace 'check
-                 (lambda* (#:key tests? #:allow-other-keys)
-                   (when tests?
-                     ;; Remove compiler flag that trips newer GCC:
-                     ;; https://github.com/serge-sans-paille/pythran/issues/908
-                     (substitute* "pythran/tests/__init__.py"
-                       (("'-Wno-absolute-value',")
-                        ""))
-                     (setenv "HOME" (getcwd))
-                     ;; This setup is modelled after the upstream CI system.
-                     (call-with-output-file ".pythranrc"
-                       (lambda (port)
-                         (format port "[compiler]\nblas=openblas~%")))
-                     (invoke "pytest" "-vv"
-                             (string-append "--numprocesses="
-                                            (number->string
-                                             (parallel-job-count)))
-                             "pythran/tests/test_cases.py")))))))
+     (list
+      #:test-flags
+      '(list (string-append "--numprocesses=" (number->string
+                                               (parallel-job-count)))
+             ;; XXX There are lots of tests of the format
+             ;; pythran/tests/test_*.py, but they cannot easily be selected.
+             "pythran/tests/test_typing.py")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'check 'pre-check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                ;; Remove compiler flag that trips newer GCC:
+                ;; https://github.com/serge-sans-paille/pythran/issues/908
+                (substitute* "pythran/tests/__init__.py"
+                  (("'-Wno-absolute-value',") ""))
+                (setenv "HOME" (getcwd))
+                ;; This setup is modelled after the upstream CI system.
+                (call-with-output-file ".pythranrc"
+                  (lambda (port)
+                    (format port "[compiler]\nblas=openblas~%")))))))))
     (native-inputs
      ;; For tests.
-     (list openblas python-pytest python-pytest-xdist))
+     (list openblas
+           python-pytest
+           python-pytest-xdist
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list boost xsimd                  ;headers need to be available
            python-beniget python-gast python-numpy python-ply))
@@ -1810,7 +2015,7 @@ evaluating arrays of polynomials based on @code{numpy.ndarray objects}.")
       (base32 "0ff48nagfaai3j26g1db4zq2bwdv6kj5l7xhcs2l9kzg7qzrmhr7"))))
   (build-system pyproject-build-system)
   (propagated-inputs (list python-click python-colorama python-tomli))
-  (native-inputs (list python-pytest))
+  (native-inputs (list python-pytest python-setuptools python-wheel))
   (home-page "https://github.com/scientific-python/spin")
   (synopsis "Developer tool for scientific Python libraries")
   (description "@code{spin} is a simple interface for common development
@@ -1898,7 +2103,7 @@ that is 20-25x faster than @code{numpy.histogram2d}.")
         (base32 "19labbgnq85p4r4jbli2p045lgh57larhi2g2anagfxnlzpqdf5a"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-numpy))
-    (native-inputs (list python-scipy))
+    (native-inputs (list python-scipy python-setuptools python-wheel))
     (home-page "https://danifold.net/fastcluster.html")
     (synopsis "Fast hierarchical clustering routines for R and Python")
     (description "The fastcluster package implements seven common hierarchical
@@ -2063,7 +2268,12 @@ name) using the Python's @code{dataclass}.")
     (build-system pyproject-build-system)
     (propagated-inputs (list python-packaging python-xarray))
     ;; We need setuptools-scm to correctly record the version string.
-    (native-inputs (list python-pytest python-setuptools-scm python-zarr))
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-setuptools-scm
+           python-wheel
+           python-zarr))
     (home-page "https://github.com/xarray-contrib/datatree")
     (synopsis "Hierarchical tree-like data structures for xarray")
     (description "Datatree is a prototype implementation of a tree-like
@@ -2107,7 +2317,11 @@ functions and around einops with an API and features adapted to xarray.")
         (base32 "08194629696z98dkc74i6c9zmy1jicvd2ajb75q0lsf0i427cv4w"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-numpy python-xarray))
-    (native-inputs (list python-pytest python-setuptools-scm))
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-setuptools-scm
+           python-wheel))
     (home-page "https://github.com/carbonplan/xarray-schema")
     (synopsis "Schema validation for Xarray objects")
     (description "This package implements schema validation for Xarray
@@ -2307,13 +2521,13 @@ annotations on an existing boxplots and barplots generated by seaborn.")
 (define-public python-unyt
   (package
     (name "python-unyt")
-    (version "3.0.1")
+    (version "3.0.3")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "unyt" version))
        (sha256
-        (base32 "00900bw24rxgcgwgxp9xlx0l5im96r1n5hn0r3mxvbdgc3lyyq48"))))
+        (base32 "0jrq2vhan2h280h6cw1sm5hys2nzmf19w4py64k3nrkc320z9mni"))))
     (build-system pyproject-build-system)
     ;; Pint is optional, but we do not propagate it due to its size.
     (native-inputs
@@ -2334,7 +2548,7 @@ annotations on an existing boxplots and barplots generated by seaborn.")
     (description
      "@code{unyt} is a Python library working with data that has physical
 units.  It defines the @code{unyt.array.unyt_array} and
-@code{unyt.array.unyt_quantity} classess (subclasses of NumPy’s ndarray class)
+@code{unyt.array.unyt_quantity} classes (subclasses of NumPy’s ndarray class)
 for handling arrays and scalars with units,respectively")
     (license license:bsd-3)))
 
@@ -2353,7 +2567,8 @@ for handling arrays and scalars with units,respectively")
     (propagated-inputs
      (list python-matplotlib python-pandas))
     (native-inputs
-     (list python-pytest-runner python-pytest-cov))
+     (list python-pytest-runner python-pytest-cov
+           python-setuptools python-wheel))
     (home-page "https://upsetplot.readthedocs.io")
     (synopsis "Draw UpSet plots with Pandas and Matplotlib")
     (description
@@ -2867,7 +3082,7 @@ computing in Python.  It extends both the @code{concurrent.futures} and
 (define-public python-modin
   (package
     (name "python-modin")
-    (version "0.15.1")
+    (version "0.32.0")
     (source
      (origin
        ;; The archive on pypi does not include all required files.
@@ -2878,38 +3093,40 @@ computing in Python.  It extends both the @code{concurrent.futures} and
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0nf2pdqna2vn7vq7q7b51f3cfbrxfn77pyif3clibjsxzvfm9k03"))))
-    (build-system python-build-system)
+         "1vb3iffgspryb6nvwiwdnypb922vkn2yvyzc1y0wwxcb0c0fl78d"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'make-files-writable
-           (lambda _
-             (for-each make-file-writable (find-files "."))))
+     (list
+      #:test-flags
+      ;; These four tests fail because an expected error is not raised.
+      '(list "-k" "not test_binary_bad_broadcast")
+      #:phases
+      '(modify-phases %standard-phases
          (add-after 'unpack 'loosen-requirements
            (lambda _
              (substitute* "setup.py"
                ;; Don't depend on a specific version of Pandas.
-               (("pandas==")
-                "pandas>="))))
+               (("pandas==") "pandas>="))))
          (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
+           (lambda* (#:key tests? test-flags #:allow-other-keys)
              (when tests?
                (setenv "MODIN_ENGINE" "dask")
-               (invoke "python" "-m" "pytest"
-                       "modin/pandas/test/test_concat.py")
+               (apply invoke "python" "-m" "pytest"
+                      "modin/tests/numpy" test-flags)
                (setenv "MODIN_ENGINE" "python")
-               (invoke "python" "-m" "pytest"
-                       "modin/pandas/test/test_concat.py")))))))
+               (apply invoke "python" "-m" "pytest"
+                      "modin/tests/numpy" test-flags)))))))
     (propagated-inputs
      (list python-cloudpickle
            python-dask
            python-distributed
            python-numpy
            python-packaging
-           python-pandas))
+           python-pandas
+           python-s3fs))
     (native-inputs
-     (list python-coverage
+     (list python-boto3
+           python-coverage
            python-jinja2
            python-lxml
            python-matplotlib
@@ -2926,7 +3143,8 @@ computing in Python.  It extends both the @code{concurrent.futures} and
            python-tables
            python-tqdm
            python-xarray
-           python-xlrd))
+           python-xlrd
+           python-wheel))
     (home-page "https://github.com/modin-project/modin")
     (synopsis "Make your pandas code run faster")
     (description
@@ -2962,7 +3180,7 @@ aggregated sum and more.")
 (define-public python-plotnine
   (package
     (name "python-plotnine")
-    (version "0.10.1")
+    (version "0.14.5")
     (source
      (origin
        (method git-fetch)
@@ -2971,7 +3189,7 @@ aggregated sum and more.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0lg53wcm00lj8zbb4q9yj4a0n0fqaqq7c7vj18bda0k56gg0fpwl"))))
+        (base32 "02ph0h312qn5a9ivh2qhv0x9sybccgbidzvb8im1hikwcqp8v2fw"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -2979,64 +3197,77 @@ aggregated sum and more.")
       ;; XXX: Check for any new failing tests during next update cycle.
       ;; These all fail because the images are considered to be too different,
       ;; though they really do look fine.
-      '(list "-k"
-             (string-append "not TestThemes"
-                            (string-join (list
-                                          ;; Image tests
-                                          "test_adjust_text"
-                                          "test_annotation_logticks_coord_flip_discrete"
-                                          "test_annotation_logticks_faceting"
-                                          "test_arrow"
-                                          "test_aslabeller_dict_0tag"
-                                          "test_caption_simple"
-                                          "test_continuous_x"
-                                          "test_continuous_x_fullrange"
-                                          "test_coord_trans_backtransforms"
-                                          "test_coord_trans_se_false"
-                                          "test_custom_shape"
-                                          "test_datetime_scale_limits"
-                                          "test_dir_v_ncol"
-                                          "test_discrete_x"
-                                          "test_discrete_x_fullrange"
-                                          "test_facet_grid_drop_false"
-                                          "test_facet_grid_expression"
-                                          "test_facet_grid_space_ratios"
-                                          "test_facet_wrap"
-                                          "test_facet_wrap_expression"
-                                          "test_facet_wrap_label_both"
-                                          "test_label_context_wrap2vars"
-                                          "test_labeller_cols_both_grid"
-                                          "test_labeller_cols_both_wrap"
-                                          "test_labeller_towords"
-                                          "test_missing_data_discrete_scale"
-                                          "test_ribbon_facetting"
-                                          "test_stack_non_linear_scale"
-                                          "test_uneven_num_of_lines"
-
-                                          ;; This triggers an unexpected but harmless
-                                          ;; warning.
-                                          "test_save_method"
-
-                                          ;; Missing optional modules
-                                          "test_non_linear_smooth"
-                                          "test_non_linear_smooth_no_ci")
-                                         " and not "
-                                         'prefix)))
-      #:phases '(modify-phases %standard-phases
-                  (add-before 'check 'pre-check
-                    (lambda* (#:key inputs outputs #:allow-other-keys)
-                      ;; The data files are referenced by the tests but they are not
-                      ;; installed.
-                      (copy-recursively "plotnine/data"
-                                        (string-append (site-packages inputs
-                                                                      outputs)
-                                                       "/plotnine/data"))
-                      ;; Matplotlib needs to be able to write its configuration file
-                      ;; somewhere.
-                      (setenv "MPLCONFIGDIR" "/tmp")
-                      (setenv "TZ" "UTC")
-                      (setenv "TZDIR"
-                              (search-input-directory inputs "share/zoneinfo")))))))
+      ;; See https://github.com/has2k1/plotnine/issues/627
+      `(list ,@(map (lambda (file) (string-append "--ignore=" file))
+                    (list "tests/test_aes.py"
+                          "tests/test_annotation_logticks.py"
+                          "tests/test_coords.py"
+                          "tests/test_facet_labelling.py"
+                          "tests/test_facets.py"
+                          "tests/test_geom_bar_col_histogram.py"
+                          "tests/test_geom_bin_2d.py"
+                          "tests/test_geom_boxplot.py"
+                          "tests/test_geom_count.py"
+                          "tests/test_geom_density_2d.py"
+                          "tests/test_geom_density.py"
+                          "tests/test_geom_dotplot.py"
+                          "tests/test_geom_freqpoly.py"
+                          "tests/test_geom_map.py"
+                          "tests/test_geom_path_line_step.py"
+                          "tests/test_geom_point.py"
+                          "tests/test_geom_raster.py"
+                          "tests/test_geom_rect_tile.py"
+                          "tests/test_geom_ribbon_area.py"
+                          "tests/test_geom_sina.py"
+                          "tests/test_geom_smooth.py"
+                          "tests/test_geom_text_label.py"
+                          "tests/test_geom_violin.py"
+                          "tests/test_layout.py"
+                          "tests/test_position.py"
+                          "tests/test_qplot.py"
+                          "tests/test_scale_internals.py"
+                          "tests/test_scale_labelling.py"
+                          "tests/test_stat_ecdf.py"
+                          "tests/test_stat_function.py"
+                          "tests/test_stat_summary.py"
+                          "tests/test_theme.py"))
+             "-k"
+             (string-append "not "
+                            (string-join
+                             (list
+                              ;; This triggers an unexpected but harmless
+                              ;; warning.
+                              "test_save_method"
+                              ;; This test fails to set the locale.
+                              "test_no_after_scale_warning"
+                              ;; Missing optional modules
+                              "test_non_linear_smooth"
+                              "test_non_linear_smooth_no_ci")
+                             " and not "
+                             'infix)))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'build 'pretend-version
+            ;; The version string is usually derived via setuptools-scm, but
+            ;; without the git metadata available, the version string is set to
+            ;; '999'.
+            (lambda _
+              (setenv "SETUPTOOLS_SCM_PRETEND_VERSION" #$version)))
+          (add-before 'check 'pre-check
+            (lambda* (#:key inputs outputs #:allow-other-keys)
+              ;; The data files are referenced by the tests but they are not
+              ;; installed.
+              (copy-recursively "plotnine/data"
+                                (string-append (site-packages inputs
+                                                              outputs)
+                                               "/plotnine/data"))
+              (setenv "CI" "1")      ;skip tests that are known to fail on CI.
+              ;; Matplotlib needs to be able to write its configuration file
+              ;; somewhere.
+              (setenv "MPLCONFIGDIR" "/tmp")
+              (setenv "TZ" "UTC")
+              (setenv "TZDIR"
+                      (search-input-directory inputs "share/zoneinfo")))))))
     (propagated-inputs (list python-adjusttext
                              python-matplotlib
                              python-mizani
@@ -3065,10 +3296,9 @@ and aims to provide a similar API and functionality in Python.")
 (define-public python-pyvista
   (package
     (name "python-pyvista")
-    (version "0.42.3")
+    (version "0.44.2")
     (source
      ;; The PyPI tarball does not contain the tests.
-     ;; (However, we don't yet actually run the tests.)
      (origin
        (method git-fetch)
        (uri (git-reference
@@ -3076,8 +3306,8 @@ and aims to provide a similar API and functionality in Python.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1qxq0y0hc72hb60w3qq48fma8l6ffz7bdm75ymn1020bvfqrm1s4"))))
-    (build-system python-build-system)
+        (base32 "0lnh4cvf6wld7hm293015d80ny0vnsk96ckfvc2crzd1b79ch1v5"))))
+    (build-system pyproject-build-system)
     (propagated-inputs
      (list python-imageio
            python-matplotlib
@@ -3087,16 +3317,127 @@ and aims to provide a similar API and functionality in Python.")
            python-pooch
            python-scooby
            vtk))
+    ;; packages needed for testing
+    (native-inputs (list python-pytest
+                         python-scipy
+                         python-ipython
+                         python-trimesh
+                         python-tqdm))
     (arguments
      '(#:phases
        (modify-phases %standard-phases
-         ;; Disable tests for now because they require several modules
-         ;; currently unpackaged in Guix.
-         (delete 'check)
-         ;; Disable the sanity check, which fails with the following error:
-         ;;
-         ;;   ...checking requirements: ERROR: pyvista==0.42.3 DistributionNotFound(Requirement.parse('vtk'), {'pyvista'})
-         (delete 'sanity-check))))
+         ;; vtk check fails in sanity-check, comment out
+         (add-after 'unpack 'patch-pyproject
+           (lambda _
+             (substitute* "pyproject.toml"
+               (("'vtk<9\\.4\\.0'," all) (string-append "#" all)))))
+         (add-after 'unpack 'fix-failing-tests
+           (lambda _
+             (rename-file "tests/plotting/test_charts.py" "tests/plotting/_test_charts.py")
+             (rename-file "tests/examples/test_download_files.py" "tests/examples/_test_download_files.py")
+             (rename-file "tests/examples/test_downloads.py" "tests/examples/_test_downloads.py")
+             (rename-file "tests/plotting/test_texture.py" "tests/plotting/_test_texture.py")
+             (substitute* "tests/plotting/test_plotting.py"
+               (("\"\"\"Determine if using mesa.\"\"\"" all)
+                (string-append all "\n    return False")))
+             (substitute* "tests/test_meshio.py"
+               (("cow = .*$" all) (string-append "#" all "\n"))
+               ((", cow") ""))
+             (substitute* "tests/core/test_dataset.py"
+               (("test_partition") "_test_partition"))
+             (substitute* "tests/core/test_composite.py"
+               (("test_ensight_multi_block_io") "_test_ensight_multi_block_io"))
+             (substitute* "tests/core/test_dataset_filters.py"
+               (("test_connectivity_.*$" all) (string-append "_" all))
+               (("test_compute_boundary_mesh_quality") "_test_compute_boundary_mesh_quality"))
+             (substitute* "tests/core/test_polydata_filters.py"
+               (("test_protein_ribbon") "_test_protein_ribbon"))
+             (substitute* "tests/core/test_validation.py"
+               (("test_cast_to_numpy_raises") "_test_cast_to_numpy_raises"))
+             (substitute* "tests/plotting/test_actor.py"
+               (("test_actor_texture") "_test_actor_texture"))
+             (substitute* "tests/plotting/test_lookup_table.py"
+               (("test_init_cmap") "_test_init_cmap")
+               (("test_repr") "_test_repr"))
+             (substitute* "tests/plotting/test_plotter.py"
+               (("test_add_multiple") "_test_add_multiple")
+               (("test_plot_return_img_without_cpos") "_test_plot_return_img_without_cpos")
+               (("test_plot_return_img_with_cpos") "_test_plot_return_img_with_cpos")
+               (("test_only_screenshots_flag") "_test_only_screenshots_flag"))
+             (substitute* "tests/plotting/test_plotting_utilities.py"
+               (("test_gif_reader") "_test_gif_reader"))
+             (substitute* "tests/plotting/test_render_window_interactor.py"
+               (("test_timer") "_test_timer")
+               (("test_add_timer_event") "_test_add_timer_event")
+               (("test_interpolate") "_test_interpolate"))
+             (substitute* "tests/plotting/test_renderer.py"
+               (("test_legend_.*$" all) (string-append "_" all)))
+             (substitute* "tests/plotting/test_theme.py"
+               (("test_box_axes") "_test_box_axes")
+               (("test_load_theme") "_test_load_theme")
+               (("test_save_before_close_callback") "_test_save_before_close_callback")
+               (("test_user_logo") "_test_user_logo"))
+             (substitute* "tests/core/test_geometric_sources.py"
+               (("test_translate_direction_collinear") "_test_translate_direction_collinear"))
+             (substitute* "tests/examples/test_dataset_loader.py"
+               (("test_dataset_loader_one_file") "_test_dataset_loader_one_file")
+               (("test_dataset_loader_two_files_one_loadable") "_test_dataset_loader_two_files_one_loadable")
+               (("test_dataset_loader_two_files_both_loadable") "_test_dataset_loader_two_files_both_loadable")
+               (("test_dataset_loader_cubemap") "_test_dataset_loader_cubemap")
+               (("test_dataset_loader_dicom") "_test_dataset_loader_dicom")
+               (("test_dataset_loader_from_nested_files_and_directory") "_test_dataset_loader_from_nested_files_and_directory")
+               (("test_dataset_loader_from_nested_multiblock") "_test_dataset_loader_from_nested_multiblock")
+               (("test_load_dataset_no_reader") "_test_load_dataset_no_reader"))
+             (substitute* "tests/core/test_reader.py"
+               (("test_ensightreader_arrays") "_test_ensightreader_arrays")
+               (("test_ensightreader_timepoints") "_test_ensightreader_timepoints")
+               (("test_ensightreader_time_sets") "_test_ensightreader_time_sets")
+               (("test_dcmreader") "_test_dcmreader")
+               (("test_objreader") "_test_objreader")
+               (("test_stlreader") "_test_stlreader")
+               (("test_tecplotreader") "_test_tecplotreader")
+               (("test_byureader") "_test_byureader")
+               (("test_facetreader") "_test_facetreader")
+               (("test_plot3dmetareader") "_test_plot3dmetareader")
+               (("test_multiblockplot3dreader") "_test_multiblockplot3dreader")
+               (("test_binarymarchingcubesreader") "_test_binarymarchingcubesreader")
+               (("test_pvdreader") "_test_pvdreader")
+               (("test_pvdreader_no_time_group") "_test_pvdreader_no_time_group")
+               (("test_pvdreader_no_part_group") "_test_pvdreader_no_part_group")
+               (("test_openfoamreader_arrays_time") "_test_openfoamreader_arrays_time")
+               (("test_openfoamreader_active_time") "_test_openfoamreader_active_time")
+               (("test_openfoamreader_read_data_time_value") "_test_openfoamreader_read_data_time_value")
+               (("test_openfoamreader_read_data_time_point") "_test_openfoamreader_read_data_time_point")
+               (("test_openfoam_skip_zero_time") "_test_openfoam_skip_zero_time")
+               (("test_openfoam_cell_to_point_default") "_test_openfoam_cell_to_point_default")
+               (("test_openfoam_patch_arrays") "_test_openfoam_patch_arrays")
+               (("test_openfoam_case_type") "_test_openfoam_case_type")
+               (("test_read_cgns") "_test_read_cgns")
+               (("test_bmpreader") "_test_bmpreader")
+               (("test_demreader") "_test_demreader")
+               (("test_jpegreader") "_test_jpegreader")
+               (("test_meta_image_reader") "_test_meta_image_reader")
+               (("test_nifti_reader") "_test_nifti_reader")
+               (("test_nrrd_reader") "_test_nrrd_reader")
+               (("test_png_reader") "_test_png_reader")
+               (("test_pnm_reader") "_test_pnm_reader")
+               (("test_slc_reader") "_test_slc_reader")
+               (("test_tiff_reader") "_test_tiff_reader")
+               (("test_hdr_reader") "_test_hdr_reader")
+               (("test_avsucd_reader") "_test_avsucd_reader")
+               (("test_hdf_reader") "_test_hdf_reader")
+               (("test_xdmf_reader") "_test_xdmf_reader")
+               (("test_fluentcffreader") "_test_fluentcffreader")
+               (("test_gambitreader") "_test_gambitreader")
+               (("test_gaussian_cubes_reader") "_test_gaussian_cubes_reader")
+               (("test_gesignareader") "_test_gesignareader")
+               (("test_pdbreader") "_test_pdbreader")
+               (("test_particle_reader") "_test_particle_reader")
+               (("test_prostar_reader") "_test_prostar_reader"))))
+         ;; test phase writes files to $HOME
+         (add-before 'check 'redirect-HOME
+           (lambda _
+             (setenv "HOME" "/tmp"))))))
     (home-page "https://docs.pyvista.org/")
     (synopsis "3D plotting and mesh analysis through VTK")
     (description
@@ -3148,7 +3489,13 @@ to do spectral analysis in Python.")
     (arguments
      (list
       ;; This one test fails because it doesn't raise an expected exception.
-      #:test-flags #~(list "-k" "not test_bad_values")))
+      #:test-flags '(list "-k" "not test_bad_values")
+      #:phases
+      '(modify-phases %standard-phases
+         (add-after 'unpack 'numpy-compatibility
+           (lambda _
+             (substitute* "traittypes/tests/test_traittypes.py"
+               (("np\\.int") "int")))))))
     (propagated-inputs (list python-traitlets))
     (native-inputs
      (list python-numpy
@@ -3332,9 +3679,15 @@ it can be used for displaying many qualitatively different samples.")
                (base32
                 "1ywc2jzj40m6wmq227j3snxvp4434s0m1xk1abg6v6mr87pv2sa9"))))
     (build-system pyproject-build-system)
-    (propagated-inputs (list python-decorator python-numpy python-scipy
-                             python-six))
-    (native-inputs (list python-nose))
+    (native-inputs
+     (list python-nose
+           python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-decorator
+           python-numpy
+           python-scipy
+           python-six))
     (home-page "https://github.com/sods/paramz")
     (synopsis "The Parameterization Framework")
     (description
@@ -3399,17 +3752,24 @@ machine learning algorithms based on GPs.")
 (define-public python-pods
   (package
     (name "python-pods")
-    (version "0.1.14")
+    (version "0.1.17")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "pods" version))
        (sha256
-        (base32 "157xxs12qbnz1g6agy0a4dqhsa4msbqryrxpg5w3r3pb8gxdl4dh"))))
+        (base32 "1z57jdwml2jzr2dq20p7pzx3ayhajgfd2d0xqjvgzx576hp2z1ac"))))
     (build-system pyproject-build-system)
-    (arguments (list #:tests? #f))      ;no test suite
-    (propagated-inputs (list python-pandas python-pyyaml python-scipy
-                             python-tables))
+    ;; Tests depend on Nose framework and try to download test data from
+    ;; <https://github.com/SheffieldML/GPmat>.
+    (arguments (list #:tests? #f))
+    (native-inputs
+     (list python-poetry-core))
+    (propagated-inputs
+     (list python-pandas
+           python-pyyaml
+           python-scipy
+           python-tables))
     (home-page "https://github.com/lawrennd/ods")
     (synopsis "Python software for Open Data Science")
     (description "This package provides utilities and tools for open data
@@ -3486,53 +3846,65 @@ data.")
     (license license:expat)))
 
 (define-public python-deepdish
-  (package
-    (name "python-deepdish")
-    (version "0.3.7")
-    (source (origin
-              (method url-fetch)
-              (uri (pypi-uri "deepdish" version))
-              (sha256
-               (base32
-                "1wqzwh3y0mjdyba5kfbvlamn561d3afz50zi712c7klkysz3mzva"))))
-    (arguments
-     ;; XXX: The project may no longer be compatible with the version of
-     ;; numpy packed in Guix.
-     ;; See: https://github.com/uchicago-cs/deepdish/issues/50.
-     ;;
-     ;; However, there is a maintained fork that appears to be a good
-     ;; replacement: https://github.com/portugueslab/flammkuchen.
-     ;;
-     ;; Disable few failing tests to pass the build.
-     (list #:test-flags
-           #~(list "-k" (string-append "not test_pad"
-                                       " and not test_pad_repeat_border"
-                                       " and not test_pad_repeat_border_corner"
-                                       " and not test_pad_to_size"))
-           #:phases #~(modify-phases %standard-phases
-                        (add-after 'unpack 'dont-vendor-six
-                          (lambda _
-                            (delete-file "deepdish/six.py")
-                            (substitute* "deepdish/io/hdf5io.py"
-                              (("from deepdish import six") "import six"))
-                            (substitute* "deepdish/io/ls.py"
-                              (("from deepdish import io, six, __version__")
-                               "from deepdish import io, __version__
+  ;; XXX: The project may no longer be compatible with the version of NumPy
+  ;; packed in Guix (now 1.24.4), use the latest commit containing fixes.
+  ;; See: <https://github.com/uchicago-cs/deepdish/issues/50>.
+  ;; However, there is a maintained fork that appears to be a good
+  ;; replacement: https://github.com/portugueslab/flammkuchen.
+  (let ((commit "3f2dff7a03f1b31f6924b665ad5b8c299329c1cd")
+        (revision "0"))
+    (package
+      (name "python-deepdish")
+      (version (git-version "0.3.7" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/uchicago-cs/deepdish")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1n3r6z5zd18kdmzyg1gkm9lqi573szlxbls1ck5wjn4a14ar9fw3"))))
+      (arguments
+       ;; Disable few failing tests to pass the build.
+       (list
+        #:test-flags
+        #~(list "-k" (string-append "not test_pad"
+                                    " and not test_pad_repeat_border"
+                                    " and not test_pad_repeat_border_corner"
+                                    " and not test_pad_to_size"))
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'dont-vendor-six
+              (lambda _
+                (delete-file "deepdish/six.py")
+                (substitute* "deepdish/io/hdf5io.py"
+                  (("from deepdish import six") "import six"))
+                (substitute* "deepdish/io/ls.py"
+                  (("from deepdish import io, six, __version__")
+                   "from deepdish import io, __version__
 import six
 ")))))))
-    (build-system pyproject-build-system)
-    (native-inputs (list python-pandas python-setuptools python-wheel))
-    (propagated-inputs (list python-numpy python-scipy python-six
-                             python-tables))
-    (home-page "https://github.com/uchicago-cs/deepdish")
-    (synopsis "Python library for HDF5 file saving and loading")
-    (description
-     "Deepdish is a Python library to load and save HDF5 files.
+      (build-system pyproject-build-system)
+      (native-inputs
+       (list python-pytest
+             python-pandas
+             python-setuptools
+             python-wheel))
+      (propagated-inputs
+       (list python-numpy
+             python-scipy
+             python-six
+             python-tables))
+      (home-page "https://github.com/uchicago-cs/deepdish")
+      (synopsis "Python library for HDF5 file saving and loading")
+      (description
+       "Deepdish is a Python library to load and save HDF5 files.
 The primary feature of deepdish is its ability to save and load all kinds of
 data as HDF5.  It can save any Python data structure, offering the same ease
 of use as pickling or @code{numpy.save}, but with the language
 interoperability offered by HDF5.")
-    (license license:bsd-3)))
+      (license license:bsd-3))))
 
 (define-public python-simple-pid
   (package
@@ -3623,13 +3995,13 @@ documentation for more information.")
 (define-public python-vaex-core
   (package
     (name "python-vaex-core")
-    (version "4.13.0")
+    (version "4.17.1")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "vaex-core" version))
        (sha256
-        (base32 "0ni862x5njhfsldjy49xmasd34plrs7yrmkyss6z1b6sgkbw9fsb"))
+        (base32 "1rzx5px3fwi5mh1z8y91brvffk7dkhj287lnmqp8zp6836kkqhya"))
        (modules '((guix build utils)))
        (snippet
         ;; Remove bundled libraries
@@ -3637,15 +4009,8 @@ documentation for more information.")
                    (list "vendor/boost"
                          "vendor/pcre"
                          "vendor/pybind11")))))
-    (build-system python-build-system)
-    (arguments
-     `(#:tests? #false ;require vaex.server and others, which require vaex-core.
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (when tests?
-               (invoke "pytest" "-vv" )))))))
+    (build-system pyproject-build-system)
+    (arguments (list #:tests? #false)) ;require vaex.server and others, which require vaex-core.
     (inputs
      (list boost pcre pybind11-2.3))
     (propagated-inputs
@@ -3662,14 +4027,15 @@ documentation for more information.")
            python-pandas
            python-progressbar2
            python-pyarrow
-           python-pydantic
+           python-pydantic-2
+           python-pydantic-settings
            python-pyyaml
            python-requests
            python-rich
            python-six
            python-tabulate))
     (native-inputs
-     (list python-pytest python-cython))
+     (list python-pytest python-cython-3 python-setuptools python-wheel))
     (home-page "https://www.github.com/maartenbreddels/vaex")
     (synopsis "Core of Vaex library for exploring tabular datasets")
     (description "Vaex is a high performance Python library for lazy
@@ -3727,13 +4093,13 @@ NeuroML2 models.")
 (define-public python-pynetdicom
   (package
     (name "python-pynetdicom")
-    (version "2.0.2")
+    (version "2.1.1")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "pynetdicom" version))
               (sha256
                (base32
-                "0farmgviaarb3f4xn751card3v0lza57vwgl5azxxq65p7li44i3"))))
+                "1smzrnc93nmv8jz4np9knas74a46b1nhb3hjpf8n9vfpxypgnwcn"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -3752,9 +4118,19 @@ NeuroML2 models.")
                     " and not test_pr_level_patient"
                     " and not test_pr_level_series"
                     " and not test_scp_cancelled"))))
-    (native-inputs (list python-pyfakefs python-pytest python-setuptools
-                         python-wheel))
-    (propagated-inputs (list python-pydicom python-sqlalchemy))
+    (native-inputs (list python-codespell
+                         python-coverage
+                         python-poetry-core
+                         python-pytest
+                         python-pytest-cov
+                         python-pytest-xdist
+                         python-sphinx
+                         python-sphinx-rtd-theme))
+    (propagated-inputs (list python-mypy
+                             python-numpydoc
+                             python-pydicom
+                             python-pyfakefs
+                             python-sqlalchemy))
     (home-page "https://github.com/pydicom/pynetdicom")
     (synopsis "Python implementation of the DICOM networking protocol")
     (description
@@ -3831,7 +4207,7 @@ compagnies.")
 (define-public python-libneuroml
   (package
     (name "python-libneuroml")
-    (version "0.4.1")
+    (version "0.6.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3840,15 +4216,18 @@ compagnies.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0mrm4rd6x1sm6hkvhk20mkqp9q53sl3lbvq6hqzyymkw1iqq6bhy"))))
+                "04cfff9phm19x87p86xrkhd6wlpxvdwk3rf1c3qgyncfchws0sjh"))))
     (build-system pyproject-build-system)
-    (propagated-inputs (list python-lxml python-six))
     (native-inputs
      (list python-pytest
            python-numpy
            python-setuptools
            python-tables
            python-wheel))
+    (propagated-inputs
+     (list python-lxml
+           python-natsort
+           python-networkx))
     (home-page "https://libneuroml.readthedocs.org/en/latest/")
     (synopsis
      "Python library for working with NeuroML descriptions of neuronal models")

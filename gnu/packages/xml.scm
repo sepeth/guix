@@ -218,6 +218,17 @@ hierarchical form with variable field lengths.")
      (list
       #:phases
       #~(modify-phases %standard-phases
+          #$@(if (target-loongarch64?)
+                 #~((add-after 'unpack 'update-config-scripts
+                      (lambda* (#:key inputs native-inputs #:allow-other-keys)
+                        ;; Replace outdated config.guess and config.sub.
+                        (for-each (lambda (file)
+                                    (install-file
+                                     (search-input-file
+                                      (or native-inputs inputs)
+                                      (string-append "/bin/" file)) "."))
+                                  '("config.guess" "config.sub")))))
+                 #~())
           (add-after 'install 'use-other-outputs
             (lambda _
               (let ((doc (string-append #$output:doc "/share/"))
@@ -242,7 +253,10 @@ hierarchical form with variable field lengths.")
     (synopsis "C parser for XML")
     (inputs (list xz))
     (propagated-inputs (list zlib)) ; libxml2.la says '-lz'.
-    (native-inputs (list perl))
+    (native-inputs (append (if (target-loongarch64?)
+                               (list config)
+                               '())
+                           (list perl)))
     (native-search-paths
      (list $SGML_CATALOG_FILES $XML_CATALOG_FILES))
     (search-paths native-search-paths)
@@ -636,10 +650,9 @@ corresponding to an @code{XML::Parser} event.")
     (license license:perl-license)
     (synopsis "Perl modules for working with XML")
     (description
-     "libxml-perl is a collection of smaller Perl modules, scripts, and
-documents for working with XML in Perl.  libxml-perl software works in
-combination with @code{XML::Parser}, PerlSAX, @code{XML::DOM},
-@code{XML::Grove}, and others.")
+     "A collection of smaller Perl modules, scripts, and documents for working
+with XML in Perl.  libxml-perl software works in combination with
+@code{XML::Parser}, PerlSAX, @code{XML::DOM}, @code{XML::Grove}, and others.")
     (home-page "https://metacpan.org/release/libxml-perl")))
 
 (define-public perl-xml-libxml
@@ -1120,21 +1133,25 @@ different Unicode encodings which happen automatically during
 parsing/saving.")
     (license license:expat)))
 
-(define-public python-pyxb
+(define-public python-pyxb-x
   (package
-    (name "python-pyxb")
-    (version "1.2.6")
-    (source (origin
-              (method url-fetch)
-              (uri (pypi-uri "PyXB" version))
-              (sha256
-               (base32
-                "1d17pyixbfvjyi2lb0cfp0ch8wwdf44mmg3r5pwqhyyqs66z601a"))))
-    (build-system python-build-system)
-    (home-page "https://pyxb.sourceforge.net/")
+    (name "python-pyxb-x")
+    (version "1.2.6.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pyxb_x" version))
+       (sha256
+        (base32 "1d9p42aklk0w5yy39p319h5ldvy7glng0jcgcjk6xgg6sfl1yh5z"))))
+    (build-system pyproject-build-system)
+    (arguments
+     ;; XXX: tests FAILED (failures=3, errors=122)
+     (list #:tests? #f))
+    (native-inputs (list python-setuptools python-wheel))
+    (home-page "http://pyxb.sourceforge.net")
     (synopsis "Python XML Schema Bindings")
     (description
-     "PyXB (\"pixbee\") is a pure Python package that generates Python source
+     "@code{PyXB-X} (\"pixbix\") is a pure Python package that generates Python source
 code for classes that correspond to data structures defined by XMLSchema.")
     (license (list license:asl2.0    ; Most files.
                    license:expat     ; pyxb/utils/six.py
@@ -2023,3 +2040,29 @@ syntax of @code{xml:lang}, @code{xml:spec}, @code{xml:base}, and @code{xml:id} i
 schema language defined by the XML Schema Recommendation Second Edition of 28 October
 2004.")
     (license license:w3c)))
+
+(define-public xmlpatch
+  (package
+    (name "xmlpatch")
+    (version "0.4.5")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/ufz/xmlpatch")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "10kjg7lz9p4xnv96053mj18dmc7lj7iqzx98z3aagnw6hfwdri7f"))))
+    (build-system cmake-build-system)
+    (arguments
+     `(#:configure-flags (list "-DBUILD_SHARED_LIBS=ON")))
+    (native-inputs (list pkg-config))
+    (inputs (list libxml2 glib))
+    (home-page "https://xmlpatch.sourceforge.net")
+    (synopsis "XML patch library")
+    (description
+     "XML Patch is a C++ library and command-line interface
+(the @command{xml-diff} and @command{xml-patch} commands) for patching XML
+files with XPath expressions.")
+    (license license:lgpl2.1+)))

@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2010-2023 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2010-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2015 Alex Kost <alezost@gmail.com>
 ;;; Copyright © 2019, 2022-2024 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2021 Sarah Morgensen <iskarian@mgsn.dev>
@@ -44,7 +44,6 @@
   #:use-module (guix monads)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
@@ -77,6 +76,7 @@
             url-predicate
             url-prefix-predicate
             coalesce-sources
+            preferred-upstream-source
 
             upstream-updater
             upstream-updater?
@@ -263,16 +263,17 @@ them matches."
 (define* (package-latest-release package
                                  #:optional
                                  (updaters (force %updaters))
-                                 #:key (version #f))
-  "Return an upstream source to update PACKAGE, a <package> object, or #f if
-none of UPDATERS matches PACKAGE.  When several updaters match PACKAGE, try
-them until one of them returns an upstream source.  It is the caller's
-responsibility to ensure that the returned source is newer than the current
-one."
+                                 #:key version partial-version?)
+  "Return an <upstream-source> object to update PACKAGE, a <package> object,
+or #f if none of UPDATERS matches PACKAGE.  When several updaters match
+PACKAGE, try them until one of them returns an upstream source.  It is the
+caller's responsibility to ensure that the returned source is newer than the
+current one."
   (any (match-lambda
          (($ <upstream-updater> name description pred import)
           (and (pred package)
-               (import package #:version version))))
+               (import package #:version version
+                       #:partial-version? partial-version?))))
        updaters))
 
 (define* (package-latest-release* package
@@ -314,14 +315,14 @@ than that of PACKAGE."
                                         #$output)))))
 
 (define* (download-tarball store url signature-url
-                           #:key (key-download 'interactive) key-server)
+                           #:key (key-download 'auto) key-server)
   "Download the tarball at URL to the store; check its OpenPGP signature at
 SIGNATURE-URL, unless SIGNATURE-URL is false.  On success, return the tarball
 file name; return #f on failure (network failure or authentication failure).
 
 KEY-DOWNLOAD specifies a download policy for missing OpenPGP keys; allowed
-values: 'interactive' (default), 'always', and 'never'; KEY-SERVER specifies
-the OpenPGP key server where the key should be looked up."
+values: 'auto' (default), 'always', 'interactive' and 'never'; KEY-SERVER
+specifies the OpenPGP key server where the key should be looked up."
   (let ((tarball (download-to-store store url)))
     (if (not signature-url)
         tarball
@@ -339,12 +340,11 @@ the OpenPGP key server where the key should be looked up."
                              (mbegin %store-monad
                                (built-derivations (list drv))
                                (return (derivation->output-path drv))))))))
-          (let-values (((status data)
-                        (if sig
-                            (gnupg-verify* sig data
-                                           #:server key-server
-                                           #:key-download key-download)
-                            (values 'missing-signature data))))
+          (let ((status data (if sig
+                                 (gnupg-verify* sig data
+                                                #:server key-server
+                                                #:key-download key-download)
+                                 (values 'missing-signature data))))
             (match status
               ('valid-signature
                tarball)
@@ -428,9 +428,38 @@ string such as \"xz\".  Otherwise return #f."
      (let ((extension (file-extension file)))
        ;; FILE might be "example-1.2-checkout", in which case we want to
        ;; ignore the extension.
-       (and (or (string-contains extension "z")
+       (and (string? extension)
+            (or (string-contains extension "z")
                 (string-contains extension "tar"))
             extension)))))
+
+(define (preferred-upstream-source-url source package)
+  "Return two values: a source URL that matches the archive type of
+PACKAGE (gz, xz, bz2, etc.) and the corresponding signature URL or #f if there
+is no signature.  Return #f and #f when this is not applicable."
+  (if (pair? (upstream-source-urls source))
+      (let ((archive-type (package-archive-type package)))
+        (find2 (lambda (url sig-url)
+                 ;; Some URIs lack a file extension, like
+                 ;; 'https://crates.io/???/0.1/download'.  In that case, pick the
+                 ;; first URL.
+                 (or (not archive-type)
+                     (string-suffix? archive-type url)))
+               (upstream-source-urls source)
+               (or (upstream-source-signature-urls source)
+                   (circular-list #f))))
+      (values #f #f)))                ;'source-urls' must be a <git-reference>
+
+(define (preferred-upstream-source source package)
+  "Return a variant of SOURCE that uses the same archive type as PACKAGE's
+source (gz, xz, zst, etc.).  Return SOURCE if this is not applicable."
+  (let ((url signature-url (preferred-upstream-source-url source package)))
+    (if url
+        (upstream-source
+         (inherit source)
+         (urls (list url))
+         (signature-urls (and=> signature-url list)))
+        source)))
 
 (define* (package-update/url-fetch store package source
                                    #:key key-download key-server)
@@ -438,18 +467,8 @@ string such as \"xz\".  Otherwise return #f."
 SOURCE, an <upstream-source>."
   (match source
     (($ <upstream-source> _ version urls signature-urls)
-     (let*-values (((archive-type)
-                    (package-archive-type package))
-                   ((url signature-url)
-                    ;; Try to find a URL that matches ARCHIVE-TYPE.
-                    (find2 (lambda (url sig-url)
-                             ;; Some URIs lack a file extension, like
-                             ;; 'https://crates.io/???/0.1/download'.  In that
-                             ;; case, pick the first URL.
-                             (or (not archive-type)
-                                 (string-suffix? archive-type url)))
-                           urls
-                           (or signature-urls (circular-list #f)))))
+     (let ((url signature-url
+                (preferred-upstream-source-url source package)))
        ;; If none of URLS matches ARCHIVE-TYPE, then URL is #f; in that case,
        ;; pick up the first element of URLS.
        (let ((tarball (download-tarball store
@@ -493,17 +512,22 @@ SOURCE, an <upstream-source>."
 
 (define* (package-update store package
                          #:optional (updaters (force %updaters))
-                         #:key (version #f)
-                         (key-download 'interactive) key-server)
+                         #:key version partial-version?
+                         (key-download 'auto) key-server)
   "Return the new version, the file name of the new version tarball, and input
 changes for PACKAGE; return #f (three values) when PACKAGE is up-to-date;
 raise an error when the updater could not determine available releases.
 KEY-DOWNLOAD specifies a download policy for missing OpenPGP keys; allowed
-values: 'always', 'never', and 'interactive' (default).
+values: 'always', 'auto' (default), 'never', and 'interactive'.
 
 When VERSION is specified, update PACKAGE to that version, even if that is a
-downgrade."
-  (match (package-latest-release package updaters #:version version)
+downgrade.  When PARTIAL-VERSION? is true, treat VERSION as having been only
+partially specified, in which case the package will be updated to the newest
+compatible version if there are no exact match for VERSION.  For example,
+providing \"46\" as the version may update the package to version \"46.6.4\"."
+  (match (package-latest-release package updaters
+                                 #:version version
+                                 #:partial-version? partial-version?)
     ((? upstream-source? source)
      (if (or (version>? (upstream-source-version source)
                         (package-version package))

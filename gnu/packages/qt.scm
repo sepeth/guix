@@ -33,6 +33,8 @@
 ;;; Copyright © 2023 Simon South <simon@simonsouth.net>
 ;;; Copyright © 2024 Foundation Devices, Inc. <hello@foundation.xyz>
 ;;; Copyright © 2024 Josep Bigorra <jjbigorra@gmail.com>
+;;; Copyright © 2025 John Kehayias <john.kehayias@protonmail.com>
+;;; Copyright © 2024 Sughosha <sughosha@disroot.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -346,7 +348,7 @@ Qt.  Some of its features include:
 @item Double-click on title bar to maximize
 @item Double-click on separator to distribute equally
 @item Show close button on tabs
-@item Allow to make a dock widget non-closable and/or non-dockable
+@item Allows making a dock widget non-closable and/or non-dockable
 @item Optional minimize and maximize button on the title bar
 @item FloatingWindows can be utility windows or full native ones.
 @end itemize")
@@ -4248,8 +4250,9 @@ contain over 620 classes.")
         (base32 "1m39znwza9yypyd93i5mxd9pbf6zn9qdajczpm953awwdlywyx1g"))))
     (synopsis "Sip module support for PyQt6")
     (description
-     "SIP is used to write self contained extension modules, i.e. without a library
-to be wrapped. This SIP extension module provides support for the PyQt6 package.")))
+     "SIP is used to write self contained extension modules, i.e. without a
+library to be wrapped.  This SIP extension module provides support for the
+PyQt6 package.")))
 
 (define-public python-pyqtwebengine
   (package
@@ -4865,6 +4868,187 @@ a binding language:
 @end itemize\n")
     (license license:lgpl3)))                    ;version 3 only (+ exception)
 
+(define-public qcodeeditor
+  (let ((commit "dc644d41b68978ab9a5591ba891a223221570e74") ;no tags
+        (revision "0"))
+    (package
+      (name "qcodeeditor")
+      (version (git-version "0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/Megaxela/QCodeEditor")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1bpvfwbgp275w79dzrd7d9k3md1ch7n88rh59mxdfj8s911n42j8"))
+                (patches
+                 (search-patches "qcodeeditor-qt6.patch"))))
+      (build-system qt-build-system)
+      (arguments
+       (list #:qtbase qtbase
+             #:tests? #f ;no tests
+             #:configure-flags
+             #~(list "-DBUILD_EXAMPLE=ON"
+                     (string-append "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath="
+                                    #$output "/lib"))
+             #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'unpack 'build-shared-library
+                   (lambda _
+                     (substitute* "CMakeLists.txt"
+                       (("STATIC") "SHARED"))))
+                 ;; Install rule does not exist.
+                 (replace 'install
+                   (lambda _
+                     (install-file "example/QCodeEditorExample"
+                                   (string-append #$output "/bin"))
+                     (install-file "libQCodeEditor.so"
+                                   (string-append #$output "/lib"))
+                     (for-each
+                       (lambda (file)
+                         (install-file file
+                                       (string-append #$output
+                                                      "/include/QCodeEditor")))
+                       (find-files "../source/include/internal" "\\.hpp")))))))
+      (inputs
+       (list qtwayland))
+      (home-page "https://github.com/Megaxela/QCodeEditor")
+      (synopsis "Qt code editor widget")
+      (description
+       "QCodeEditor is a Qt widget for editing/viewing code.")
+      (license license:expat))))
+
+(define-public qt-advanced-docking-system
+  (package
+    (name "qt-advanced-docking-system")
+    (version "4.4.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri
+        (git-reference
+          (url "https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System")
+          (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0qbvlnfpdlz22y1vrdd1gs2mfh03k95ccahb7pl6i07pgn4dgcvh"))))
+    (build-system qt-build-system)
+    (arguments
+     (list #:qtbase qtbase
+           #:tests? #f ;no tests
+           #:configure-flags
+           #~(list ;; Examples require qtdeclarative.
+                   "-DBUILD_EXAMPLES=OFF"
+                   (string-append "-DADS_VERSION=" #$version))))
+    (home-page "https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System")
+    (synopsis "Advanced docking system for Qt")
+    (description
+     "Qt Advanced Docking System lets you create customizable layouts using a
+window docking system.")
+    (license license:lgpl2.1+)))
+
+(define-public qtpromise
+  (package
+    (name "qtpromise")
+    (version "0.7.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/simonbrunel/qtpromise")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0nsh6v5k4kdrrhcd6adz947n0dka4rrbx8f8rvm1175545nbi67s"))))
+    (build-system qt-build-system)
+    (arguments
+     (list #:test-target "tests"
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'install 'fix-include-path
+                 (lambda _
+                   (chdir "../source")
+                   (substitute* "../source/include/QtPromise"
+                     (("../src/") ""))))
+               (replace 'install
+                 (lambda _
+                   (let ((include (string-append #$output "/include")))
+                     (with-directory-excursion "../source"
+                       (install-file "include/QtPromise"
+                                     (string-append include))
+                       (copy-recursively "src/qtpromise"
+                                         (string-append include
+                                                        "/qtpromise")))))))))
+    (home-page "https://qtpromise.netlify.app/")
+    (synopsis "Promises/A+ implementation for Qt/C++")
+    (description
+     "This package provides a Qt/C++ implementation of
+@url{Promises/A+,https://promisesaplus.com/} standard for the ``promises''
+programming paradigm.")
+    (license license:expat)))
+
+(define-public qtwidgetanimationframework
+  (let ((commit "b07ab59cee7a21eb29d29cb67c160681f13ac5ae") ;no tags
+          (revision "0"))
+    (package
+      (name "qtwidgetanimationframework")
+      (version (git-version "0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri
+           (git-reference
+             (url "https://github.com/dimkanovikov/WidgetAnimationFramework")
+             (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1smbdrzk05vvbf6lpjdq82k4y2kc4yv1gk5388qbslbzlb6ihls6"))))
+      (build-system qt-build-system)
+      (arguments
+       (list #:qtbase qtbase
+             #:tests? #f ;no tests
+             #:phases
+             #~(modify-phases %standard-phases
+                 ;; This project does not have any build rule but its demo has
+                 ;; one.
+                 (add-after 'unpack 'pre-configure
+                   (lambda _
+                     (copy-file "demo/waf-demo.pro" "src/waf.pro")
+                     (substitute* "src/waf.pro"
+                       (("main.cpp ") "")
+                       (("app") "lib")
+                       (("waf-demo") "waf"))
+                     (chdir "src")))
+                 ;; No configure script exists.
+                 (replace 'configure
+                   (lambda _
+                     (invoke "qmake")))
+                 ;; No install rule exists.
+                 (replace 'install
+                   (lambda _
+                     ;; Install library files.
+                     (for-each
+                       (lambda (file)
+                         (install-file file
+                                       (string-append #$output "/lib/"
+                                                      (dirname file))))
+                       (find-files "." "\\.so"))
+                     ;; Install header files.
+                     (for-each
+                       (lambda (file)
+                         (install-file file
+                                       (string-append #$output "/include/WAF/"
+                                                      (dirname file))))
+                       (find-files "." "\\.h$")))))))
+      (home-page "https://github.com/dimkanovikov/WidgetAnimationFramework")
+      (synopsis "Extension for animating Qt widgets")
+      (description
+       "@acronym{WAF,Widget Animation Framework} is an extension for animating
+Qt widgets.")
+      (license license:lgpl3+))))
+
 (define-public qtcolorwidgets
   (package
     (name "qtcolorwidgets")
@@ -5395,6 +5579,42 @@ configurable also via HTTP.")
 also compatible with SGI and TGS Open Inventor, and the API is based on the API
 of the InventorXt GUI component toolkit.")
   (license license:bsd-3)))
+
+(define-public hyprland-qtutils
+  (package
+    (name "hyprland-qtutils")
+    (version "0.1.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/hyprwm/hyprland-qtutils")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "010p7b2asjb09vpr1jwjmvqzyd6dv2a9acl5jz0xdikbp1mwfvzn"))))
+    (build-system qt-build-system)
+    (arguments
+     (list #:tests? #f ;There are no tests.
+           #:qtbase qtbase))
+    (native-inputs (list gcc-14 pkg-config))
+    (inputs
+     (list bash-minimal
+           hyprutils
+           kirigami
+           libxkbcommon
+           qqc2-desktop-style
+           qtbase
+           qtdeclarative
+           qtwayland
+           wayland))
+    (home-page "https://github.com/hyprwm/hyprland-qtutils")
+    (synopsis "Hyprland QT/QML utility apps")
+    (description
+     "This package provides some QT/QML utilities that might be used by
+various hypr* apps.")
+    (license license:bsd-3)))
+
 
 (define-public libdbusmenu-qt
   (package

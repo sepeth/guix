@@ -25,6 +25,7 @@
 ;;; Copyright © 2023 Mădălin Ionel Patrașcu <madalinionel.patrascu@mdc-berlin.de>
 ;;; Copyright © 2024 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2025 aurtzy <aurtzy@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -178,8 +179,8 @@
   ;; Note: the 'update-guix-package.scm' script expects this definition to
   ;; start precisely like this.
   (let ((version "1.4.0")
-        (commit "790c9ffe596e3deabf175e030adee5fb706aa981")
-        (revision 30))
+        (commit "5058b40aba825ab6e7b9e518dd1147d1e35fd7de")
+        (revision 34))
     (package
       (name "guix")
 
@@ -195,7 +196,7 @@
                       (commit commit)))
                 (sha256
                  (base32
-                  "1lmmaiyriwx62w003bn8w415knhyg4gh8vdh4jr6ga78m4qclhq5"))
+                  "04vk4lslcd6h22yj5pxvb1pdyyxd8421gjfyvyb1bl3xn7c77246"))
                 (file-name (string-append "guix-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
@@ -997,19 +998,19 @@ transactions from C or Python.")
     (license license:gpl2+)))
 
 (define-public bffe
-  (let ((commit "06bed4724d131c085b23c7a806170bf16d58c25f")
-        (revision "8"))
+  (let ((commit "7bdb7b99518c23d388db5a59911b290003b98823")
+        (revision "12"))
     (package
       (name "bffe")
       (version (git-version "0" revision commit))
       (source (origin
                 (method git-fetch)
                 (uri (git-reference
-                      (url "https://git.cbaines.net/guix/bffe")
+                      (url "https://git.cbaines.net/git/guix/bffe")
                       (commit commit)))
                 (sha256
                  (base32
-                  "0gwvcgsxmwnm90v3phq17m6x4iikz98cp6s82s3d6iw346l257w9"))
+                  "00zmjys8fx1kgngzp92l61q0d9hayfgycp0g73j3myii2y7bkdkd"))
                 (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (native-inputs
@@ -1024,7 +1025,9 @@ transactions from C or Python.")
              guix
              guix-data-service
              guix-build-coordinator
-             guile-fibers
+             guile-fibers-next
+             guile-knots
+             guile-pfds
              guile-prometheus
              guile-lib))
       (propagated-inputs
@@ -1033,7 +1036,9 @@ transactions from C or Python.")
              guix
              guix-data-service
              guix-build-coordinator
-             guile-fibers
+             guile-fibers-next
+             guile-knots
+             guile-pfds
              guile-prometheus
              guile-lib))
       (home-page "https://git.cbaines.net/guix/bffe")
@@ -1060,7 +1065,13 @@ the @code{(bffe)} module as the entry point.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "1vyk0g0gci4z9psisb8h50zi3j1nwfdg1jw3j76cxv0brln0v3fw"))))
+         "1vyk0g0gci4z9psisb8h50zi3j1nwfdg1jw3j76cxv0brln0v3fw"))
+       ;; `iter_fields' is no longer available in python-urllib (propagated from
+       ;; python-requests).
+       (modules '((guix build utils)))
+       (snippet
+        #~(substitute* "binstar_client/requests_ext.py"
+            (("iter_fields") "iter_field_objects")))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -1206,7 +1217,10 @@ extracting, creating, and converting between formats.")
                 ;; Not sure if this is really wrong.  This fails because
                 ;; /gnu/store/...conda-22.9.0/bin/python
                 ;; is not /gnu/store/...python-wrapper-3.9.9/bin/python
-                "test_make_entry_point")
+                "test_make_entry_point"
+                "test_get_python_info" "test__get_python_info"
+                "test_install_conda_csh"
+                "test_install_conda_fish")
                " and not ")))
       #:phases
       #~(modify-phases %standard-phases
@@ -1284,6 +1298,7 @@ extracting, creating, and converting between formats.")
     (native-inputs
      (list python-coverage
            python-flaky
+           python-pytest-cov
            python-pytest-timeout
            python-pytest-xprocess
            python-wheel))
@@ -1541,8 +1556,8 @@ environments.")
                   "0k9zkdyyzir3fvlbcfcqy17k28b51i20rpbjwlx2i1mwd2pw9cxc")))))))
 
 (define-public guix-build-coordinator
-  (let ((commit "037eac0357baa448afe6aeeaf82d8f2e2665bbcb")
-        (revision "111"))
+  (let ((commit "bdf7c2f5062a13052f425b64ed0e38d7f080c29d")
+        (revision "123"))
     (package
       (name "guix-build-coordinator")
       (version (git-version "0" revision commit))
@@ -1553,7 +1568,7 @@ environments.")
                       (commit commit)))
                 (sha256
                  (base32
-                  "0gvpbjjzig610i2rsdb0d6vjhaq8z507m481462y6vpxa55ri4yb"))
+                  "1vifn2knhkhrhh7hjfr70nfg3r54w061v6pbyldq236jmfrkpvj1"))
                 (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
@@ -1592,7 +1607,8 @@ environments.")
                                           "guile-gnutls"
                                           #$@(if (target-hurd?)
                                                  '()
-                                                 '("guile-fibers")))))
+                                                 '("guile-fibers-next"
+                                                   "guile-knots")))))
                        (wrap-program file
                          `("PATH" ":" prefix
                            (,bin
@@ -1635,7 +1651,8 @@ environments.")
              guile-gcrypt
              guix
              guile-prometheus
-             guile-fibers
+             guile-fibers-next
+             guile-knots
              guile-lib
              guile-next))
       (inputs
@@ -1654,7 +1671,8 @@ environments.")
              guile-sqlite3
              guix
              guile-gnutls
-             guile-fibers))
+             guile-fibers-next
+             guile-knots))
       (home-page "https://git.cbaines.net/guix/build-coordinator/")
       (synopsis "Tool to help build derivations")
       (description
@@ -1702,6 +1720,8 @@ outputs of those builds.")
            guile-gnutls
            bash-minimal
            (libc-utf8-locales-for-target)))
+    (propagated-inputs
+     '())
     (description
      "The Guix Build Coordinator helps with performing lots of builds across
 potentially many machines, and with doing something with the results and
@@ -1790,8 +1810,8 @@ in an isolated environment, in separate namespaces.")
     (license license:gpl3+)))
 
 (define-public nar-herder
-  (let ((commit "59d2b8aa23d0119a3c95e9d3b90fd6b36d1bde6a")
-        (revision "38"))
+  (let ((commit "70df5af752ba9ed9dc414d011a1358babc5e40b1")
+        (revision "39"))
     (package
       (name "nar-herder")
       (version (git-version "0" revision commit))
@@ -1802,7 +1822,7 @@ in an isolated environment, in separate namespaces.")
                       (commit commit)))
                 (sha256
                  (base32
-                  "0rqa9ypdzp3j3ss1c5r0wyqhx61rmsb0s4hlqwnwga5iyimp91sy"))
+                  "1b2slw0963avh31xdb8g1zm6mcdvaya4js1ak53wvbzjwrrr2pv6"))
                 (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
@@ -1839,7 +1859,8 @@ in an isolated environment, in separate namespaces.")
                                           "guile-prometheus"
                                           "guile-sqlite3"
                                           "guile-gnutls"
-                                          "guile-fibers")))
+                                          "guile-fibers-next"
+                                          "guile-knots")))
                        (wrap-program file
                          `("GUILE_LOAD_PATH" ":" prefix
                            (,scm ,(string-join
@@ -1871,7 +1892,8 @@ in an isolated environment, in separate namespaces.")
              guile-json-4
              guile-gcrypt
              guix
-             guile-fibers
+             guile-fibers-next
+             guile-knots
              guile-prometheus
              guile-lib
              guile-lzlib
@@ -1884,7 +1906,8 @@ in an isolated environment, in separate namespaces.")
        (list guile-json-4
              guile-gcrypt
              guix
-             guile-fibers
+             guile-fibers-next
+             guile-knots
              guile-prometheus
              guile-lib
              guile-lzlib
@@ -2019,39 +2042,42 @@ the boot loader configuration.")
 (define-public flatpak
   (package
     (name "flatpak")
-    (version "1.14.10")
+    (version "1.16.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://github.com/flatpak/flatpak/releases/download/"
                            version "/flatpak-" version ".tar.xz"))
        (sha256
-        (base32 "1k91v0csghiis8gjpcvpx534qbyaj81dfisabbc0ld97h68cggbb"))
+        (base32 "0ajbz8ms4h5nyjr59hv9z8vaimj4f3p51v8idmy14qnbmmjwa2nb"))
        (patches
         (search-patches "flatpak-fix-fonts-icons.patch"
                         "flatpak-fix-path.patch"
+                        "flatpak-fix-icon-validation.patch"
                         "flatpak-unset-gdk-pixbuf-for-sandbox.patch"))))
-
-    ;; Wrap 'flatpak' so that GIO_EXTRA_MODULES is set, thereby allowing GIO to
-    ;; find the TLS backend in glib-networking.
-    (build-system glib-or-gtk-build-system)
-
+    (build-system meson-build-system)
     (arguments
      (list
       #:configure-flags
       #~(list
-         "--with-curl"
-         "--enable-documentation=no" ;; FIXME
-         "--enable-system-helper=no"
-         "--localstatedir=/var"
-         (string-append "--with-system-bubblewrap="
+         "-Dsystem_helper=disabled"
+         "-Dlocalstatedir=/var"
+         (string-append "-Dsystem_bubblewrap="
                         (assoc-ref %build-inputs "bubblewrap")
                         "/bin/bwrap")
-         (string-append "--with-system-dbus-proxy="
+         (string-append "-Dsystem_dbus_proxy="
                         (assoc-ref %build-inputs "xdg-dbus-proxy")
                         "/bin/xdg-dbus-proxy"))
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'unpack 'disable-failing-tests
+            (lambda _
+              (substitute* "tests/test-matrix/meson.build"
+                ;; The following tests fail with error message related to fusermount3
+                ;; failing an unmount operation ("No such file or directory").
+                (("^.*test-http-utils.*$") "")
+                (("^.*test-summaries@system.wrap.*$") "")
+                (("^.*test-prune.*$") ""))))
           (add-after 'unpack 'fix-tests
             (lambda* (#:key inputs #:allow-other-keys)
               (copy-recursively
@@ -2076,20 +2102,30 @@ cp -r /tmp/locale/*/en_US.*")))
                   (("if \\(g_find_program_in_path \\(\"p11-kit\"\\)\\)")
                    (string-append "if (g_find_program_in_path (\""
                                   p11-path "\"))"))))))
-          ;; Many tests fail for unknown reasons, so we just run a few basic
-          ;; tests.
-          (replace 'check
-            (lambda* (#:key tests? #:allow-other-keys)
-              (when tests?
-                (setenv "HOME" "/tmp")
-                (invoke "make" "check"
-                        "TESTS=tests/test-basic.sh tests/test-config.sh
-                        testcommon")))))))
+          (add-after 'unpack 'fix-icon-validation
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out (assoc-ref outputs "out"))
+                     (store (dirname out)))
+                (substitute* "icon-validator/validate-icon.c"
+                  (("@storeDir@") store)))))
+          (add-before 'check 'pre-check
+            (lambda _
+              ;; Set $HOME to writable location for testcommon tests.
+              (setenv "HOME" "/tmp")))
+          (add-after 'install 'wrap-flatpak
+            (lambda* (#:key inputs #:allow-other-keys)
+              (let ((flatpak (string-append #$output "/bin/flatpak"))
+                    (glib-networking (assoc-ref inputs "glib-networking")))
+                (wrap-program flatpak
+                  ;; Allow GIO to find TLS backend.
+                  `("GIO_EXTRA_MODULES" prefix
+                    (,(string-append glib-networking "/lib/gio/modules"))))))))))
     (native-inputs
      (list bison
            dbus ; for dbus-daemon
            gettext-minimal
            `(,glib "bin") ; for glib-mkenums + gdbus-codegen
+           gtk-doc
            (libc-utf8-locales-for-target)
            gobject-introspection
            libcap
@@ -2101,26 +2137,32 @@ cp -r /tmp/locale/*/en_US.*")))
     (inputs
      (list appstream
            appstream-glib
+           bash-minimal
            bubblewrap
            curl
-           dconf
            fuse
            gdk-pixbuf
-           gpgme
-           json-glib
-           libarchive
            libcap
            libostree
-           libseccomp
            libsoup-minimal-2
-           libxau
            libxml2
            p11-kit
            polkit
            util-linux
            xdg-dbus-proxy
            zstd))
-    (propagated-inputs (list glib-networking gnupg gsettings-desktop-schemas))
+    (propagated-inputs (list glib-networking
+                             gnupg
+                             gsettings-desktop-schemas
+                             ;; The following are listed in Requires.private of
+                             ;; `flatpak.pc'.
+                             curl
+                             dconf
+                             gpgme
+                             json-glib
+                             libarchive
+                             libseccomp
+                             libxau))
     (home-page "https://flatpak.org")
     (synopsis "System for building, distributing, and running sandboxed desktop
 applications")
@@ -2360,4 +2402,43 @@ from R7RS, which allows most R7RS code to run on R6RS implementations.")
 modify their environment during the session with modulefiles.  Modules are
 used on high-performance clusters to dynamically add and remove paths
 to specific versions of applications.")
+    (license license:gpl2+)))
+
+(define-public gnome-packagekit
+  (package
+    (name "gnome-packagekit")
+    (version "43.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://gitlab.gnome.org/GNOME/gnome-packagekit.git")
+                     (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1fnspk8wfh3v663qpqq3m1fgp21nskgisidihx41wgcsbzbvp1a5"))))
+    (build-system meson-build-system)
+    (arguments
+     (list #:configure-flags
+           #~(list "-Dsystemd=false")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'start-xorg-server
+                 (lambda _
+                    (system "Xvfb :1 &")
+                    (setenv "DISPLAY" ":1")))
+               (add-before 'install 'setenv
+                 (lambda _
+                   ;; Prevent gtk-update-icon-cache, glib-compile-schemas,
+                   ;; update-desktop-database
+                   ;; (since we are doing it ourselves with a profile hook).
+                   (setenv "DESTDIR" "/"))))))
+    (native-inputs
+     (list gnu-gettext pkg-config (list glib "bin") xorg-server-for-tests))
+    (inputs
+     (list glib gtk+ packagekit polkit))
+    (synopsis "GNOME frontend for PackageKit")
+    (description "This package provides a PackageKit frontend for GNOME.
+PackageKit is a common unified interface for package managers.")
+    (home-page "https://gitlab.gnome.org/GNOME/gnome-packagekit")
     (license license:gpl2+)))

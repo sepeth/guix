@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2023-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -74,9 +74,8 @@
       `(,@%glib-or-gtk-build-system-modules
         (guix build python-build-system))
       #:modules
-      '((guix build glib-or-gtk-build-system)
-        ((guix build python-build-system) #:prefix python:)
-        (guix build utils))
+      `(((guix build python-build-system) #:prefix python:)
+        ,@%glib-or-gtk-build-system-default-modules)
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'patch-build-system
@@ -252,9 +251,8 @@ activities and other Sugar components.")
       `(,@%glib-or-gtk-build-system-modules
         (guix build python-build-system))
       #:modules
-      '((guix build glib-or-gtk-build-system)
-        ((guix build python-build-system) #:prefix python:)
-        (guix build utils))
+      `(((guix build python-build-system) #:prefix python:)
+        ,@%glib-or-gtk-build-system-default-modules)
       #:phases
       '(modify-phases %standard-phases
          (add-after 'unpack 'patch-build-system
@@ -322,9 +320,8 @@ and metadata, and the journal with querying and full text search.")
       `(,@%glib-or-gtk-build-system-modules
         (guix build python-build-system))
       #:modules
-      '((guix build glib-or-gtk-build-system)
-        ((guix build python-build-system) #:prefix python:)
-        (guix build utils))
+      `(((guix build python-build-system) #:prefix python:)
+        ,@%glib-or-gtk-build-system-default-modules)
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'patch-build-system
@@ -726,7 +723,7 @@ import logging
        (list gettext-minimal))
       (home-page "https://github.com/sugarlabs/sugar-commander")
       (synopsis "Manage your Sugar journal")
-      (description "Sugar-commander lets you import items from removeable
+      (description "Sugar-commander lets you import items from removable
 devices like USB drives and SD cards using a familiar hierarchical view of
 files on these devices, as opposed to the flattened Journal view that the
 Sugar Journal gives to these devices.  It also enables you to see how much
@@ -755,6 +752,11 @@ things to enhance your use of the Journal.")
         #:test-target "check"
         #:phases
         #~(modify-phases %standard-phases
+            (add-after 'unpack 'use-newer-webkit
+              (lambda _
+                (substitute* "helpactivity.py"
+                  (("'WebKit2', '4.0'")
+                   "'WebKit2', '4.1'"))))
             (add-after 'unpack 'patch-launcher
               (lambda* (#:key inputs #:allow-other-keys)
                 (substitute* "activity/activity.info"
@@ -770,6 +772,8 @@ things to enhance your use of the Journal.")
       (native-inputs
        (list sugar-toolkit-gtk3
              python-sphinx))
+      (propagated-inputs
+       (list webkitgtk-for-gtk3))
       (home-page "https://github.com/sugarlabs/help-activity")
       (synopsis "Sugar activity for accessing documentation and manuals")
       (description "This is an activity for the Sugar environment which aims
@@ -989,6 +993,60 @@ come to life with forces (think gravity, Newton!), friction (scrrrrape), and
 inertia (ahh, slow down!).")
       (license license:gpl3+))))
 
+(define-public sugar-portfolio-activity
+  (let ((commit "331c3e2542b4885112fd32b3c32ed4f5916d204c")
+        (revision "1"))
+    (package
+      (name "sugar-portfolio-activity")
+      (version (git-version "52" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/sugarlabs/portfolio-activity")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1zaab7ara40imkd85hilslc4rqyjsgkzrcngsrw99dryl9n4mx1p"))))
+      (build-system python-build-system)
+      (arguments
+       (list
+        #:tests? #false ;there are none
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'patch-launcher
+              (lambda* (#:key inputs #:allow-other-keys)
+                (substitute* "activity/activity.info"
+                  (("exec = sugar-activity3")
+                   (string-append "exec = "
+                                  (search-input-file inputs "/bin/sugar-activity3"))))))
+            (replace 'install
+              (lambda _
+                (setenv "HOME" "/tmp")
+                (invoke "python" "setup.py" "install"
+                        (string-append "--prefix=" #$output)))))))
+      ;; All these libraries are accessed via gobject introspection.
+      (propagated-inputs
+       (list cairo
+             pango
+             gdk-pixbuf
+             gobject-introspection
+             gtk+
+             gstreamer
+             gst-plugins-base
+             python-dbus
+             python-pygobject
+             sugar-datastore
+             sugar-toolkit-gtk3
+             telepathy-glib))
+      (inputs
+       (list gettext-minimal))
+      (home-page "https://github.com/sugarlabs/portfolio-activity")
+      (synopsis "Portfolio for the Sugar Journal")
+      (description "The Portfolio activity creates a slide show from Sugar
+Journal entries that have been ‘starred’.")
+      (license license:gpl3+))))
+
 (define-public sugar-read-activity
   (package
     (name "sugar-read-activity")
@@ -1129,7 +1187,7 @@ not hesitate to feast on the goat.")
       ;; All these libraries are accessed via gobject introspection.
       (propagated-inputs
        (list gtk+
-             vte
+             vte/gtk+-3
              sugar-toolkit-gtk3))
       (inputs
        (list gettext-minimal))

@@ -10,6 +10,7 @@
 ;;; Copyright © 2020 Michael Rohleder <mike@rohleder.de>
 ;;; Copyright © 2021 Leo Le Bouter <lle-bout@zaclys.net>
 ;;; Copyright © 2021 Maxime Devos <maximedevos@telenet.be>
+;;; Copyright © 2022 Daniel Maksymow <daniel.maksymow@tuta.io>
 ;;; Copyright © 2023, 2024 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
 ;;;
@@ -35,7 +36,7 @@
   #:use-module (guix download)
   #:use-module (guix git-download)
   #:use-module (guix build-system gnu)
-  #:use-module ((guix licenses) #:select (gpl3+ lgpl3+ lgpl2.0+ lgpl2.1 gpl2 bsd-2))
+  #:use-module ((guix licenses) #:select (gpl2+ gpl3+ lgpl3+ lgpl2.0+ lgpl2.1 gpl2 bsd-2))
   #:use-module (gnu packages)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages compression)
@@ -49,6 +50,28 @@
   #:use-module (gnu packages xml)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-26))
+
+(define-public chrpath
+  (package
+    (name "chrpath")
+    (version "0.18")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://codeberg.org/pere/chrpath")
+                    (commit (string-append "release_" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0n7fp6xm660m8inaadlblh7zr8izyc3x39bfdqi6rj1kn0vmzra6"))))
+    (build-system gnu-build-system)
+    (native-inputs (list automake autoconf))
+    (home-page "https://codeberg.org/pere/chrpath")
+    (synopsis "Utility for editing the RPATH or RUNPATH of ELF binaries")
+    (description "@code{chrpath} allows listing, changing or removing the
+dynamic library load path (RPATH and RUNPATH) of compiled programs and
+libraries.")
+    (license gpl2+)))
 
 (define-public elfutils
   (package
@@ -120,6 +143,17 @@
                             (("run-strip-strmerge.sh") "")
                             (("run-elflint-self.sh") "")))))
                    #~())
+            #$@(if (target-loongarch64?)
+                   `((add-after 'unpack 'update-config-scripts
+                       (lambda* (#:key inputs native-inputs #:allow-other-keys)
+                         ;; Replace outdated config.guess and config.sub.
+                         (for-each (lambda (file)
+                                     (install-file
+                                      (search-input-file
+                                       (or native-inputs inputs)
+                                       (string-append "/bin/" file)) "./config"))
+                                   '("config.guess" "config.sub")))))
+                   '())
             #$@(if (system-hurd?)
                    #~((add-after 'unpack 'skip-tests
                         (lambda _
@@ -151,8 +185,10 @@
                               (search-patch
                                "elfutils-libdwfl-string-overflow.patch"))))))
                    #~()))))
-
-    (native-inputs (list m4))
+    (native-inputs (append (if (target-loongarch64?)
+                               (list config)
+                               (list))
+                           (list m4)))
     (inputs (list xz zlib))
     (home-page "https://sourceware.org/elfutils/")
     (synopsis "Collection of utilities and libraries to handle ELF files and
@@ -364,7 +400,7 @@ changed.")
 (define-public libdwarf
   (package
     (name "libdwarf")
-    (version "0.5.0")
+    (version "0.11.0")
     (source (origin
               (method git-fetch)
               ;; The archive at
@@ -376,7 +412,7 @@ changed.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "17sgjxx666nxvxn3g1xc8fj0b89jazq9v8ddp3j3ck0r257ki8n2"))))
+                "0j4r6558rsgx7fhwa46mqix4jlxyf6m4h8i2nsxcq8j30siq5b85"))))
     (build-system gnu-build-system)
     (arguments
      '(#:configure-flags '("--enable-shared")))

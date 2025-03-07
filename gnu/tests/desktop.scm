@@ -141,13 +141,21 @@
                  (terminal-vt "2")
                  (default-session-command
                    (greetd-agreety-session
-                    (extra-env '(("MY_VAR" . "1")))
-                    (xdg-env? #f))))
+                    (command
+                     (greetd-user-session
+                      (extra-env '(("MY_VAR" . "1")))
+                      (xdg-env? #f))))))
                 ;; we can use different shell instead of default bash
                 (greetd-terminal-configuration
                  (terminal-vt "3")
                  (default-session-command
-                   (greetd-agreety-session (command (file-append zsh "/bin/zsh")))))
+                   (greetd-agreety-session
+                    (command
+                     (greetd-user-session
+                      (command (file-append zsh "/bin/zsh"))
+                      (command-args '("-l"))
+                      (extra-env '(("MY_VAR" . "1")))
+                      (xdg-env? #f))))))
                 ;; we can use any other executable command as greeter
                 (greetd-terminal-configuration
                  (terminal-vt "4")
@@ -244,14 +252,14 @@ minimal %BASE-SERVICES."
 
               (sort (filter expected-var user-env) string<?)))
 
-          (test-assert "validate SEATD_SOCK and GREETD_SOCK"
+          (test-assert "validate SEATD_SOCK"
             (begin
               (marionette-type "env > env\n" marionette)
               (sleep 1)
 
               (define (sock-var? var)
                 (any (lambda (s) (string-contains var s))
-                     '("SEATD_SOCK" "GREETD_SOCK")))
+                     '("SEATD_SOCK")))
 
               (define (sock-var-sock var)
                 (car (cdr (string-split var #\=))))
@@ -262,7 +270,7 @@ minimal %BASE-SERVICES."
                    (out (filter sock-var? out))
                    (socks (map sock-var-sock out))
                    (socks (map wait-for-unix-socket-m socks)))
-                (and (= 2 (length socks)) (every identity socks)))))
+                (and (= 1 (length socks)) (every identity socks)))))
 
           (test-equal "seatd.sock ownership"
             '("root" "seat")

@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2012-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2012-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2013 Cyril Roelandt <tipecaml@gmail.com>
 ;;; Copyright © 2014, 2015, 2016, 2018, 2019, 2020 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2014, 2015-2018, 2020-2023 Eric Bavier <bavier@posteo.net>
@@ -9,7 +9,7 @@
 ;;; Copyright © 2016, 2017, 2020 Leo Famulari <leo@famulari.name>
 ;;; Copyright © 2016 Pjotr Prins <pjotr.guix@thebird.nl>
 ;;; Copyright © 2016, 2017, 2023 Ricardo Wurmus <rekado@elephly.net>
-;;; Copyright © 2016-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Peter Feigl <peter.feigl@nexoid.at>
 ;;; Copyright © 2016 John J. Foerch <jjfoerch@earthlink.net>
 ;;; Copyright © 2016, 2017 Nikita <nikita@n0.is>
@@ -31,11 +31,11 @@
 ;;; Copyright © 2019, 2021, 2022 Guillaume Le Vaillant <glv@posteo.net>
 ;;; Copyright © 2019, 2020, 2021 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2020 Oleg Pykhalov <go.wigust@gmail.com>
-;;; Copyright © 2020, 2023, 2024 Janneke Nieuwenhuizen <janneke@gnu.org>
+;;; Copyright © 2020, 2023, 2024, 2025 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2020, 2021, 2022 Michael Rohleder <mike@rohleder.de>
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
 ;;; Copyright © 2020 Morgan Smith <Morgan.J.Smith@outlook.com>
-;;; Copyright © 2021, 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2021-2025 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2021, 2023, 2024 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2021 Stefan Reichör <stefan@xsteve.at>
 ;;; Copyright © 2021 qblade <qblade@protonmail.com>
@@ -44,10 +44,11 @@
 ;;; Copyright © 2021 WinterHound <winterhound@yandex.com>
 ;;; Copyright © 2021 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2021 Maxime Devos <maximedevos@telenet.be>
-;;; Copyright © 2021 muradm <mail@muradm.net>
+;;; Copyright © 2021 Roel Janssen <roel@gnu.org>
+;;; Copyright © 2021, 2025 muradm <mail@muradm.net>
 ;;; Copyright © 2021 pineapples <guixuser6392@protonmail.com>
 ;;; Copyright © 2021 Petr Hodina <phodina@protonmail.com>
-;;; Copyright © 2021-2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2021-2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2022 Wamm K. D. <jaft.r@outlook.com>
 ;;; Copyright © 2022 Roman Riabenko <roman@riabenko.com>
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
@@ -70,6 +71,11 @@
 ;;; Copyright © 2024 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2024 nathan <nathan_mail@nborghese.com>
 ;;; Copyright © 2024 Nikita Domnitskii <nikita@domnitskii.me>
+;;; Copyright © 2024 Roman Scherer <roman@burningswell.com>
+;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
+;;; Copyright © 2024 Ashvith Shetty <ashvithshetty10@gmail.com>
+;;; Copyright © 2025 Dariqq <dariqq@posteo.net>
+;;; Copyright © 2024 nik gaffney <nik@fo.am>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -137,13 +143,17 @@
   #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages gawk)
   #:use-module (gnu packages gettext)
+  #:use-module (gnu packages gcc)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages gnupg)
   #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-check)
   #:use-module (gnu packages golang-compression)
+  #:use-module (gnu packages golang-crypto)
+  #:use-module (gnu packages golang-web)
   #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages groff)
   #:use-module (gnu packages gtk)
@@ -157,10 +167,12 @@
   #:use-module (gnu packages libunwind)
   #:use-module (gnu packages libusb)
   #:use-module (gnu packages linux)
+  #:use-module (gnu packages logging)
   #:use-module (gnu packages lua)
   #:use-module (gnu packages m4)
   #:use-module (gnu packages mail)
   #:use-module (gnu packages man)
+  #:use-module (gnu packages maths)
   #:use-module (gnu packages markup)
   #:use-module (gnu packages mcrypt)
   #:use-module (gnu packages mpi)
@@ -195,6 +207,7 @@
   #:use-module (gnu packages time)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages version-control)
+  #:use-module (gnu packages vulkan)
   #:use-module (gnu packages web)
   #:use-module (gnu packages xdisorg)
   #:use-module (gnu packages xml)
@@ -276,6 +289,53 @@ digest algorithms that are used to check the integrity of files.  All of the
 usual file attributes can be checked for inconsistencies.")
     (home-page "https://aide.github.io/")
     (license license:gpl2+)))
+
+(define-public hetznercloud-cli
+  (package
+    (name "hetznercloud-cli")
+    (version "1.49.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/hetznercloud/cli")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0mgd1rv0i18h7jbzl034ffpfxvnjirp60qwxsjpfy42jh1d8xbjm"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:tests? #f ; XXX: figure out hot to enable them
+      #:install-source? #f
+      #:import-path "github.com/hetznercloud/cli/cmd/hcloud"
+      #:unpack-path "github.com/hetznercloud/cli"))
+    (native-inputs
+     (list go-github-com-burntsushi-toml
+           go-github-com-cheggaaa-pb-v3
+           go-github-com-dustin-go-humanize
+           go-github-com-fatih-color
+           go-github-com-fatih-structs
+           go-github-com-goccy-go-yaml
+           go-github-com-guptarohit-asciigraph
+           go-github-com-hetznercloud-hcloud-go-v2
+           go-github-com-jedib0t-go-pretty-v6
+           go-github-com-spf13-cast
+           go-github-com-spf13-cobra
+           go-github-com-spf13-pflag
+           go-github-com-spf13-viper
+           go-github-com-stretchr-testify
+           go-github-com-swaggest-assertjson
+           go-go-uber-org-mock
+           go-golang-org-x-crypto
+           go-golang-org-x-term))
+    (home-page "https://github.com/hetznercloud/cli")
+    (synopsis "Command-line interface for the Hetzner Cloud service")
+    (description
+     "This package provides the @code{hcloud} binary, a command-line interface
+for interacting with the @url{https://www.hetzner.com/,Hetzner Cloud}
+service.")
+    (license license:expat)))
 
 (define-public progress
   (package
@@ -417,14 +477,26 @@ interface and is based on GNU Guile.")
 (define-public shepherd-1.0
   (package
     (inherit shepherd-0.10)
-    (version "1.0.0")
+    (version "1.0.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnu/shepherd/shepherd-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "0z4yxl8g0k3b6k4x7b3ks10x31hs46j5kmw0ah5cr417n0rszrp8"))))))
+                "1gr4k57jv2flks2zvvmm0i1lpi9cmj9844zdz6l6yixhnh2aqjyz"))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments shepherd-0.10)
+       ((#:configure-flags flags #~'())
+        #~(list "--localstatedir=/var"
+
+                ;; Gzip and zstd are used by the log rotation service.
+                (string-append "--with-gzip=" #$(this-package-input "gzip")
+                               "/bin/gzip")
+                (string-append "--with-zstd=" #$(this-package-input "zstd")
+                               "/bin/zstd")))))
+    (inputs (modify-inputs (package-inputs shepherd-0.10)
+              (append gzip zstd)))))
 
 (define-public shepherd shepherd-0.10)
 
@@ -621,6 +693,45 @@ environments:
   @acronym{MIME,Multipurpose Internet Mail Extensions} messages
 @end itemize")
     (license license:gpl3)))
+
+(define-public collectl
+  (package
+    (name "collectl")
+    (version "4.3.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append
+             "mirror://sourceforge/collectl/collectl/collectl-" version
+             "/collectl-" version ".src.tar.gz"))
+       (sha256
+        (base32 "1wc9k3rmhqzh6cx5dcpqhlc3xcpadsn2ic54r19scdjbjx6jd1r1"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      #:tests? #f ; There are no tests.
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'build) ; There's nothing to build.
+          (replace 'configure
+            (lambda _
+              (substitute* "INSTALL"
+                (("DESTDIR:=\"/\"") (format #f "DESTDIR:=~s" #$output))
+                (("DESTDIR/usr") "DESTDIR"))))
+          (replace 'install
+            (lambda _
+              (substitute* "collectl"
+                (("\\$configFile='';")
+                 (string-append "$configFile='" #$output "/etc';")))
+              (invoke "./INSTALL"))))))
+    (inputs
+     (list perl))
+    (home-page "http://collectl.sourceforge.net")
+    (synopsis "Performance data collector")
+    (description
+     "This package provides a program that collects various performance
+measurement data like CPU, memory, disk and network performance numbers.")
+    (license license:artistic2.0)))
 
 (define-public daemontools
   (package
@@ -1429,7 +1540,7 @@ It can also list the processes responsible in a @command{top}-like table.
 A less common nmon feature is its ability to create highly detailed log files
 in @acronym{CSV, comma-separated values} format.  These can be imported into
 spreadsheets or fed straight into an @acronym{RRD, round-robin database} using
-@command{rrdtool} for further analyisis, or to create colourful graphs.")
+@command{rrdtool} for further analysis, or to create colourful graphs.")
     (license license:gpl3+)))
 
 (define-public sipcalc
@@ -1553,7 +1664,9 @@ connection alive.")
                                     version "/dhcp-" version ".tar.gz"))
                 (sha256
                  (base32
-                  "1ivkvhhvqxap6c51cli7pa6xn76ngxri1zbl45ishz4ranxidi0a"))))
+                  "1ivkvhhvqxap6c51cli7pa6xn76ngxri1zbl45ishz4ranxidi0a"))
+                (patches (search-patches
+                           "dhclient-script-resolvconf-support.patch"))))
       (build-system gnu-build-system)
       (arguments
        `(#:parallel-build? #f
@@ -1647,12 +1760,13 @@ connection alive.")
              (lambda* (#:key inputs outputs #:allow-other-keys)
                ;; Install the dhclient script for GNU/Linux and make sure
                ;; if finds all the programs it needs.
-               (let* ((out       (assoc-ref outputs "out"))
-                      (libexec   (string-append out "/libexec"))
-                      (coreutils (assoc-ref inputs "coreutils*"))
-                      (inetutils (assoc-ref inputs "inetutils"))
-                      (grep      (assoc-ref inputs "grep*"))
-                      (sed       (assoc-ref inputs "sed*"))
+               (let* ((out        (assoc-ref outputs "out"))
+                      (libexec    (string-append out "/libexec"))
+                      (coreutils  (assoc-ref inputs "coreutils*"))
+                      (inetutils  (assoc-ref inputs "inetutils"))
+                      (grep       (assoc-ref inputs "grep*"))
+                      (resolvconf (assoc-ref inputs "resolvconf*"))
+                      (sed        (assoc-ref inputs "sed*"))
                       (debianutils (assoc-ref inputs "debianutils")))
                  (substitute* "client/scripts/linux"
                    (("/sbin/ip")
@@ -1668,7 +1782,8 @@ connection alive.")
                      ,(map (lambda (dir)
                              (string-append dir "/bin:"
                                             dir "/sbin"))
-                           (list inetutils coreutils grep sed debianutils))))))))))
+                           (list inetutils coreutils grep sed resolvconf
+                                 debianutils))))))))))
 
       (native-inputs
        (list config perl file))
@@ -1697,6 +1812,7 @@ connection alive.")
 
                 ("coreutils*" ,coreutils)
                 ("grep*" ,grep)
+                ("resolvconf*" ,openresolv)
                 ("sed*" ,sed)))
 
       (home-page "https://www.isc.org/dhcp/")
@@ -1711,10 +1827,65 @@ maintenance releases.")
       (license license:mpl2.0)
       (properties '((cpe-name . "dhcp"))))))
 
+(define-public dhcpcd
+  (package
+    (name "dhcpcd")
+    (version "10.1.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/NetworkConfiguration/dhcpcd")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0g519093032y3hxmy5xml4dk20qhbk9s1rlhb1lgyiscw663vn22"))))
+    (inputs (list bash-minimal coreutils-minimal eudev sed))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      #:test-target "test"
+      #:configure-flags #~(list "--enable-ipv6"
+                                "--enable-privsep"
+                                "--privsepuser=dhcpcd"
+                                (string-append "--dbdir=" "/var/db/dhcpcd")
+                                (string-append "--rundir=" "/var/run/dhcpcd")
+                                (string-append "CC=" #$(cc-for-target)))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'do-not-create-dbdir
+            (lambda _
+              ;; Make sure that the Makefile doesn't attempt to create
+              ;; /var/db/dhcpcd for which it doesn't have permissions.
+              (substitute* "src/Makefile"
+                (("\\$\\{INSTALL\\} -m \\$\\{DBMODE\\} -d\
+ \\$\\{DESTDIR\\}\\$\\{DBDIR\\}")
+                 ""))))
+          (add-before 'build 'setenv
+            (lambda _
+              (setenv "HOST_SH" (which "sh"))))
+          (add-after 'install 'wrap-hooks
+            (lambda* (#:key inputs outputs #:allow-other-keys)
+              (let* ((sed (search-input-file inputs "/bin/sed"))
+                     (rm (search-input-file inputs "/bin/rm")))
+                (wrap-program (string-append
+                               #$output "/libexec/dhcpcd-run-hooks")
+                  `("PATH" ":" suffix
+                    (,(dirname sed)
+                     ,(dirname rm))))))))))
+    (home-page "https://roy.marples.name/projects/dhcpcd")
+    (synopsis "Feature-rich DHCP and DHCPv6 client")
+    (description
+     "Provides a DHCP and a DHCPv6 client.  Additionally,
+dhcpcd is also an IPv4LL (aka ZeroConf) client.  In layperson's terms,
+dhcpcd runs on your machine and silently configures your computer to work
+on the attached networks without trouble and mostly without configuration.")
+    (license license:bsd-2)))
+
 (define-public radvd
   (package
     (name "radvd")
-    (version "2.19")
+    (version "2.20")
     (source
      (origin
        (method git-fetch)
@@ -1723,7 +1894,7 @@ maintenance releases.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1df827m3vkjq2bcs5y9wg2cygvpdwl8ppl446qqhyym584gz54nl"))))
+        (base32 "090b8953cq7pvxf8i5wsippsi3zc8jxy559k6jpfjjmbbvl8zlmk"))))
     (build-system gnu-build-system)
     (native-inputs
      (list autoconf
@@ -1732,8 +1903,11 @@ maintenance releases.")
            check
            flex
            pkg-config))
+    (inputs (list libbsd))
     (arguments
-     `(#:configure-flags '("--with-check")))
+     (if (%current-target-system)
+         (list)
+         (list #:configure-flags #~(list "--with-check"))))
     (home-page "https://radvd.litech.org/")
     (synopsis "IPv6 Router Advertisement Daemon")
     (description
@@ -2418,7 +2592,7 @@ command.")
     (inherit wpa-supplicant)
     (name "wpa-supplicant-gui")
     (inputs (modify-inputs (package-inputs wpa-supplicant)
-              (prepend qtbase-5 qtsvg-5)))
+              (prepend qtbase-5 qtsvg-5 qtwayland-5)))
     (native-inputs
      ;; For icons.
      (modify-inputs (package-native-inputs wpa-supplicant)
@@ -2558,14 +2732,14 @@ network, which causes enabled computers to power on.")
 (define-public dmidecode
   (package
     (name "dmidecode")
-    (version "3.5")
+    (version "3.6")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://savannah/dmidecode/dmidecode-"
                            version ".tar.xz"))
        (sha256
-        (base32 "0wy0khw02sr59f43fdahh6as1xc3jv7n8abj59p1j9cfxqsngmvr"))))
+        (base32 "1blbvmsxba71fmjxckh0cn7x68kim7qlx6ilv0df7brxxkrna374"))))
     (build-system gnu-build-system)
     (arguments
      (list #:tests? #f                  ; no 'check' target
@@ -2779,14 +2953,13 @@ characters can be replaced as well, as can UTF-8 characters.")
 (define-public tree
   (package
     (name "tree")
-    (version "2.1.1")
+    (version "2.2.1")
     (source (origin
               (method url-fetch)
-              (uri (string-append
-                    "https://mama.indstate.edu/users/ice/tree/src/tree-"
-                    version ".tgz"))
+              (uri (string-append "https://oldmanprogrammer.net/tar/tree/"
+                                  "tree-" version ".tgz"))
               (sha256
-               (base32 "1mchmdkq77d4c2mx7xmarccbk46a3sm2aqslarjwgxrs81gxbhyk"))))
+               (base32 "1v5j8igc5yjzs7w63010p8il5rw5qb1zy032l2ni3hy0g3f4bb38"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -2802,7 +2975,7 @@ characters can be replaced as well, as can UTF-8 characters.")
      "Tree is a recursive directory listing command that produces a depth
 indented listing of files, which is colorized ala dircolors if the LS_COLORS
 environment variable is set and output is to tty.")
-    (home-page "https://mama.indstate.edu/users/ice/tree/")
+    (home-page "https://oldmanprogrammer.net/source.php?dir=projects/tree")
     (license license:gpl2+)))
 
 (define-public lr
@@ -2917,9 +3090,18 @@ various ways that may be running with too much privilege.")
                 "0gcrzcb4g7f994n6nws26g6x15yjija1gyzd359sjv7r3xj1z9p9"))))
     (build-system gnu-build-system)
     (arguments
-     (list #:make-flags
-           #~(list "BUILD_INFO=\"(Guix)\"")))
-    (inputs (list libcap-ng))
+     (list
+      #:make-flags
+      #~(list "BUILD_INFO=\"(Guix)\"")
+      #:configure-flags
+      #~(list (format #f "--with-scriptpath=~{~a:~}$PATH"
+                      (map (lambda (pkg)
+                             (in-vicinity pkg "bin"))
+                           '#$(list (this-package-input "coreutils-minimal")
+                                    (this-package-input "sed")))))))
+    (inputs (list coreutils-minimal
+                  libcap-ng
+                  sed))
     (home-page "https://www.smartmontools.org/")
     (synopsis "S.M.A.R.T. harddisk control and monitoring tools")
     (description
@@ -2955,99 +3137,85 @@ specified directories.")
 (define-public ansible-core
   (package
     (name "ansible-core")
-    (version "2.17.1")
+    ;; XXX: Starting from 2.18.1, Ansible requires Python 3.11 or newer on the
+    ;; controller, this is the latest version supporting 3.10.
+    (version "2.17.7")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "ansible_core" version))
        (sha256
-        (base32 "007ginimzbizx2c3fp3vccizscyki0fp4yg3bzl3qz6ipdqrsi26"))))
-    (build-system python-build-system)
+        (base32 "1kysajyc0kh885dlba6aj0a2mnpcq06q09n3kcixdqn4sqsvgais"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:modules ((guix build python-build-system)
+     (list
+      #:modules '((guix build pyproject-build-system)
                   (guix build utils)
                   (ice-9 ftw))
-       #:phases
-       (modify-phases %standard-phases
-         ;; Several ansible commands (ansible-config, ansible-console, etc.)
-         ;; are just symlinks to a single ansible executable.  The ansible
-         ;; executable behaves differently based on the value of sys.argv[0].
-         ;; This does not work well with our wrap phase, and therefore the
-         ;; following two phases are required as a workaround.
-         (add-after 'unpack 'hide-wrapping
-           (lambda _
-             ;; Overwrite sys.argv[0] to hide the wrapper script from it.
-             (substitute* "bin/ansible"
-               (("import traceback" all)
-                (string-append all "
+      #:test-flags
+      #~(list "units"
+              "--exclude" "test/units/cli/test_adhoc.py"
+              "--exclude" "test/units/galaxy/test_collection_install.py"
+              "--num-workers" (number->string (parallel-job-count)))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'relax-requirements
+            (lambda _
+              (substitute* "requirements.txt"
+                ;; resolvelib >= 0.5.3, < 1.1.0
+                ((">= 0.5.3, < 1.1.0") ""))))
+          ;; Several ansible commands (ansible-config, ansible-console, etc.)
+          ;; are just symlinks to a single ansible executable.  The ansible
+          ;; executable behaves differently based on the value of sys.argv[0].
+          ;; This does not work well with our wrap phase, and therefore the
+          ;; following two phases are required as a workaround.
+          (add-after 'unpack 'hide-wrapping
+            (lambda _
+              ;; Overwrite sys.argv[0] to hide the wrapper script from it.
+              (substitute* "bin/ansible"
+                (("import traceback" all)
+                 (string-append all "
 import re
 sys.argv[0] = re.sub(r'\\.([^/]*)-real$', r'\\1', sys.argv[0])
 ")))))
-         (add-after 'install 'replace-symlinks
-           (lambda* (#:key outputs #:allow-other-keys)
-             ;; Replace symlinks with duplicate copies of the ansible
-             ;; executable so that sys.argv[0] has the correct value.
-             (define bin (string-append (assoc-ref outputs "out") "/bin"))
-             (with-directory-excursion bin
-               (for-each
-                (lambda (ansible-symlink)
-                  (delete-file ansible-symlink)
-                  (copy-file "ansible" ansible-symlink))
-                (scandir "." (lambda (x)
-                               (and (eq? 'symlink (stat:type (lstat x)))
-                                    (string-prefix? "ansible-" x)
-                                    (string=? "ansible" (readlink x)))))))))
-         (add-after 'unpack 'skip-controller-tests
-           (lambda _
-             ;; XXX: This disables all the controller tests, which fail for
-             ;; unknown reasons, seemingly while attempting to set the
-             ;; locale to en_US.UTF-8.
-             (substitute* "test/lib/ansible_test/_internal/commands\
-/units/__init__.py"
-               (("^            if test_context == TestContext.controller:.*"
-                 all)
-                (string-append all "                continue\n")))))
-         (add-after 'unpack 'preserve-pythonpath
-           (lambda _
-             (substitute* "test/lib/ansible_test/_internal/ansible_util.py"
-               (("PYTHONPATH=get_ansible_python_path\\(args\\)" all)
-                (string-append all "+ ':' + os.environ['GUIX_PYTHONPATH']")))
-             (substitute* "test/lib/ansible_test/_internal/commands\
-/units/__init__.py"
-               (("PYTHONPATH=get_units_ansible_python_path\\(args, \
-test_context)" all)
-                (string-append all "+ ':' + os.environ['GUIX_PYTHONPATH']")))))
-         (add-after 'unpack 'patch-paths
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (substitute* "lib/ansible/module_utils/compat/selinux.py"
-               (("libselinux.so.1" name)
-                (string-append (assoc-ref inputs "libselinux")
-                               "/lib/" name)))
-             (substitute* "test/units/modules/test_async_wrapper.py"
-               (("/usr/bin/python")
-                (which "python")))))
+          (add-after 'install 'replace-symlinks
+            (lambda _
+              ;; Replace symlinks with duplicate copies of the ansible
+              ;; executable so that sys.argv[0] has the correct value.
+              (with-directory-excursion (string-append #$output "/bin")
+                (for-each
+                 (lambda (ansible-symlink)
+                   (delete-file ansible-symlink)
+                   (copy-file "ansible" ansible-symlink))
+                 (scandir "." (lambda (x)
+                                (and (eq? 'symlink (stat:type (lstat x)))
+                                     (string-prefix? "ansible-" x)
+                                     (string=? "ansible" (readlink x)))))))))
+          (add-after 'unpack 'patch-paths
+            (lambda _
+              (substitute* "lib/ansible/module_utils/compat/selinux.py"
+                (("libselinux.so.1" name)
+                 (string-append #$(this-package-input "libselinux")
+                                "/lib/" name)))
+              (substitute* "test/lib/ansible_test/_internal/ansible_util.py"
+                (("PYTHONPATH=get_ansible_python_path\\(args\\)" all)
+                 (string-append all "+ ':' + os.environ['GUIX_PYTHONPATH']")))
+              (substitute* "test/lib/ansible_test/_internal/commands/units/__init__.py"
+                (("PYTHONPATH=get_units_ansible_python_path\\(args, test_context)" all)
+                 (string-append all "+ ':' + os.environ['GUIX_PYTHONPATH']")))
+              (substitute* "test/units/modules/test_async_wrapper.py"
+                (("/usr/bin/python")
+                 (which "python")))))
          (replace 'check
-           (lambda* (#:key inputs outputs tests? #:allow-other-keys)
+           (lambda* (#:key inputs outputs tests? test-flags #:allow-other-keys)
              (when tests?
                ;; Otherwise Ansible fails to create its config directory.
                (setenv "HOME" "/tmp")
-               ;; These tests fail in the container; it appears that the
-               ;; mocking of the absolute file names such as /usr/bin/svcs do
-               ;; not work as intended there.
-               (delete-file "test/units/modules/test_iptables.py")
-               (delete-file "test/units/modules/test_service.py")
-               ;; These tests fail with a "unsupported locale setting" error
-               ;; when invoking 'locale.setlocale(locale.LC_ALL, '')'
-               (delete-file "test/units/module_utils/basic/\
-test_command_nonexisting.py")
-               (delete-file "test/units/module_utils/basic/test_tmpdir.py")
                ;; The test suite needs to be run with 'ansible-test', which
                ;; does some extra environment setup.  Taken from
                ;; https://raw.githubusercontent.com/ansible/ansible/\
                ;; devel/test/utils/shippable/shippable.sh.
-               (invoke "./bin/ansible-test" "units" "-v"
-                       "--num-workers" (number->string
-                                        (parallel-job-count)))))))))
+               (apply invoke "python" "bin/ansible-test" test-flags)))))))
     (native-inputs
      (list openssh
            openssl
@@ -3057,15 +3225,20 @@ test_command_nonexisting.py")
            python-pytest-forked
            python-pytest-mock
            python-pytest-xdist
-           python-pytz))
+           python-pytz
+           python-setuptools
+           python-wheel))
     (inputs                    ;optional dependencies captured in wrap scripts
-     (list libselinux python-paramiko python-passlib python-pexpect
+     (list libselinux
            sshpass))
     (propagated-inputs      ;core dependencies listed in egg-info/requires.txt
      (list python-cryptography
            python-jinja2
-           python-pyyaml
            python-packaging             ;for version number parsing
+           python-paramiko
+           python-passlib
+           python-pexpect
+           python-pyyaml
            python-resolvelib))
     (home-page "https://www.ansible.com/")
     (synopsis "Radically simple IT automation")
@@ -3129,7 +3302,7 @@ modules and plugins that extend Ansible.")
 (define-public debops
   (package
     (name "debops")
-    (version "3.2.2")
+    (version "3.2.4")
     (source
      (origin
        (method git-fetch)
@@ -3138,10 +3311,11 @@ modules and plugins that extend Ansible.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "03d94bzljnw65f1ra7bxsl8q2l6g8gxcy8kqhm69ib08j50qa0h6"))
+        (base32 "0y7bmrnynbw0hz88shfv301a9fsank2cx86fvb7jx6g6kkbsa9pz"))
        (patches
         (search-patches "debops-setup-py-avoid-git.patch"))))
     (build-system pyproject-build-system)
+    (native-inputs (list python-setuptools python-wheel))
     (inputs
      (list ansible
            encfs
@@ -3267,6 +3441,79 @@ able to adapt itself dynamically to the overall system load.  Children
 processes and threads of the specified process may optionally share the same
 limits.")
     (license license:gpl2+)))
+
+(define-public corectrl
+  (package
+    (name "corectrl")
+    (version "1.4.3")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.com/corectrl/corectrl")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0qpc04xxzv4jbqqlraqriipix4ph7bm1hfiry807jjp668i9n25d"))
+       (patches (search-patches "corectrl-polkit-install-dir.patch"))))
+    (build-system qt-build-system)
+    (arguments
+     (list
+      #:configure-flags #~(list "-DINSTALL_DBUS_FILES_IN_PREFIX=true"
+                                (string-append "-DPOLKIT_POLICY_INSTALL_DIR="
+                                               #$output
+                                               "/share/polkit-1/actions")
+                                (string-append "-DWITH_PCI_IDS_PATH="
+                                               #$(this-package-input "hwdata")
+                                               "/share/hwdata/pci.ids"))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'embed-absolute-references
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "src/core/info/common/cpuinfolscpu.cpp"
+                (("\"lscpu\"")
+                 (string-append
+                  "\"" (search-input-file inputs "bin/lscpu") "\"")))
+              (substitute* "src/core/info/common/gpuinfovulkan.cpp"
+                (("\"vulkaninfo\"")
+                 (string-append
+                  "\"" (search-input-file inputs "bin/vulkaninfo") "\"")))
+              (substitute* (list "src/core/info/common/swinfomesa.cpp"
+                                 "src/core/info/common/gpuinfoopengl.cpp")
+                (("\"glxinfo\"")
+                 (string-append
+                  "\"" (search-input-file inputs "bin/glxinfo") "\""))))))))
+    ;; Text formatting only supported since C++20, which is available in gcc-13.
+    ;; https://en.cppreference.com/w/cpp/compiler_support#cpp_lib_format_201907L
+    (native-inputs (list catch2-3
+                         gcc-13
+                         pkg-config
+                         qttools-5))
+    (inputs (list dbus
+                  botan
+                  hwdata
+                  mesa-utils
+                  polkit
+                  procps
+                  pugixml
+                  qtcharts-5
+                  qtdeclarative-5
+                  qtquickcontrols2-5
+                  qtsvg-5
+                  qtwayland-5
+                  quazip
+                  spdlog
+                  trompeloeil
+                  units
+                  util-linux
+                  vulkan-tools
+                  zlib))
+    (home-page "https://gitlab.com/corectrl/corectrl")
+    (synopsis "Profile based system control utility")
+    (description
+     "CoreCtrl allows you to control with ease your computer hardware using
+application profiles.")
+    (license (list license:gpl3))))
 
 (define-public autojump
   (package
@@ -3657,7 +3904,8 @@ plug-in architecture to allow monitoring other system metrics.")
        (file-name (git-file-name name version))
        (sha256
         (base32 "18ipa1bm6q1n5drbi8i65726hhqhl1g41390lfqrc11hkbvv443d"))
-       (patches (search-patches "thefuck-test-environ.patch"))))
+       (patches (search-patches "thefuck-test-environ.patch"
+                                "thefuck-remove-broken-tests.patch"))))
     (build-system python-build-system)
     (arguments
      '(#:phases
@@ -4148,7 +4396,7 @@ you are running, what theme or icon set you are using, etc.")
 (define-public hyfetch
   (package
     (name "hyfetch")
-    (version "1.4.11")
+    (version "1.99.0")
     (source
      (origin
        (method git-fetch)
@@ -4158,7 +4406,7 @@ you are running, what theme or icon set you are using, etc.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "1ymj72virh8y8gwgg3j3skf6j0zn7p0plcza57lln1drnjspycy7"))))
+         "02bc6dhwvf1daqlsw3am9y2wjfkhs8lpw3vgdxw74jg0w9bpzg8q"))))
     (build-system python-build-system)
     (arguments (list #:tests? #f))      ;no tests
     (inputs (list python-typing-extensions))
@@ -4367,7 +4615,7 @@ information tool.")
 (define-public fastfetch
   (package
     (name "fastfetch")
-    (version "2.16.0")
+    (version "2.36.1")
     (source
      (origin
        (method git-fetch)
@@ -4376,17 +4624,36 @@ information tool.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "112dvfx7gvp6n20i1lkd0jbh897jf7bxjxq96bj4099j3x313y3m"))))
+        (base32 "13999l229v2awcl29y3fgijhg8hbk8i9gz6j31z7p9xhkrhn3y42"))
+       (modules '((guix build utils)))
+       (snippet '(begin
+                   (delete-file-recursively "src/3rdparty")))))
     (build-system cmake-build-system)
+    (arguments
+     (list
+      #:configure-flags #~(list "-DENABLE_SYSTEM_YYJSON=ON"
+                                "-DBUILD_FLASHFETCH=OFF"
+                                "-DBUILD_TESTS=ON"
+                                "-DINSTALL_LICENSE=OFF"
+                                "-DBINARY_LINK_TYPE=dynamic"
+                                "-DENABLE_DIRECTX_HEADERS=OFF"
+                                (string-append "-DCUSTOM_PCI_IDS_PATH="
+                                               #$(this-package-input "hwdata")
+                                               "/share/hwdata/pci.ids")
+                                (string-append "-DCUSTOM_AMDGPU_IDS_PATH="
+                                               #$(this-package-input "libdrm")
+                                               "share/libdrm/amdgpu.ids"))))
     (inputs (list dbus
                   glib
+                  hwdata
                   imagemagick
+                  libdrm
                   libxcb
                   mesa
                   wayland
+                  yyjson
                   zlib)) ;for imagemagick and an #ifdef
-    (native-inputs (list pkg-config))
-    (arguments (list #:tests? #f)) ; no test target
+    (native-inputs (list pkg-config python-minimal))
     (home-page "https://github.com/fastfetch-cli/fastfetch")
     (synopsis "Display system information in a stylized manner")
     (description
@@ -4893,7 +5160,7 @@ Logitech Unifying Receiver.")
   (package
     (name "lynis")
     ;; Also update the ‘lynis-sdk’ input to the commit matching this release.
-    (version "3.0.9")
+    (version "3.1.1")
     (source
      (origin
        (method git-fetch)
@@ -4902,7 +5169,7 @@ Logitech Unifying Receiver.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1rgiifbzlk9lfjhbgxy6pqza5kxpr5rsr8vj9fcqvqihzdb5izj1"))
+        (base32 "05bh16i916xz9w8p8fz8flzj9ayyzg7wpbi7q61ylrlahhc03nqd"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -4918,10 +5185,10 @@ Logitech Unifying Receiver.")
            (method git-fetch)
            (uri (git-reference
                  (url "https://github.com/CISOfy/lynis-sdk")
-                 (commit "92522b3ec39ad4cdef4756dc303d99741ec7fe20")))
+                 (commit "f4f885f1f049f59940487a6ffc2d53806c729d12")))
            (file-name (git-file-name "lynis-sdk" version))
            (sha256
-            (base32 "05qq4395x8f0kyl1ppm74npsf8sb3hhgz0ck4fya91sy6a26b4ja"))))))
+            (base32 "09d98wmvan7nlchm056kls5xm939d1231pwsvlp4q2aznz8cmg42"))))))
     (arguments
      (list
       #:phases
@@ -5100,7 +5367,7 @@ elogind's uaccess feature.")
 (define-public jc
   (package
     (name "jc")
-    (version "1.25.3")
+    (version "1.25.4")
     (source
      (origin
        ;; The PyPI tarball lacks the test suite.
@@ -5110,7 +5377,7 @@ elogind's uaccess feature.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0ay5wh00fzblibvvcz3jh83n8mpkfsfqmix93fz9za5kf3gpk7na"))))
+        (base32 "0lb7608h3vaw5gqlaf1ryd84m2mirfl7gdnhzadrjlh6h8b3lkgp"))))
     (build-system pyproject-build-system)
     (arguments
      (list #:phases
@@ -5351,7 +5618,6 @@ disk utilization, priority, username, state, and exit code.")
      (list
       #:install-source? #f
       #:import-path "github.com/linuxboot/fiano"
-      #:unpack-path "github.com/linuxboot/fiano"
       #:phases
       #~(modify-phases %standard-phases
           ;; XXX: Replace this part when it's implemented in go-build-system.
@@ -5363,10 +5629,7 @@ disk utilization, priority, username, state, and exit code.")
                          (string-append import-path "/cmds/" cmd)))
                (list "cbfs"
                      "create-ffs"
-                     ;; TODO: Not packed yet in guix, long jorney:
-                     ;; - github.com/tjfoc/gmsm
-                     ;;
-                     ;; "fittool"
+                     "fittool"
                      "fmap"
                      "fspinfo"
                      "glzma"
@@ -5381,20 +5644,14 @@ disk utilization, priority, username, state, and exit code.")
                    (invoke "go" "test" "-v"
                            (string-append import-path dir "/...")))
                  (list "/pkg/bytes"
-                       ;; TODO: Not packed yet in Guix, long jorney:
-                       ;; - github.com/jedib0t
-                       ;;
-                       ;; "/pkg/amd"
+                       "/pkg/amd"
                        "/pkg/cbfs"
                        "/pkg/compression"
                        "/pkg/fmap"
                        "/pkg/fsp"
                        "/pkg/guid"
                        "/pkg/guid2english"
-                       ;; TODO: Not packed yet in Guix, long jorney:
-                       ;; - github.com/tjfoc/gmsm
-                       ;;
-                       ;; "/pkg/intel"
+                       "/pkg/intel"
                        "/pkg/knownguids"
                        "/pkg/log"
                        "/pkg/uefi"
@@ -5403,7 +5660,7 @@ disk utilization, priority, username, state, and exit code.")
                        "/pkg/visitors"
                        "/cmds/cbfs"
                        "/cmds/create-ffs"
-                       ;; TODO: Not packed yet in Guix, long jorney:
+                       ;; TODO: Not packed yet in Guix, long journey:
                        ;; - github.com/u-root/u-root
                        ;;
                        ;; "/cmds/fmap"
@@ -5421,7 +5678,7 @@ disk utilization, priority, username, state, and exit code.")
                    (install-file cmd bindir))
                  (list "cbfs"
                        "create-ffs"
-                       ;; "fittool"
+                       "fittool"
                        "fmap"
                        "fspinfo"
                        "glzma"
@@ -5430,11 +5687,18 @@ disk utilization, priority, username, state, and exit code.")
                        "utk"))))))))
     (inputs
      (list go-github-com-dustin-go-humanize
+           go-github-com-fatih-camelcase
            go-github-com-hashicorp-go-multierror
+           go-github-com-jedib0t-go-pretty-v6
            go-github-com-jessevdk-go-flags
+           go-github-com-klauspost-compress
            go-github-com-pierrec-lz4
            go-github-com-spf13-pflag
+           go-github-com-stretchr-testify
+           go-github-com-tjfoc-gmsm
            go-github-com-ulikunitz-xz
+           go-github-com-xaionaro-go-bytesextra
+           go-github-com-xaionaro-gosrc
            go-golang-org-x-text))
     (home-page "https://github.com/linuxboot/fiano")
     (synopsis "UEFI image editor")
@@ -5589,7 +5853,7 @@ FIFO and UNIX interprocess communication.")
 (define-public runitor
   (package
     (name "runitor")
-    (version "0.8.0")
+    (version "1.3.0-build.4")
     (source
       (origin
         (method git-fetch)
@@ -5598,7 +5862,7 @@ FIFO and UNIX interprocess communication.")
                (commit (string-append "v" version))))
         (file-name (git-file-name name version))
         (sha256
-          (base32 "0vjfbyrbp5ywgzdz9j3x0qgjvnq7nw7193x8v9yy6k2cih1zsacn"))))
+          (base32 "00l83jcjmf5kcq8yzq575kk6ljkkr2xhm5cx27zzb1yhxn93xj7n"))))
     (build-system go-build-system)
     (arguments
      `(#:unpack-path "bdd.fi/x/runitor"
@@ -5647,7 +5911,7 @@ it won't take longer to install 15 machines than it would to install just 2.")
 (define-public greetd
   (package
     (name "greetd")
-    (version "0.9.0")
+    (version "0.10.3")
     (home-page "https://git.sr.ht/~kennylevinsen/greetd")
     (source (origin
               (method git-fetch)
@@ -5656,25 +5920,28 @@ it won't take longer to install 15 machines than it would to install just 2.")
                     (commit version)))
               (file-name (git-file-name name version))
               (sha256
-               (base32 "1b79lb0vikh5vwpdlyga6zwzm11gpsd7ghp8zb0q2m6mlqlj5by3"))))
+               (base32 "1j3c7skby9scsq6p1f6nacbiy9b26y1sswchdsp8p3vv7fgdh2wf"))))
     (build-system cargo-build-system)
     (arguments
      `(#:cargo-inputs
-       (("rust-nix" ,rust-nix-0.26)
+       (("rust-async-trait" ,rust-async-trait-0.1)
+        ("rust-enquote" ,rust-enquote-1)
+        ("rust-getopts" ,rust-getopts-0.2)
+        ("rust-libc" ,rust-libc-0.2)
+        ("rust-nix" ,rust-nix-0.27)
         ("rust-pam-sys" ,rust-pam-sys-0.5)
         ("rust-rpassword" ,rust-rpassword-5)
-        ("rust-users" ,rust-users-0.11)
         ("rust-serde" ,rust-serde-1)
         ("rust-serde-json" ,rust-serde-json-1)
-        ("rust-libc" ,rust-libc-0.2)
-        ("rust-tokio" ,rust-tokio-1)
-        ("rust-getopts" ,rust-getopts-0.2)
         ("rust-thiserror" ,rust-thiserror-1)
-        ("rust-async-trait" ,rust-async-trait-0.1)
-        ("rust-enquote" ,rust-enquote-1))
+        ("rust-tokio" ,rust-tokio-1))
+       #:install-source? #f
        #:phases
        (modify-phases %standard-phases
-         (delete 'package)
+         (add-after 'unpack 'patch-/bin/sh
+           (lambda* (#:key inputs #:allow-other-keys)
+             (substitute* "greetd/src/session/worker.rs"
+               (("/bin/sh") (search-input-file inputs "/bin/sh")))))
          (add-after 'build 'build-man-pages
            (lambda* (#:key inputs #:allow-other-keys)
              (define (scdoc-cmd doc lvl)
@@ -5714,7 +5981,8 @@ it won't take longer to install 15 machines than it would to install just 2.")
                  (install-file "greetd-ipc.7" man7)
                  (install-file "agreety.1" man1))))))))
     (inputs
-     (list linux-pam))
+     ;; Full bash, not bash-minimal.  See https://issues.guix.gnu.org/76105.
+     (list bash linux-pam))
     (native-inputs
      (list scdoc))
     (synopsis "Minimal and flexible login manager daemon")
@@ -5759,73 +6027,92 @@ This allows greetd-pam-mount to auto-(un)mount @env{XDG_RUNTIME_DIR} without
 interfering with any pam-mount configuration.")))
 
 (define-public wlgreet
-  (let ((commit "7e79d6004fc5e765a5c3ece6d377f8c5999d9dfa")
-        (revision "1"))
-    (package
-      (name "wlgreet")
-      (version (git-version "0.4.1" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://git.sr.ht/~kennylevinsen/wlgreet")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "039a05v6c2i3al86k4fncqr3z47dnrz7y8wmhx6wvm08zx8s89ww"))))
-      (build-system cargo-build-system)
-      (arguments
-       (list #:cargo-inputs
-             `(("rust-chrono" ,rust-chrono-0.4)
-               ("rust-getopts" ,rust-getopts-0.2)
-               ("rust-greetd-ipc" ,rust-greetd-ipc-0.9)
-               ("rust-lazy-static" ,rust-lazy-static-1)
-               ("rust-memmap2" ,rust-memmap2-0.3)
-               ("rust-nix" ,rust-nix-0.25)
-               ("rust-os-pipe" ,rust-os-pipe-1)
-               ("rust-rusttype" ,rust-rusttype-0.9)
-               ("rust-serde" ,rust-serde-1)
-               ("rust-smithay-client-toolkit"
-                ,rust-smithay-client-toolkit-0.15)
-               ("rust-toml" ,rust-toml-0.5)
-               ("rust-wayland-client" ,rust-wayland-client-0.29)
-               ("rust-wayland-protocols" ,rust-wayland-protocols-0.29))
-             #:phases
-             #~(modify-phases %standard-phases
-                 (add-after 'unpack 'remove-bundled-fonts
-                   (lambda _
-                     (delete-file-recursively "fonts")))
-                 (add-after 'remove-bundled-fonts 'fix-font-references
-                   (lambda* (#:key inputs #:allow-other-keys)
-                     (substitute* "src/draw.rs"
-                       (("\\.\\./fonts/dejavu/DejaVuSansMono\\.ttf" _)
-                        (search-input-file
-                         inputs
-                         "share/fonts/truetype/DejaVuSansMono.ttf"))
-                       (("\\.\\./fonts/Roboto-Regular\\.ttf" _)
-                        (search-input-file
-                         inputs
-                         "share/fonts/truetype/Roboto-Regular.ttf")))))
-                 (add-after 'configure 'fix-library-references
-                   (lambda* (#:key inputs vendor-dir #:allow-other-keys)
-                     (substitute* (find-files vendor-dir "\\.rs$")
-                       (("lib(wayland-.*|xkbcommon)\\.so" so-file)
-                        (search-input-file
-                         inputs
-                         (string-append "lib/" so-file)))))))))
-      (inputs
-       (list font-dejavu
-             font-google-roboto
-             libxkbcommon
-             wayland))
-      (home-page "https://git.sr.ht/~kennylevinsen/wlgreet")
-      (synopsis "Bare-bones Wayland-based greeter for @command{greetd}")
-      (description
-       "@command{wlgreet} provides a @command{greetd} greeter
+  (package
+    (name "wlgreet")
+    (version "0.5.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://git.sr.ht/~kennylevinsen/wlgreet")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0d7lfx5jg2w7fp7llwrirnbsp27nv74f21mhrspd9ilk2cacf12d"))))
+    (build-system cargo-build-system)
+    (arguments
+     (list #:cargo-inputs
+           `(("rust-chrono" ,rust-chrono-0.4)
+             ("rust-getopts" ,rust-getopts-0.2)
+             ("rust-greetd-ipc" ,rust-greetd-ipc-0.10)
+             ("rust-lazy-static" ,rust-lazy-static-1)
+             ("rust-memmap2" ,rust-memmap2-0.3)
+             ("rust-nix" ,rust-nix-0.25)
+             ("rust-os-pipe" ,rust-os-pipe-1)
+             ("rust-rusttype" ,rust-rusttype-0.9)
+             ("rust-serde" ,rust-serde-1)
+             ("rust-toml" ,rust-toml-0.5)
+             ("rust-wayland-client" ,rust-wayland-client-0.29)
+             ("rust-smithay-client-toolkit" ,rust-smithay-client-toolkit-0.15)
+             ("rust-wayland-protocols" ,rust-wayland-protocols-0.29))
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'remove-bundled-fonts
+                 (lambda _
+                   (delete-file-recursively "fonts")))
+               (add-after 'remove-bundled-fonts 'fix-font-references
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute* "src/draw.rs"
+                     (("\\.\\./fonts/dejavu/DejaVuSansMono\\.ttf")
+                      (search-input-file
+                       inputs
+                       "share/fonts/truetype/DejaVuSansMono.ttf"))
+                     (("\\.\\./fonts/Roboto-Regular\\.ttf")
+                      (search-input-file
+                       inputs
+                       "share/fonts/truetype/Roboto-Regular.ttf")))))
+               (add-after 'configure 'fix-library-references
+                 (lambda* (#:key inputs vendor-dir #:allow-other-keys)
+                   (substitute* (find-files vendor-dir "\\.rs$")
+                     (("lib(wayland-.*|xkbcommon)\\.so" so-file)
+                      (search-input-file
+                       inputs
+                       (string-append "lib/" so-file)))))))))
+    (inputs
+     (list font-dejavu
+           font-google-roboto
+           libxkbcommon
+           wayland))
+    (home-page "https://git.sr.ht/~kennylevinsen/wlgreet")
+    (synopsis "Bare-bones Wayland-based greeter for @command{greetd}")
+    (description
+     "@command{wlgreet} provides a @command{greetd} greeter
 that runs on a Wayland compositor such as @command{sway}.  It
 is implemented with pure Wayland APIs, so it does not depend
 on a GUI toolkit.")
-      (license license:gpl3))))
+    (license license:gpl3)))
+
+(define-public gtkgreet
+  (package
+    (name "gtkgreet")
+    (version "0.8")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://git.sr.ht/~kennylevinsen/gtkgreet")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0bqxz39lc8vh6bkirvrbn2lgf1qz5b04lfwgp5xa1ki1bnm5i80q"))))
+    (build-system meson-build-system)
+    (native-inputs (list pkg-config scdoc))
+    (inputs (list gtk+ gtk-layer-shell json-c))
+    (synopsis "GTK-based greeter for greetd")
+    (description
+     "GTK-based greeter for greetd, to be run under a compositor such as Cage.")
+    (home-page "https://git.sr.ht/~kennylevinsen/gtkgreet")
+    (license license:gpl3+)))
 
 (define-public libseat
   (package
@@ -5879,44 +6166,38 @@ that require it.")
     (license license:expat)))
 
 (define-public sysdig
-  ;; Use the latest commit for now, as the latest 0.36.1 release does not yet
-  ;; support the falcosecurity-libs 0.16 API.
-  (let ((commit "598ad292b659425e475e5814d9e92c3c29188480")
-        (revision "0"))
-    (package
-      (name "sysdig")
-      (version (git-version "0.36.1" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://github.com/draios/sysdig")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "0yyins3rb286dfibadfwwp2gwmdj7fsz3pdkpdvx05yvdqfkqds7"))
-                (patches
-                 (search-patches "sysdig-shared-falcosecurity-libs.patch"))))
-      (build-system cmake-build-system)
-      (arguments
-       (list #:tests? #f                ;no test suite
-             #:configure-flags
-             #~(list "-DUSE_BUNDLED_DEPS=OFF"
-                     ;; Already built and part of falcosecurity-libs, but
-                     ;; needed for the 'HAS_MODERN_BPF' define.
-                     "-DBUILD_SYSDIG_MODERN_BPF=ON"
-                     #$(string-append "-DSYSDIG_VERSION=" version))))
-      (native-inputs (list pkg-config))
-      (inputs
-       (list falcosecurity-libs
-             luajit
-             ncurses
-             nlohmann-json
-             yaml-cpp
-             zlib))
-      (home-page "https://github.com/draios/sysdig")
-      (synopsis "System exploration and troubleshooting tool")
-      (description "Sysdig is a simple tool for deep system visibility, with
+  (package
+    (name "sysdig")
+    (version "0.40.0-alpha6")           ;for the 0.20 patch to apply
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/draios/sysdig")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0pxmx3by0lckw7zv54wrg0cr13j1mhk2z0x4qachrf2mz5qjq2cd"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #f                  ;no test suite
+           #:configure-flags
+           #~(list "-DUSE_BUNDLED_DEPS=OFF"
+                   ;; Already built and part of falcosecurity-libs, but
+                   ;; needed for the 'HAS_MODERN_BPF' define.
+                   "-DBUILD_SYSDIG_MODERN_BPF=ON"
+                   #$(string-append "-DSYSDIG_VERSION=" version))))
+    (native-inputs (list pkg-config))
+    (inputs
+     (list falcosecurity-libs
+           luajit
+           ncurses
+           nlohmann-json
+           yaml-cpp
+           zlib))
+    (home-page "https://github.com/draios/sysdig")
+    (synopsis "System exploration and troubleshooting tool")
+    (description "Sysdig is a simple tool for deep system visibility, with
 native support for containers.  It combines features of multiple system
 administration tools such as the @command{strace}, @command{tcpdump},
 @command{htop}, @command{iftop} and @command{lsof} into a single interface.
@@ -5934,7 +6215,7 @@ Bash aliases can be added to your @file{~/.bash_profile} file, for example:
 alias sysdig=sudo sysdig --modern-bpf
 alias cysdig=sudo csysdig --modern-bpf
 ")                                      ;XXX no @example Texinfo support
-      (license license:asl2.0))))
+    (license license:asl2.0)))
 
 (define-public fail2ban
   (package
@@ -6241,7 +6522,7 @@ file or files to several hosts.")
 (define-public doctl
   (package
     (name "doctl")
-    (version "1.94.0")
+    (version "1.120.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -6250,7 +6531,12 @@ file or files to several hosts.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0a221n0x7qrq0dbhhf1saya2g7jyy1798k3rhy9nzyvqzc4vnd0x"))))
+                "12fgymgiv6894ghar7ljg69hb7mi18pa2a74sp7fyymqvyhiv6z9"))
+              (snippet
+               ;; TODO: Unbundle more.
+               #~(begin (use-modules (guix build utils))
+                        (for-each delete-file-recursively
+                                  (list "vendor/golang.org"))))))
     (build-system go-build-system)
     (arguments
      (list #:import-path "github.com/digitalocean/doctl/cmd/doctl"
@@ -6280,6 +6566,17 @@ file or files to several hosts.")
                                        "/etc/fish/completions/doctl.fish")
                    (install-completion "zsh"
                                        "/etc/zsh/site-functions/_doctl"))))))
+    (native-inputs
+     (list go-golang-org-x-crypto
+           go-golang-org-x-mod
+           go-golang-org-x-net
+           go-golang-org-x-oauth2
+           go-golang-org-x-sync
+           go-golang-org-x-sys
+           go-golang-org-x-term
+           go-golang-org-x-text
+           go-golang-org-x-time
+           go-golang-org-x-tools))
     (home-page "https://github.com/digitalocean/doctl")
     (synopsis "Command line client for DigitalOcean")
     (description
@@ -6299,9 +6596,7 @@ file or files to several hosts.")
         (base32 "0qr6ikq2ds8bq35iw480qyhf3d43dj61wiwp8587n3mgqf5djx8w"))))
     (build-system cargo-build-system)
     (arguments
-     (list #:cargo-test-flags `(list "--release" "--"
-                                     "--skip=test_apparent_size")
-           #:install-source? #f
+     (list #:install-source? #f
            #:cargo-inputs `(("rust-ansi-term" ,rust-ansi-term-0.12)
                             ("rust-chrono" ,rust-chrono-0.4)
                             ("rust-clap" ,rust-clap-4)

@@ -9,7 +9,7 @@
 ;;; Copyright © 2018 Lprndn <guix@lprndn.info>
 ;;; Copyright © 2019, 2021, 2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
-;;; Copyright © 2020, 2021, 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2020, 2021, 2024, 2025 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2020 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2020 Brendan Tildesley <mail@brendan.scot>
 ;;; Copyright © 2021 Oleh Malyi <astroclubzp@gmail.com>
@@ -490,7 +490,7 @@ integrates with various databases on GUI toolkits such as Qt and Tk.")
 (define-public opencv
   (package
     (name "opencv")
-    (version "4.10.0")
+    (version "4.11.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -529,7 +529,7 @@ integrates with various databases on GUI toolkits such as Qt and Tk.")
                   (for-each delete-file (find-files "." "\\.jar$"))))
               (sha256
                (base32
-                "0vinljqhq3r8sffy2396q688irb6iz389sv5vlg04z9y7mvddb8x"))))
+                "1ha0230yw9ihybmg2b3mkk9vbnlgzlwx597v2hm14y403047zvgb"))))
     (build-system cmake-build-system)
     (arguments
      `(#:configure-flags
@@ -712,7 +712,7 @@ integrates with various databases on GUI toolkits such as Qt and Tk.")
            (file-name (git-file-name "opencv_extra" version))
            (sha256
             (base32
-             "16gykga4cc8q8iqx9sj25ggxrp6mqbppwwib734nhlk1b6s2q15j"))))
+             "1zs8ps01vq1pvs5zmpw0wd7xc2l85yqd85vksdj8kddkx6alda8j"))))
        ("opencv-contrib"
         ,(origin
            (method git-fetch)
@@ -721,7 +721,7 @@ integrates with various databases on GUI toolkits such as Qt and Tk.")
            (file-name (git-file-name "opencv_contrib" version))
            (sha256
             (base32
-             "07sanb0kb90rwghlp4jpgvmicr39hgrsjmsc5nifcryw3d0r0m14"))))))
+             "0wsvd7pnj0p6dvdl4x4r46dkrkxkd61v411ih30j3wa9l7m7vmv0"))))))
     (inputs
      (list eigen
            ffmpeg-4
@@ -829,28 +829,23 @@ due to its architecture which automatically parallelises the image workflows.")
 (define-public gmic
   (package
     (name "gmic")
-    (version "3.4.3")
+    (version "3.5.2")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://gmic.eu/files/source/gmic_"
                            version ".tar.gz"))
        (sha256
-        (base32 "01s512sdhj8h5kyfx6y0lglm9x7kd99jwd8xmn5wca19vc31v5br"))))
+        (base32 "056wapzi0nbqr72m39y220ijl86ncla14l9bmw92wyajgblbd4sq"))))
     (build-system cmake-build-system)
     (arguments
-     `(#:tests? #f ;there are no tests
-       #:configure-flags '("-DBUILD_LIB_STATIC=OFF"
-                           "-DENABLE_DYNAMIC_LINKING=ON"
-                           "-DENABLE_LTO=ON")
-       #:phases
-       (modify-phases %standard-phases
-         (add-before 'configure 'set-LDFLAGS
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (setenv "LDFLAGS"
-                     (string-append
-                      "-Wl,-rpath="
-                      (assoc-ref outputs "out") "/lib")))))))
+     (list
+      #:tests? #f ;there are no tests
+      #:configure-flags #~(list "-DBUILD_LIB_STATIC=OFF"
+                                "-DENABLE_DYNAMIC_LINKING=ON"
+                                (string-append "-DCMAKE_EXE_LINKER_FLAGS="
+                                               "-Wl,-rpath=" #$output "/lib")
+                                "-DENABLE_LTO=ON")))
     (native-inputs
      (list pkg-config))
     (inputs
@@ -881,13 +876,12 @@ including 2D color images.")
     (arguments
      (substitute-keyword-arguments (package-arguments gmic)
        ((#:configure-flags _)
-        `(list "-DGMIC_QT_HOST=none" "-DENABLE_DYNAMIC_LINKING=ON"
-               (string-append "-DGMIC_LIB_PATH="
-                              (assoc-ref %build-inputs "gmic") "/lib")))
-        ((#:phases phases)
-         `(modify-phases ,phases
+        #~(list "-DGMIC_QT_HOST=none"
+                "-DENABLE_DYNAMIC_LINKING=ON"))
+       ((#:phases phases '%standard-phases)
+        #~(modify-phases #$phases
             (add-after 'unpack 'qt-chdir
-              (lambda _ (chdir "gmic-qt") #t))))))
+              (lambda _ (chdir "gmic-qt")))))))
     (native-inputs
      (list pkg-config qttools-5))
     (inputs
@@ -907,9 +901,8 @@ including 2D color images.")
     (arguments
      (substitute-keyword-arguments (package-arguments gmic-qt)
        ((#:configure-flags flags)
-        '(list "-DGMIC_QT_HOST=gimp" "-DENABLE_DYNAMIC_LINKING=ON"
-               (string-append "-DGMIC_LIB_PATH="
-                              (assoc-ref %build-inputs "gmic") "/lib")))))
+        #~(list "-DGMIC_QT_HOST=gimp"
+                "-DENABLE_DYNAMIC_LINKING=ON"))))
     (synopsis "GIMP plugin for the G'MIC image processing framework")))
 
 (define-public nip2
@@ -1679,36 +1672,36 @@ purposes.")
 (define-public python-imgviz
   (package
     (name "python-imgviz")
-    (version "1.2.6")
+    (version "1.7.6")
     (source
      (origin
        ;; PyPi tarball lacks tests.
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/wkentaro/imgviz.git")
+             (url "https://github.com/wkentaro/imgviz")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1bm0wdv5p26i8nl4kx3145cz553v401sgbpgc96sddzjfmfiydcw"))
-      (snippet
-       #~(begin (use-modules (guix build utils))
-                (substitute* "imgviz/draw.py"
-                  (("collections\\.Iterable") "collections.abc.Iterable"))
-                (substitute* "imgviz/tile.py"
-                  (("collections\\.Sequence") "collections.abc.Sequence"))))))
-    (build-system python-build-system)
+        (base32 "0z7nwnvqh3hbbccf7v56398aiiwqs68kyrgc5vsmmh1cp4pwrgnb"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key inputs outputs tests? #:allow-other-keys)
-             (when tests?
-               (add-installed-pythonpath inputs outputs)
-               (invoke "pytest" "-v" "tests"))
-             #t)))))
+     (list #:phases
+           #~(modify-phases %standard-phases
+               ;; LookupError: Error getting the version from source `vcs`:
+               ;; setuptools-scm was unable to detect version for <...>
+               (add-after 'unpack 'pretend-version
+                 (lambda _
+                   (setenv "SETUPTOOLS_SCM_PRETEND_VERSION" #$version))))))
+    (native-inputs
+     (list python-pytest
+           python-hatchling
+           python-hatch-vcs
+           python-hatch-fancy-pypi-readme))
     (propagated-inputs
-      (list python-matplotlib python-numpy python-pillow python-pyyaml))
-    (native-inputs (list python-pytest))
+     (list python-matplotlib
+           python-numpy
+           python-pillow
+           python-pyyaml))
     (home-page "http://github.com/wkentaro/imgviz")
     (synopsis "Image Visualization Tools")
     (description "Python library for object detection, semantic and instance
@@ -1718,31 +1711,28 @@ segmentation.")
 (define-public python-pims
   (package
     (name "python-pims")
-    (version "0.6.1")
+    (version "0.7")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "PIMS" version))
+       (uri (pypi-uri "pims" version))
        (sha256
-        (base32 "0fsg353mbbj1ad06nwrp8p9xcrzy6rca6b52nvlbraaf3m309dz2"))))
+        (base32 "0swlh8g4kf8p24g0ghkmwcj9y45rc59lmqx459nhhmhj6167m42m"))))
     (build-system pyproject-build-system)
     (arguments
      (list
       #:test-flags
       ;; We don't have all the (sometimes very large) data files, so we skip
       ;; these tests.
-      '(list "--ignore=pims/tests/test_imseq.py"
-             "--ignore=pims/tests/test_norpix.py"
-             "-k"
-             (string-append " not TestImageReaderTIFF"
-                            " and not TestOpenFiles"
-                            " and not TestSpeStack"
-                            " and not TestTiffStack_pil"
-                            " and not TestTiffStack_tifffile"
-                            " and not TestVideo_ImageIO"))))
+      '(list "--ignore=pims/tests/test_common.py"
+             "--ignore=pims/tests/test_imseq.py"
+             "--ignore=pims/tests/test_norpix.py")))
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list python-imageio python-numpy python-slicerator))
-    (native-inputs (list python-pytest))
     (home-page "https://github.com/soft-matter/pims")
     (synopsis "Python Image Sequence")
     (description "Scientific video can be packaged in various ways: familiar

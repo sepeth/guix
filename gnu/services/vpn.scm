@@ -13,6 +13,7 @@
 ;;; Copyright © 2022 Timo Wilken <guix@twilken.net>
 ;;; Copyright © 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2024 Richard Sent <richard@freakingpenguin.com>
+;;; Copyright © 2025 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -88,6 +89,7 @@
             wireguard-configuration-pre-down
             wireguard-configuration-post-down
             wireguard-configuration-table
+            wireguard-configuration-auto-start?
 
             wireguard-service-type))
 
@@ -506,7 +508,7 @@ is truncated and rewritten every minute.")
              (provision (match role
                           ('server '(vpn-server))
                           ('client '(vpn-client))))
-             (requirement '(networking))
+             (requirement '(user-processes networking))
              (start #~(make-forkexec-constructor
                        (list (string-append #$openvpn "/sbin/openvpn")
                              "--writepid" #$pid-file "--config" #$config-file
@@ -693,7 +695,7 @@ include ~a/*.conf"
   (let* ((ipsec (file-append strongswan "/sbin/ipsec"))
         (strongswan-conf-path (strongswan-configuration-file config)))
     (list (shepherd-service
-           (requirement '(networking))
+           (requirement '(user-processes networking))
            (provision '(ipsec))
            (start #~(make-forkexec-constructor
                      (list #$ipsec "start" "--nofork")
@@ -764,7 +766,9 @@ strongSwan.")))
   (post-down              wireguard-configuration-post-down ;list of strings
                           (default '()))
   (table                  wireguard-configuration-table ;string
-                          (default "auto")))
+                          (default "auto"))
+  (auto-start?            wireguard-configuration-auto-start? ;boolean
+                          (default #t)))
 
 (define (wireguard-configuration-file config)
   (define (peer->config peer)
@@ -916,6 +920,7 @@ public key, if any."
   (match-record config <wireguard-configuration>
     (wireguard interface)
     (let ((wg-quick (file-append wireguard "/bin/wg-quick"))
+          (auto-start? (wireguard-configuration-auto-start? config))
           (config (wireguard-configuration-file config)))
       (list (shepherd-service
              (requirement '(networking))
@@ -926,6 +931,7 @@ public key, if any."
                        (invoke #$wg-quick "down" #$config)
                        #f))                       ;stopped!
              (actions (list (shepherd-configuration-action config)))
+             (auto-start? auto-start?)
              (documentation "Run the Wireguard VPN tunnel"))))))
 
 (define (wireguard-monitoring-jobs config)

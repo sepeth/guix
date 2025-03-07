@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015-2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Taylan Ulrich Bayırlı/Kammer <taylanbayirli@gmail.com>
 ;;; Copyright © 2015 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2015 Alex Kost <alezost@gmail.com>
@@ -11,7 +11,7 @@
 ;;; Copyright © 2016–2023 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2018, 2020, 2024 Oleg Pykhalov <go.wigust@gmail.com>
 ;;; Copyright © 2018 okapi <okapi@firemail.cc>
-;;; Copyright © 2018, 2020, 2022, 2023, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2018, 2020, 2022-2025 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2018 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2018 Brett Gilio <brettg@gnu.org>
 ;;; Copyright © 2018, 2019, 2022 Marius Bakke <marius@gnu.org>
@@ -49,6 +49,10 @@
 ;;; Copyright © 2024 hapster <o.rojon@posteo.net>
 ;;; Copyright © 2024 mio <stigma@disroot.org>
 ;;; Copyright © 2024 Nikita Domnitskii <nikita@domnitskii.me>
+;;; Copyright © 2024 Roman Scherer <roman@burningswell.com>
+;;; Copyright © 2025 Junker <dk@junkeria.club>
+;;; Copyright © 2025 Sughosha <sughosha@disroot.org>
+;;; Copyright © 2025 Andrew Wong <wongandj@icloud.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -78,8 +82,11 @@
   #:use-module (gnu packages build-tools)
   #:use-module (gnu packages check)
   #:use-module (gnu packages cdrom)
+  #:use-module (gnu packages cmake)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cpp)
+  #:use-module (gnu packages crates-audio)
+  #:use-module (gnu packages crates-io)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages dbm)
   #:use-module (gnu packages documentation)
@@ -137,6 +144,7 @@
   #:use-module (gnu packages samba)
   #:use-module (gnu packages sdl)
   #:use-module (gnu packages serialization)
+  #:use-module (gnu packages sphinx)
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages tbb)
   #:use-module (gnu packages telephony)
@@ -153,12 +161,15 @@
   #:use-module (gnu packages xiph)
   #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
+  #:use-module (guix build-system cargo)
   #:use-module (guix build-system cmake)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system glib-or-gtk)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
+  #:use-module (guix build-system qt)
   #:use-module (guix build-system trivial)
   #:use-module (guix build-system waf)
   #:use-module (guix download)
@@ -756,6 +767,143 @@ streams from live audio.")
 purposes developed at Queen Mary, University of London.")
     (license license:gpl2+)))
 
+(define-public jamesdsp
+  (package
+    (name "jamesdsp")
+    (version "2.7.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri
+        (git-reference
+          (url "https://github.com/Audio4Linux/JDSP4Linux")
+          (commit version)
+          ;; Recurse GraqhicEQWidget, FlatTabWidget, LiquidEqualizerWidget and
+          ;; EELEditor.
+          (recursive? #t)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "17vx12kbvwxvb69vzrlb82mrgf6sl3plyk71g9f39p49ialdsnbr"))
+       (modules '((guix build utils)))
+       (snippet
+        ;; Unbundle 3rd party libraries.
+        '(begin
+           ;; Delete the bundled 3rd party libraries.
+           (for-each delete-file-recursively
+            (list "3rdparty"
+                  "src/subprojects/EELEditor/3rdparty"
+                  "src/subprojects/EELEditor/QCodeEditor"
+                  "src/subprojects/EELEditor/src/EELEditor-Linker.pri"))
+           (with-directory-excursion "src"
+             (substitute* "src.pro"
+               ;; Do not use bundled 3rd party libraries.
+               ((".*3rdparty.*") "")
+               ;; Link required libraries from system.
+               (("-ldl")
+                (string-join '("-ldl"
+                               "-lasync++"
+                               "-lQCodeEditor"
+                               "-lqcustomplot"
+                               "-lqtadvanceddocking-qt6"
+                               "-lqtcsv"
+                               "-lwaf")
+                               " ")))
+             ;; Fix including WAF headers.
+             (substitute* "MainWindow.cpp"
+                       (("<Animation") "<WAF/Animation"))
+             ;; Do not use resources from the bundled docking-system.
+             (substitute* '("interface/fragment/AppManagerFragment.ui")
+               ((".*location.*3rdparty.*") "")
+               ((" resource=.*>") ">"))
+             (with-directory-excursion "subprojects/EELEditor/src"
+               ;; Do not use bundled QCodeEditor and docking-system.
+               (substitute* "EELEditor.pri"
+                 ((".*(QCodeEditor|docking-system).*") ""))
+               ;; Do not link to bundled docking-system.
+               (substitute* "src.pro"
+                 ((".*EELEditor-Linker.*") ""))
+               ;; Fix including headers from the system.
+               (substitute* (find-files "." "\\.(cpp|h)$")
+                 (("#include <Dock") "#include <qtadvanceddocking-qt6/Dock")
+                 (("#include <FloatingDock")
+                  "#include <qtadvanceddocking-qt6/FloatingDock")
+                 (("#include <QSyntaxStyle")
+                  "#include <QCodeEditor/QSyntaxStyle")
+                 (("#include <QStyleSyntaxHighlighter")
+                  "#include <QCodeEditor/QStyleSyntaxHighlighter")
+                 (("#include <QHighlightRule")
+                  "#include <QCodeEditor/QHighlightRule")
+                 (("#include <QLanguage") "#include <QCodeEditor/QLanguage")
+                 (("#include <QCodeEditor\\.hpp")
+                  "#include <QCodeEditor/QCodeEditor.hpp"))))))))
+    (build-system qt-build-system)
+    (arguments
+     (list #:qtbase qtbase
+           #:tests? #f ;no tests
+           #:phases
+           #~(modify-phases %standard-phases
+               ;; Configure using qmake.
+               (replace 'configure
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (invoke "qmake" (string-append "PREFIX=" #$output))))
+               (add-after 'install 'install-icon
+                 (lambda _
+                   (let ((pixmaps (string-append #$output "/share/pixmaps")))
+                     (mkdir-p pixmaps)
+                     (copy-file "resources/icons/icon.png"
+                                (string-append pixmaps "/jamesdsp.png")))))
+               (add-after 'install-icon 'create-desktop-entry-file
+                 (lambda _
+                   (make-desktop-entry-file
+                    (string-append #$output
+                                  "/share/applications/jamesdsp.desktop")
+                    #:name "JamesDSP"
+                    #:comment "Audio effect processor"
+                    #:keywords '("equalizer" "audio" "effect")
+                    #:categories '("AudioVideo" "Audio")
+                    #:exec (string-append #$output "/bin/jamesdsp")
+                    #:icon (string-append #$output "/share/pixmaps/jamesdsp.png")
+                    #:startup-notify #f))))))
+    (native-inputs
+     (list pkg-config))
+    (inputs
+     (list asyncplusplus
+           glibmm-2.66
+           libarchive
+           pipewire
+           qcodeeditor
+           qcustomplot
+           qt-advanced-docking-system
+           qtcsv
+           qtpromise
+           qtsvg
+           qtwidgetanimationframework))
+    (home-page "https://github.com/Audio4Linux/JDSP4Linux")
+    (synopsis "Audio effect processor for PipeWire and PulseAudio clients")
+    (description "JamesDSP is an audio effect processor for PipeWire and
+PulseAudio clients, featuring:
+@itemize
+@item Automatic bass boost: Frequency-detecting bass-boost
+@item Automatic dynamic range compressor: automated multiband dynamic range
+ adjusting effect
+@item Complex reverberation IIR network (Progenitor 2)
+@item Interpolated FIR equalizer with flexible bands
+@item Arbitrary response equalizer (also known as GraphicEQ from EqualizerAPO)
+@item AutoEQ database integration (requires network connection)
+@item Partitioned convolver (Auto segmenting convolution): Mono, stereo,
+ full/true stereo (LL, LR, RL, RR) impulse response
+@item Crossfeed: Realistic surround effects
+@item Soundstage wideness: A multiband stereo wideness controller
+@item ViPER-DDC: Parametric equalization on audio and creating VDC input files
+@item Analog modeling: An aliasing-free even harmonic generator
+@item Output limiter
+@item Scripting engine: Live programmable DSP using the EEL2 scripting language
+@item Scripting IDE featuring syntax highlighting, basic code completion,
+ dynamic code outline window, console output support and detailed error
+ messages with inline code highlighting
+@end itemize")
+    (license license:gpl3+)))
+
 (define ardour-bundled-media
   (origin
     (method url-fetch)
@@ -1044,7 +1192,7 @@ tools.")
 (define-public tenacity
   (package
     (name "tenacity")
-    (version "1.3.3")
+    (version "1.3.4")
     (source
      (origin
        (method git-fetch)
@@ -1055,7 +1203,7 @@ tools.")
              (recursive? #t)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0jqdza1alk524fkrssgkr7gabs44sk9a99914gwfkscvyqly4kai"))))
+        (base32 "1wphm494517zmnhgrmzlzld2j4bfl2c73qr61nrss90410xxs2fs"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -1311,6 +1459,34 @@ sections, two polyphonic sections with nine drawbars each and one monophonic
 bass section with five drawbars.  A standalone JACK application and LV2
 plugins are provided.")
       (license license:gpl2))))
+
+(define-public bankstown-lv2
+  (package
+    (name "bankstown-lv2")
+    (version "1.1.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "bankstown-lv2" version))
+       (file-name (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32 "1bcrn0b4b9v1mksaldhrdb6ncqlwldfwqxjlfp4gcpvl661qdmcb"))))
+    (build-system cargo-build-system)
+    (arguments
+     (list
+      #:cargo-inputs `(("rust-biquad" ,rust-biquad-0.4)
+                       ("rust-lv2" ,rust-lv2-0.6))
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'install
+            (lambda* (#:key outputs #:allow-other-keys)
+              (setenv "LIBDIR" (string-append (assoc-ref outputs "out") "/lib"))
+              (invoke "make" "install"))))))
+    (home-page "https://github.com/chadmed/bankstown")
+    (synopsis "Barebones, fast LV2 bass enhancement plugin.")
+    (description
+     "This package provides a barebones, fast LV2 bass enhancement plugin.")
+    (license license:expat)))
 
 (define-public calf
   (package
@@ -1854,6 +2030,34 @@ language and software synthesizer.")
   language, and recompiled back into a binary SMF file.")
       (home-page "https://github.com/markc/midicomp")
       (license license:agpl3))))
+
+(define-public mt32emu
+  (package
+    (name "mt32emu")
+    (version "2.7.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/munt/munt")
+             (commit
+              (string-append "libmt32emu_"
+                             (string-replace-substring version "." "_")))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "06d3jzx69nwy9jj6jv9q6rhq5399mp51w6d5mijg3fmwr4al13fd"))))
+    (build-system cmake-build-system)
+    (arguments (list
+                #:tests? #f             ;no tests.
+                #:configure-flags #~(list "-Dmunt_WITH_MT32EMU_SMF2WAV=FALSE"
+                                          "-Dmunt_WITH_MT32EMU_QT=FALSE")))
+    (home-page "https://sourceforge.net/projects/munt/")
+    (synopsis "Pre-GM Roland MIDI device emulator")
+    (description
+     "libmt32emu is a C/C++ library which approximately emulates
+the Roland MT-32, CM-32L and LAPC-I synthesizer modules. It is part of the
+Munt project.")
+    (license license:gpl2+)))
 
 (define-public clalsadrv
   (package
@@ -2525,7 +2729,7 @@ auto-wah.")
     (build-system gnu-build-system)
     (inputs
      (list alsa-utils
-           fltk
+           fltk-1.3
            libx11
            libxext
            libxfixes
@@ -3111,34 +3315,85 @@ included are the command line utilities @code{send_osc} and @code{dump_osc}.")
 (define-public python-soundfile
   (package
     (name "python-soundfile")
-    (version "0.10.3.post1")
+    (version "0.13.0")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "SoundFile" version))
+       (uri (pypi-uri "soundfile" version))
        (sha256
         (base32
-         "0yqhrfz7xkvqrwdxdx2ydy4h467sk7z3gf984y1x2cq7cm1gy329"))))
-    (build-system python-build-system)
-    (propagated-inputs
-     (list python-cffi python-numpy libsndfile))
-    (native-inputs
-     (list python-pytest))
+         "0mc3g5l9fzj57m62zrwwz0w86cbihpna3mikgh8kpmz7ppc9jcz8"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:tests? #f ; missing OGG support
-       #:phases
-       (modify-phases %standard-phases
+     (list
+      #:test-flags
+      ;; Error opening 'tests/stereo.mp3': File contains data in an
+      ;; unimplemented format.
+      '(list "-k" "not test_write_mp3_compression")
+      #:phases
+      '(modify-phases %standard-phases
          (add-after 'unpack 'patch
            (lambda* (#:key inputs #:allow-other-keys)
              (substitute* "soundfile.py"
                (("_find_library\\('sndfile'\\)")
-                (string-append "\"" (assoc-ref inputs "libsndfile")
-                               "/lib/libsndfile.so\""))))))))
+                (string-append "\"" (search-input-file inputs "/lib/libsndfile.so")
+                               "\""))))))))
+    (propagated-inputs
+     (list python-cffi python-numpy libsndfile))
+    (native-inputs
+     (list python-pytest python-setuptools python-wheel))
     (home-page "https://github.com/bastibe/SoundFile")
     (synopsis "Python bindings for libsndfile")
     (description "This package provides python bindings for libsndfile based on
 CFFI and NumPy.")
     (license license:expat)))
+
+(define-public python-soxr
+  (package
+    (name "python-soxr")
+    (version "0.5.0.post1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "soxr" version))
+       (sha256
+        (base32 "0wzz7j0z814mm99xr19vfrwp2x904lbwhf513x7085m4x3rvk4kh"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'find-nanobind
+            (lambda* (#:key inputs #:allow-other-keys)
+              (let* ((python #$(this-package-native-input "python"))
+                     (version (python-version python))
+                     (nanobind (search-input-file
+                                inputs
+                                (string-append "lib/python" version
+                                               "/site-packages/nanobind/"
+                                               "cmake/nanobind-config.cmake"))))
+                (setenv "CMAKE_PREFIX_PATH"
+                        (string-append (dirname nanobind)
+                                       ":" (getenv "CMAKE_PREFIX_PATH")))))))))
+    (propagated-inputs (list python-numpy))
+    (native-inputs (list cmake-minimal
+                         python
+                         python-linkify-it-py
+                         python-myst-parser
+                         python-nanobind
+                         python-pytest
+                         python-scikit-build-core
+                         python-setuptools
+                         python-setuptools-scm
+                         python-sphinx
+                         python-typing-extensions
+                         python-wheel))
+    (home-page "https://github.com/dofuuz/python-soxr")
+    (synopsis "High quality, one-dimensional sample-rate conversion library")
+    (description
+     "Python-SoXR is a Python wrapper of libsoxr, a high quality,
+one-dimensional sample-rate conversion library.")
+    (license license:lgpl2.1)))
 
 (define-public python-python3-midi
   (package
@@ -3512,6 +3767,31 @@ This includes device enumeration and initialization, file loading, and
 streaming.")
     (license license:expat)))
 
+(define-public pa-notify
+  (package
+    (name "pa-notify")
+    (version "1.5.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/ikrivosheev/pa-notify")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "04wq0bdnb3r27l5wlf8c1ijq18ffywqmdv584l6hbi3i5k0sm7nz"))))
+    (build-system cmake-build-system)
+    (arguments '(#:tests? #f)) ;no check target
+    (inputs (list glib
+                  libnotify
+                  pulseaudio))
+    (native-inputs (list pkg-config))
+    (home-page "https://github.com/ikrivosheev/pa-notify")
+    (synopsis "PulseAudio or PipeWire volume notification")
+    (description "The pa-notify daemon sends notifications about
+the current volume level of PulseAudio or PipeWire using libnotify.")
+    (license license:expat)))
+
 (define-public patchage
   (package
     (name "patchage")
@@ -3766,7 +4046,10 @@ using Guix System.")
     (native-inputs
      (list pkg-config))
     (inputs
-     (list libogg libshout libtheora libvorbis speex))
+     (list libshout))
+    (propagated-inputs
+     ;; In Requires.private of shout-idjc.pc.
+     (list libogg libtheora libvorbis speex))
     (home-page "https://idjc.sourceforge.io/")
     (synopsis "Broadcast streaming library with IDJC extensions")
     (description "This package provides libshout plus IDJC extensions.")
@@ -3799,7 +4082,7 @@ filters using the so-called @emph{window method}.")
 (define-public rubberband
   (package
     (name "rubberband")
-    (version "3.3.0")
+    (version "4.0.0")
     (source (origin
               (method url-fetch)
               (uri
@@ -3807,7 +4090,7 @@ filters using the so-called @emph{window method}.")
                               "rubberband-" version ".tar.bz2"))
               (sha256
                (base32
-                "0v2pbv4jnzv3rr2qr71skwncy2p263ngmhn37aqqb7zgp3i8kvyr"))))
+                "1s98h0pzxlffha52paniysm7dch5rrflw1ifbfriig33xq9h61dg"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -4322,6 +4605,30 @@ and playback rates of audio streams or audio files.  It is intended for
 application developers writing sound processing tools that require tempo/pitch
 control functionality, or just for playing around with the sound effects.")
     (license license:lgpl2.1+)))
+
+(define-public soundtouch-1/integer-samples
+  (package
+    (inherit soundtouch)
+    (name "soundtouch")
+    (version "1.9.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.com/soundtouch/soundtouch.git")
+             (commit (string-append name "-" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1ir961w5gz86cm6yivr1ypi6n2y52vn319gy2gvdkkbbz5wyjkrq"))))
+    (arguments
+     ;; Dolphin expects the samples to be of the integer type.
+     (list #:configure-flags #~(list "--enable-integer-samples")
+           #:phases #~(modify-phases %standard-phases
+                        (replace 'bootstrap
+                          (lambda _
+                            ;; Avoid the bootstrap script, which has a broken
+                            ;; shebang.
+                            (invoke "autoreconf" "-vif"))))))))
 
 (define-public stargate-soundtouch
   ;; Stargate's fork of soundtouch.
@@ -5489,7 +5796,7 @@ bluetooth profile.")
 (define-public libopenshot-audio
   (package
     (name "libopenshot-audio")
-    (version "0.3.3")
+    (version "0.4.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -5498,7 +5805,7 @@ bluetooth profile.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1h7hb3nxladpm5mmh9njilz8wjipisd61mgkgcd39k9jr9adw8gn"))))
+                "0m6a0g6y464ypcza1wfaik77x26lfdmkb5k735f7v8463r7qhd0m"))))
     (build-system cmake-build-system)
     (inputs
      (list alsa-lib
@@ -5848,12 +6155,12 @@ default and preferred audio driver but also supports native drivers like ALSA.")
     (home-page "https://nosignal.fi/ecasound/index.php")
     (synopsis "Multitrack audio processing")
     (description "Ecasound is a software package designed for multitrack audio
-processing. It can be used for simple tasks like audio playback, recording and
+processing.  It can be used for simple tasks like audio playback, recording and
 format conversions, as well as for multitrack effect processing, mixing,
-recording and signal recycling. Ecasound supports a wide range of audio inputs,
-outputs and effect algorithms. Effects and audio objects can be combined in
+recording and signal recycling.  Ecasound supports a wide range of audio inputs,
+outputs and effect algorithms.  Effects and audio objects can be combined in
 various ways, and their parameters can be controlled by operator objects like
-oscillators and MIDI-CCs. A versatile console mode user-interface is included
+oscillators and MIDI-CCs.  A versatile console mode user-interface is included
 in the package.")
     ;; As an exception to the above, the C, C++ and python implementations
     ;; of the Ecasound Control Interface (ECI) are licensed under the LGPL
@@ -6252,7 +6559,7 @@ while still staying in time.")
      (list curl
            dbus
            flac
-           fltk
+           fltk-1.3
            lame
            libfdk
            libsamplerate
@@ -6372,7 +6679,7 @@ and much more.")
 (define-public python-resampy
   (package
     (name "python-resampy")
-    (version "0.2.2")
+    (version "0.4.3")
     (source
      (origin
        (method git-fetch)
@@ -6383,20 +6690,12 @@ and much more.")
          (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0qmkxl5sbgh0j73n667vyi7ywzh09iaync91yp1j5rrcmwsn0qfs"))))
-    (build-system python-build-system)
-    (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key inputs outputs tests? #:allow-other-keys)
-             (when tests?
-               (add-installed-pythonpath inputs outputs)
-               (invoke "pytest" "tests")))))))
+        (base32 "0dlm9ksm7yzgg582sic0vqwfcwdya1g4gnydxldfhaq4y0wakr9c"))))
+    (build-system pyproject-build-system)
     (propagated-inputs
      (list python-numba python-numpy python-scipy python-six))
     (native-inputs
-     (list python-pytest python-pytest-cov))
+     (list python-pytest python-pytest-cov python-setuptools python-wheel))
     (home-page "https://github.com/bmcfee/resampy")
     (synopsis "Efficient signal resampling")
     (description
@@ -6409,30 +6708,52 @@ Home Page}.")
 (define-public python-librosa
   (package
     (name "python-librosa")
-    (version "0.8.1")
+    (version "0.10.2.post1")
     (source
      (origin
-       (method url-fetch)
-       (uri (pypi-uri "librosa" version))
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/librosa/librosa/")
+             (commit version)
+             ;; For test files.
+             (recursive? #true)))
        (sha256
-        (base32 "1cx6rhcvak0hy6bx84jwzpxmwgi92m82w77279akwjmfd3khagf5"))))
-    (build-system python-build-system)
+        (base32 "1x37148y1rh4sq2nc59iw9jlza3zwawxnlb7bd9w36an05aclmnh"))))
+    (build-system pyproject-build-system)
     (arguments
-     ;; Tests require internet connection to download MATLAB scripts for
-     ;; generating the testing data.
-     `(#:tests? #f))
+     (list
+      #:test-flags
+      ;; Ignore --mpl flag.
+      '(list "-c" "/dev/null"
+             "-k" (string-append
+                   ;; Resampling tests require python-samplerate.
+                   "not resample"
+                   ;; These tests use Pooch and download data files.
+                   " and not example and not test_cite"
+                   ;; XXX assert 22050 == 31744
+                   " and not test_stream"))))
     (propagated-inputs
      (list python-audioread
            python-decorator
            python-joblib
+           python-lazy-loader
+           python-msgpack
            python-numba
            python-numpy
-           python-packaging
            python-pooch
-           python-resampy
            python-scikit-learn
            python-scipy
-           python-soundfile))
+           python-soundfile
+           python-soxr
+           python-typing-extensions))
+    (native-inputs
+     (list python-matplotlib
+           python-packaging
+           python-pytest
+           python-pytest-cov
+           python-resampy
+           python-setuptools
+           python-wheel))
     (home-page "https://librosa.org")
     (synopsis "Python module for audio and music processing")
     (description

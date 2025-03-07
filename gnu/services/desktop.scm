@@ -3,7 +3,7 @@
 ;;; Copyright © 2015 Andy Wingo <wingo@igalia.com>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2016 Sou Bunnbu <iyzsong@gmail.com>
-;;; Copyright © 2017, 2020, 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2017, 2020, 2022, 2023, 2025 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2017 Nikita <nikita@n0.is>
 ;;; Copyright © 2017, 2019 Hartmut Goebel <h.goebel@crazy-compilers.com>
 ;;; Copyright © 2018, 2020, 2022 Efraim Flashner <efraim@flashner.co.il>
@@ -17,6 +17,8 @@
 ;;; Copyright © 2021, 2022 muradm <mail@muradm.net>
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024 45mg <45mg.writes@gmail.com>
+;;; Copyright © 2024 Raven Hallsby <karl@hallsby.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -150,13 +152,13 @@
             gnome-desktop-configuration-shell
             gnome-desktop-configuration-utilities
             gnome-desktop-configuration-extra-packages
+            gnome-desktop-configuration-polkit-ignorelist
             gnome-desktop-configuration-udev-ignorelist
             gnome-desktop-service
             gnome-desktop-service-type
 
             mate-desktop-configuration
             mate-desktop-configuration?
-            mate-desktop-service
             mate-desktop-service-type
 
             lxqt-desktop-configuration
@@ -173,7 +175,6 @@
 
             xfce-desktop-configuration
             xfce-desktop-configuration?
-            xfce-desktop-service
             xfce-desktop-service-type
 
             x11-socket-directory-service ;deprecated
@@ -303,7 +304,7 @@ is a list, it recursively searches it until it locates the last item of TREE."
     (list (shepherd-service
            (documentation "Run the UPower power and battery monitor.")
            (provision '(upower-daemon))
-           (requirement '(dbus-system udev))
+           (requirement '(user-processes dbus-system udev))
 
            (start #~(make-forkexec-constructor
                      (list (string-append #$upower "/libexec/upowerd"))
@@ -858,7 +859,7 @@ site} for more information."
   "Return a shepherd service for @command{bluetoothd}."
   (shepherd-service
    (provision '(bluetooth))
-   (requirement '(dbus-system udev))
+   (requirement '(user-processes dbus-system udev))
    (documentation "Run the bluetoothd daemon.")
    (start #~(make-forkexec-constructor
              (list #$(file-append (bluetooth-configuration-bluez config)
@@ -1084,7 +1085,19 @@ and many other) available for GIO applications.")
   (hibernate-delay-seconds          elogind-hibernate-delay-seconds
                                     (default *unspecified*))
   (suspend-estimation-seconds       elogind-suspend-estimation-seconds
-                                    (default *unspecified*)))
+                                    (default *unspecified*))
+  (system-sleep-hook-files          elogind-system-sleep-hook-files
+                                    (default '()))
+  (system-shutdown-hook-files       elogind-system-shutdown-hook-files
+                                    (default '()))
+  (allow-power-off-interrupts?      elogind-allow-power-off-interrupts?
+                                    (default #f))
+  (allow-suspend-interrupts?        elogind-allow-suspend-interrupts?
+                                    (default #f))
+  (broadcast-power-off-interrupts?  elogind-broadcast-power-off-interrupts?
+                                    (default #t))
+  (broadcast-suspend-interrupts?    elogind-broadcast-suspend-interrupts?
+                                    (default #t)))
 
 (define (elogind-configuration-file config)
   (define (yesno x)
@@ -1172,7 +1185,38 @@ and many other) available for GIO applications.")
    ("HybridSleepState" (sleep-list elogind-hybrid-sleep-state))
    ("HybridSleepMode" (sleep-list elogind-hybrid-sleep-mode))
    ("HibernateDelaySec" (maybe-non-negative-integer elogind-hibernate-delay-seconds))
-   ("SuspendEstimationSec" (maybe-non-negative-integer elogind-suspend-estimation-seconds))))
+   ("SuspendEstimationSec" (maybe-non-negative-integer elogind-suspend-estimation-seconds))
+   ("AllowPowerOffInterrupts" (yesno elogind-allow-power-off-interrupts?))
+   ("AllowSuspendInterrupts" (yesno elogind-allow-suspend-interrupts?))
+   ("BroadcastPowerOffInterrupts" (yesno elogind-broadcast-power-off-interrupts?))
+   ("BroadcastSuspendInterrupts" (yesno elogind-broadcast-suspend-interrupts?))))
+
+(define (elogind-etc-directory config)
+  "Return the /etc/elogind directory for CONFIG."
+  (with-imported-modules (source-module-closure '((guix build utils)))
+    (computed-file
+     "etc-elogind"
+
+     #~(begin
+         (use-modules (guix build utils))
+
+         (define sleep-directory (string-append #$output "/system-sleep/"))
+         (define shutdown-directory (string-append #$output "/system-shutdown/"))
+
+         (define (copy-script file directory)
+           "Copy FILE into DIRECTORY, giving rx (500) permissions."
+           (let ((dest (string-append directory "/" (basename file))))
+             (mkdir-p directory)
+             (copy-file file dest)
+             (chmod dest #o500)))
+
+         (mkdir-p #$output)            ;in case neither directory gets created
+         (for-each (lambda (f)
+                     (copy-script f sleep-directory))
+                   '#$(elogind-system-sleep-hook-files config))
+         (for-each (lambda (f)
+                     (copy-script f shutdown-directory))
+                   '#$(elogind-system-shutdown-hook-files config))))))
 
 (define (elogind-dbus-service config)
   "Return a @file{org.freedesktop.login1.service} file that tells D-Bus how to
@@ -1259,7 +1303,7 @@ seats.)"
     (elogind-configuration-file config))
 
   (list (shepherd-service
-         (requirement '(dbus-system))
+         (requirement '(user-processes dbus-system))
          (provision '(elogind))
          (start #~(make-forkexec-constructor
                    (list #$(file-append (elogind-package config)
@@ -1293,6 +1337,12 @@ seats.)"
                        ;; Extend PAM with pam_elogind.so.
                        (service-extension pam-root-service-type
                                           pam-extension-procedure)
+
+                       ;; Install sleep/shutdown hook files.
+                       (service-extension etc-service-type
+                                          (lambda (config)
+                                            `(("elogind"
+                                               ,(elogind-etc-directory config)))))
 
                        ;; We need /run/user, /run/systemd, etc.
                        (service-extension file-system-service-type
@@ -1495,7 +1545,7 @@ dependencies by filtering out the ignorelist."
           (union-build #$output
                        (search-path-as-list
                         (list "lib/udev" "libexec/udev")
-                        (list #$@(gnome-profile config)))
+                        (list #$@(gnome-profile config #:transitive? #t)))
                        #:create-all-directories? #t)
           (for-each
            (lambda (pattern)
@@ -1520,7 +1570,7 @@ rules."
           (union-build output
                        (search-path-as-list
                         (list "share/polkit-1")
-                        (list #$@(gnome-profile config)))
+                        (list #$@(gnome-profile config #:transitive? #t)))
                        #:create-all-directories? #t)
           (for-each
            (lambda (pattern)
@@ -1529,21 +1579,56 @@ rules."
               (find-files output pattern)))
            (list #$@(gnome-desktop-configuration-polkit-ignorelist config))))))))
 
-(define (gnome-profile config)
-  "Return a list of packages propagated through CONFIG."
-  (append
-   (gnome-desktop-configuration-core-services config)
-   (gnome-desktop-configuration-shell config)
-   (gnome-desktop-configuration-utilities config)
-   (let ((gnome-meta (gnome-desktop-configuration-gnome config)))
-     (if (maybe-value-set? gnome-meta)
-         (begin
-           (warning
-            (gnome-desktop-configuration-source-location config)
-            (G_ "Using a meta-package for gnome-desktop is discouraged.~%"))
-           (list gnome-meta))
-         (list)))
-   (gnome-desktop-configuration-extra-packages config)))
+(define* (gnome-profile config #:key transitive?)
+  "Return the list of the packages specified in CONFIG.  When TRANSITIVE? is
+#t, also include their transitive propagated inputs.  If there are transitive
+inputs using non-default outputs, they are returned as gexp-input objects."
+  (define gnome-packages
+    (append
+     (gnome-desktop-configuration-core-services config)
+     (gnome-desktop-configuration-shell config)
+     (gnome-desktop-configuration-utilities config)
+     (let ((gnome-meta (gnome-desktop-configuration-gnome config)))
+       (if (maybe-value-set? gnome-meta)
+           (begin
+             (warning
+              (gnome-desktop-configuration-source-location config)
+              (G_ "Using a meta-package for gnome-desktop is discouraged.~%"))
+             (list gnome-meta))
+           (list)))
+     (gnome-desktop-configuration-extra-packages config)))
+  (if transitive?
+      (append gnome-packages
+              (append-map (compose (cut map (match-lambda ;discard labels
+                                              ((_ pkg) pkg)
+                                              ((_ pkg out)
+                                               (gexp-input pkg out)))
+                                        <>)
+                                   package-transitive-propagated-inputs)
+                          gnome-packages))
+      gnome-packages))
+
+(define (gnome-setuid-programs config)
+  "Return the list of setuid programs found within the packages specified in
+CONFIG, a <gnome-desktop-configuration> object."
+  ;; spice-gtk provides polkit actions for USB redirection in GNOME Boxes; set
+  ;; its usb-acl-helper script setuid automatically when the gnome-boxes or
+  ;; spice-gtk packages are added to one of the gnome-desktop-configuration
+  ;; fields.
+  (let* ((gnome-packages (gnome-profile config #:transitive? #t))
+         (spice-gtk (find (compose (cut string=? "spice-gtk" <>)
+                                   package-name
+                                   (match-lambda ;disregard potential output
+                                     ((? package? p) p)
+                                     ((? gexp-input? p)
+                                      (gexp-input-thing p))))
+                          gnome-packages))
+         (files `(,@(if spice-gtk
+                        (list (file-append
+                               spice-gtk
+                               "/libexec/spice-client-glib-usb-acl-helper"))
+                        '()))))
+    (map file-like->setuid-program files)))
 
 (define gnome-desktop-service-type
   (service-type
@@ -1553,6 +1638,8 @@ rules."
                              gnome-udev-configuration-files)
           (service-extension polkit-service-type
                              gnome-polkit-settings)
+          (service-extension privileged-program-service-type
+                             gnome-setuid-programs)
           (service-extension profile-service-type
                              gnome-profile)))
    (default-value (gnome-desktop-configuration))
@@ -1610,12 +1697,17 @@ rules."
          '("thunar"
            "xfce4-power-manager"))))
 
+(define (xfce-pam-services config)
+  (list (unix-pam-service "xfce4-screensaver")))
+
 (define xfce-desktop-service-type
   (service-type
    (name 'xfce-desktop)
    (extensions
     (list (service-extension polkit-service-type
                              xfce-polkit-settings)
+          (service-extension pam-root-service-type
+                             xfce-pam-services)
           (service-extension profile-service-type
                              (compose list xfce-package))))
    (default-value (xfce-desktop-configuration))
@@ -1807,6 +1899,7 @@ rules."
            "libksysguard"
            "ktexteditor"
            "powerdevil"
+           "bluedevil"
            "kwallet"
            "plasma-firewall"))))
 
@@ -1860,7 +1953,7 @@ rules."
                                device))))
        (list (shepherd-service
               (provision '(inputattach))
-              (requirement '(udev))
+              (requirement '(user-processes udev))
               (documentation "inputattach daemon")
               (start #~(make-forkexec-constructor
                         (cons (string-append #$inputattach
@@ -1974,7 +2067,7 @@ or setting its password with passwd.")))
 (define (seatd-shepherd-service config)
   (list (shepherd-service
          (documentation "Minimal seat management daemon")
-         (requirement '())
+         (requirement '(user-processes))
          ;; TODO: once cgroups is separate dependency
          ;; here we should depend on it rather than elogind
          (provision '(seatd elogind))

@@ -68,13 +68,14 @@ This manual is also available in French (@pxref{Top,,, guix-cookbook.fr,
 Livre de recettes de GNU Guix}), German (@pxref{Top,,, guix-cookbook.de,
 GNU-Guix-Kochbuch}), Korean (@pxref{Top,,, guix-cookbook.ko, GNU Guix 쿡북}),
 Brazilian Portuguese (@pxref{Top,,, guix-cookbook.pt_BR,
-Livro de receitas do GNU Guix}), Slovak (@pxref{Top,,, guix-cookbook.sk,
+Livro de receitas do GNU Guix}), Russian (@pxref{Top,,, guix-cookbook.ru,
+GNU Guix Рецепты}), Slovak (@pxref{Top,,, guix-cookbook.sk,
 Receptár GNU Guix}), and Swedish (@pxref{Top,,, guix-cookbook.sv,
 Kokbok för GNU Guix}).  If you would like to translate
 this document in your native language, consider joining
 @uref{https://translate.fedoraproject.org/projects/guix/documentation-cookbook,
-Weblate} (@pxref{Translating Guix,,, guix, GNU Guix reference
-manual}).
+Weblate} (@pxref{Translating Guix,,, guix, GNU Guix Reference
+Manual}).
 
 @menu
 * Scheme tutorials::            Meet your new favorite language!
@@ -1255,6 +1256,7 @@ definition in @samp{$GUIX_CHECKOUT/guix/build/gnu-build-system.scm}:
             validate-documentation-location
             delete-info-dir-file
             patch-dot-desktop-files
+            make-dynamic-linker-cache
             install-license-files
             reset-gzip-timestamps
             compress-documentation)))
@@ -1265,8 +1267,8 @@ Or from the REPL:
 @lisp
 (add-to-load-path "/path/to/guix/checkout")
 ,use (guix build gnu-build-system)
-(map first %standard-phases)
-@result{} (set-SOURCE-DATE-EPOCH set-paths install-locale unpack bootstrap patch-usr-bin-file patch-source-shebangs configure patch-generated-file-shebangs build check install patch-shebangs strip validate-runpath validate-documentation-location delete-info-dir-file patch-dot-desktop-files install-license-files reset-gzip-timestamps compress-documentation)
+(map car %standard-phases)
+@result{} (set-SOURCE-DATE-EPOCH set-paths install-locale unpack bootstrap patch-usr-bin-file patch-source-shebangs configure patch-generated-file-shebangs build check install patch-shebangs strip validate-runpath validate-documentation-location delete-info-dir-file patch-dot-desktop-files make-dynamic-linker-cache install-license-files reset-gzip-timestamps compress-documentation)
 @end lisp
 
 If you want to know more about what happens during those phases, consult the
@@ -1288,13 +1290,25 @@ working directory."
         ;; Preserve timestamps (set to the Epoch) on the copied tree so that
         ;; things work deterministically.
         (copy-recursively source "."
-                          #:keep-mtime? #true))
+                          #:keep-mtime? #t)
+        ;; Make the source checkout files writable, for convenience.
+        (for-each (lambda (f)
+                    (false-if-exception (make-file-writable f)))
+                  (find-files ".")))
       (begin
-        (if (string-suffix? ".zip" source)
-            (invoke "unzip" source)
-            (invoke "tar" "xvf" source))
-        (chdir (first-subdirectory "."))))
-  #true)
+        (cond
+         ((string-suffix? ".zip" source)
+          (invoke "unzip" source))
+         ((tarball? source)
+          (invoke "tar" "xvf" source))
+         (else
+          (let ((name (strip-store-file-name source))
+                (command (compressor source)))
+            (copy-file source name)
+            (when command
+              (invoke command "--decompress" name)))))
+        ;; Attempt to change into child directory.
+        (and=> (first-subdirectory ".") chdir))))
 @end lisp
 
 Note the @code{chdir} call: it changes the working directory to where the source was
@@ -1330,14 +1344,10 @@ this:
   (let ((bash-directory (assoc-ref inputs "bash"))
         (output-directory (assoc-ref outputs "out"))
         (doc-directory (assoc-ref outputs "doc")))
-    ;; ...
-    #true))
+    ;; ... ))
 @end lisp
 
-The procedure must return @code{#true} on success.  It's brittle to rely on the return
-value of the last expression used to tweak the phase because there is no
-guarantee it would be a @code{#true}.  Hence the trailing @code{#true} to ensure the right value
-is returned on success.
+Its return value is ignored.
 
 @subsubsection Code staging
 
@@ -1824,7 +1834,7 @@ In the above example @code{%file-systems} is a collection of flags
 enabling different file system support, @code{%efi-support} enables EFI
 support and @code{%emulation} enables a x86_64-linux machine to act in
 32-bit mode also.  The @code{default-extra-linux-options} procedure is
-the one defined above, which had to be used to avoid loosing the default
+the one defined above, which had to be used to avoid losing the default
 configuration options of the @code{extra-options} keyword.
 
 This all sounds like it should be doable, but how does one even know which
@@ -5587,7 +5597,7 @@ files and then re-initialize after a failed upgrade to postgres 16.
 @lisp
 (service postgresql-service-type
          (postgresql-configuration
-          (postgresql (@ (gnu packages databases) postgresql-15))))
+          (postgresql (@@ (gnu packages databases) postgresql-15))))
 @end lisp
 
 Note: If you for some reason didn't read the text here but somewhat

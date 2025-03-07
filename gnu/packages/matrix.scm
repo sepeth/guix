@@ -5,6 +5,8 @@
 ;;; Copyright © 2020 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2022 Aleksandr Vityazev <avityazev@posteo.org>
 ;;; Copyright © 2022 Morgan Smith <Morgan.J.Smith@outlook.com>
+;;; Copyright © 2025 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2025 Arjan Adriaanse <arjan@adriaan.se>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -160,73 +162,57 @@ homeserver and generally help bootstrap the ecosystem.")
 (define-public python-matrix-nio
   (package
     (name "python-matrix-nio")
-    (version "0.20.2")
+    (version "0.25.2")
     (source
      (origin
-       (method url-fetch)
-       (uri (pypi-uri "matrix_nio" version))
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/poljar/matrix-nio.git")
+             (commit version)))
+       (file-name (git-file-name name version))
        (sha256
-        (base32 "110wg1grhqqgwvlgr98r2k8wxcggpj7lbdwmgkgmi2l7qj1vw3dm"))))
+        (base32
+         "07prfdnkr13d0pvzhnicwnpn562fwq9zx05d6wza230s7vj0mmk4"))))
     (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'relax-requirements
+     (list
+      #:test-flags
+      ;; This test requires an Internet connection
+      '(list "tests" "-k" "not test_connect_wrapper")
+      #:phases
+      '(modify-phases %standard-phases
+         (add-after 'unpack 'fix-tests
            (lambda _
-             (substitute* "pyproject.toml"
-               ;; Remove upper bounds of cachetool pin.
-               (("cachetools (.*version = )\"\\^4" _ match)
-                (string-append "cachetools " match
-                               "\">=4")))))
-         (add-before 'check 'install-tests
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (copy-recursively (string-append
-                                (assoc-ref inputs "tests") "/tests")
-                               "tests")
-             #t))
-         (replace 'check
-           (lambda* (#:key tests? inputs outputs #:allow-other-keys)
-             (when tests?
-               (add-installed-pythonpath inputs outputs)
-               ;; FIXME: two tests fail, for unknown reasons
-               (invoke "python" "-m" "pytest" "-vv" "tests" "-k"
-                       (string-append
-                        "not test_upload_binary_file_object "
-                        "and not test_connect_wrapper"))))))))
+             (substitute* "tests/helpers.py"
+               (("from nio.crypto import OlmAccount, OlmDevice")
+                "from nio.crypto.device import OlmDevice
+from nio.crypto.sessions import OlmAccount")))))))
     (native-inputs
-     `(("python-pytest" ,python-pytest)
-       ("python-poetry-core" ,python-poetry-core)
-       ("python-hypothesis" ,python-hypothesis)
-       ("python-faker" ,python-faker)
-       ("python-pytest-aiohttp" ,python-pytest-aiohttp)
-       ("python-pytest-asyncio" ,python-pytest-asyncio)
-       ("python-aioresponses" ,python-aioresponses)
-       ("python-pytest-benchmark" ,python-pytest-benchmark)
-       ("tests"
-        ;; The release on pypi comes without tests.  We can't build from this
-        ;; checkout, though, because installation requires an invocation of
-        ;; poetry.
-        ,(origin
-           (method git-fetch)
-           (uri (git-reference
-                 (url "https://github.com/poljar/matrix-nio.git")
-                 (commit version)))
-           (file-name (git-file-name name version))
-           (sha256
-            (base32
-             "1rd90sk5yygxzvcs4qhzr80bch7d3xszyfjf99pn10xsj10mi752"))))))
+     (list python-aioresponses
+           python-faker
+           python-hpack
+           python-hyperframe
+           python-hypothesis
+           python-mypy
+           python-mypy-extensions
+           python-poetry-core
+           python-pytest
+           python-pytest-aiohttp
+           python-pytest-asyncio
+           python-pytest-benchmark
+           python-pytest-cov
+           python-pytest-flake8
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list python-aiofiles
            python-aiohttp
            python-aiohttp-socks
            python-atomicwrites
            python-cachetools
-           python-dataclasses
-           python-future
            python-h11
            python-h2
            python-jsonschema
-           python-logbook
            python-olm
            python-peewee
            python-pycryptodome
@@ -241,69 +227,73 @@ fledged batteries-included asyncio layer using aiohttp.")
     (license license:isc)))
 
 (define-public pantalaimon
-  (package
-    (name "pantalaimon")
-    (version "0.10.5")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/matrix-org/pantalaimon")
-             (commit version)))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32
-         "16ask8v00654q307c55q5gnm8hrj40gibpab5zl52v4i0bgl9j68"))))
-    (build-system python-build-system)
-    (arguments
-     (list
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'downgrade-appdirs-requirement
-            (lambda _
-              (substitute* "setup.py"
-                ;; FIXME: Remove this once appdirs is updated.
-                ;; Upgrading python-appdirs requires rebuilting 3000+ packages,
-                ;; when 1.4.4 is a simple maintenance fix from 1.4.3.
-                (("appdirs >= 1.4.4") "appdirs >= 1.4.3"))))
-          (add-after 'install 'install-doc
-            (lambda _
-              (with-directory-excursion "docs/man"
-                (let ((man (string-append #$output "/share/man")))
-                  (install-file "panctl.1" (string-append man "/man1"))
-                  (install-file "pantalaimon.5" (string-append man "/man5"))
-                  (install-file "pantalaimon.8" (string-append man "/man8"))))))
-          (replace 'check
-            (lambda* (#:key tests? inputs outputs #:allow-other-keys)
-              (when tests?
-                (add-installed-pythonpath inputs outputs)
-                (invoke "pytest" "-vv" "tests")))))))
-    (native-inputs
-     (list python-aioresponses
-           python-faker
-           python-pytest
-           python-pytest-aiohttp))
-    (propagated-inputs
-     (list python-aiohttp
-           python-appdirs
-           python-attrs
-           python-cachetools
-           python-click
-           python-dbus
-           python-janus
-           python-keyring
-           python-logbook
-           python-matrix-nio
-           python-notify2
-           python-peewee
-           python-prompt-toolkit
-           python-pydbus
-           python-pygobject))
-    (home-page "https://github.com/matrix-org/pantalaimon")
-    (synopsis "Matrix proxy daemon that adds E2E encryption capabilities")
-    (description
-     "Pantalaimon is an end-to-end encryption aware Matrix reverse proxy
+  (let ((commit "257ef6a2e5e5668cd43347037c09ba036f91d997")
+        (revision "0"))
+    (package
+      (name "pantalaimon")
+      (version (git-version "0.10.5" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/matrix-org/pantalaimon")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1i18mjlc143d2xwlha09i5ny06vipmy8fii05427zq5vjz8rysgx"))))
+      (build-system python-build-system)
+      (arguments
+       (list
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'relax-requirements
+              (lambda _
+                (substitute* "setup.py"
+                  ;; Newer version is packaged.
+                  (("\"matrix-nio\\[e2e\\] >= 0\\.24, < 0\\.25\\.2\"")
+                   "\"matrix-nio[e2e] >= 0.24, <= 0.25.2\""))))
+            (add-after 'install 'install-doc
+              (lambda _
+                (with-directory-excursion "docs/man"
+                  (let ((man (string-append #$output "/share/man")))
+                    (install-file "panctl.1" (string-append man "/man1"))
+                    (install-file "pantalaimon.5" (string-append man "/man5"))
+                    (install-file "pantalaimon.8" (string-append man "/man8"))))))
+            (replace 'check
+              (lambda* (#:key tests? inputs outputs #:allow-other-keys)
+                (when tests?
+                  (add-installed-pythonpath inputs outputs)
+                  (invoke "pytest" "-vv" "tests"
+                          ;; These tests hang.
+                          "--ignore=tests/proxy_test.py"
+                          "-k" "not test_start_loop")))))))
+      (native-inputs
+       (list python-aioresponses
+             python-faker
+             python-pytest
+             python-pytest-aiohttp
+             python-pytest-asyncio))
+      (propagated-inputs
+       (list python-aiohttp
+             python-attrs
+             python-cachetools
+             python-click
+             python-dbus
+             python-janus
+             python-keyring
+             python-logbook
+             python-matrix-nio
+             python-notify2
+             python-peewee
+             python-platformdirs
+             python-prompt-toolkit
+             python-pydbus
+             python-pygobject))
+      (home-page "https://github.com/matrix-org/pantalaimon")
+      (synopsis "Matrix proxy daemon that adds E2E encryption capabilities")
+      (description
+       "Pantalaimon is an end-to-end encryption aware Matrix reverse proxy
 daemon.  Pantalaimon acts as a good man in the middle that handles the
 encryption for you.  Messages are transparently encrypted and decrypted for
 clients inside of pantalaimon.")
-    (license license:asl2.0)))
+      (license license:asl2.0))))

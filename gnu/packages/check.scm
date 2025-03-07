@@ -7,7 +7,7 @@
 ;;; Copyright © 2015, 2017 Cyril Roelandt <tipecaml@gmail.com>
 ;;; Copyright © 2015 Federico Beffa <beffa@fbengineering.ch>
 ;;; Copyright © 2015 Andreas Enge <andreas@enge.fr>
-;;; Copyright © 2015, 2016, 2018-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015, 2016, 2018-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016, 2017 Leo Famulari <leo@famulari.name>
 ;;; Copyright © 2016 Christine Lemmer-Webber <cwebber@dustycloud.org>
 ;;; Copyright © 2016, 2017 Danny Milosavljevic <dannym+a@scratchpost.org>
@@ -24,7 +24,7 @@
 ;;; Copyright © 2017, 2019 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2017, 2019 Kei Kebreau <kkebreau@posteo.net>
 ;;; Copyright © 2017 Nikita <nikita@n0.is>
-;;; Copyright © 2015, 2017, 2018, 2020, 2021, 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015, 2017, 2018, 2020, 2021, 2023, 2024, 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2016-2022 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2017-2018, 2020-2021, 2024 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2018 Fis Trivial <ybbs.daans@hotmail.com>
@@ -32,6 +32,7 @@
 ;;; Copyright © 2019 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2020 Lars-Dominik Braun <ldb@leibniz-psychology.org>
 ;;; Copyright © 2020 Brice Waegeneire <brice@waegenei.re>
+;;; Copyright © 2020 Danny Milosavljevic <dannym@scratchpost.org>
 ;;; Copyright © 2020 Josh Marshall <joshua.r.marshall.1991@gmail.com>
 ;;; Copyright © 2020 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2020 Tanguy Le Carrour <tanguy@bioneland.org>
@@ -51,7 +52,8 @@
 ;;; Copyright © 2024 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2024 Navid Afkhami <navid.afkhami@mdc-berlin.de>
-;;; Copyright © 2024 gemmaro <gemmaro.dev@gmail.com>
+;;; Copyright © 2024, 2025 gemmaro <gemmaro.dev@gmail.com>
+;;; Copyright © 2024 Ashvith Shetty <ashvithshetty10@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -95,6 +97,8 @@
   #:use-module (gnu packages maths)
   #:use-module (gnu packages ncurses)
   #:use-module (gnu packages perl)
+  #:use-module (gnu packages perl-check)
+  #:use-module (gnu packages php)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-check)
@@ -119,6 +123,7 @@
   #:use-module (guix build-system go)
   #:use-module (guix build-system guile)
   #:use-module (guix build-system meson)
+  #:use-module (guix build-system perl)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
   #:use-module (guix build-system trivial)
@@ -920,7 +925,7 @@ has been designed to be fast, light and unintrusive.")
 
 (define-public ftest
   ;; There aren't any releases and it looks more like a small side project.
-  ;; It is included for completness to run tests for package utfcpp.
+  ;; It is included for completeness to run tests for package utfcpp.
   (let ((commit "c4ad4af0946b73ce1a40cbc72205d15d196c7e06")
         (revision "0"))
     (package
@@ -1123,6 +1128,53 @@ generation.")
 similar to unit tests.")
     (license license:asl2.0)))
 
+(define-public gotestsum
+  (package
+    (name "gotestsum")
+    (version "1.12.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/gotestyourself/gotestsum")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0fx92jh6ay4rk1ljbgp9b2m4fafqwy0a19q7lhdabgb1j8dvgxvs"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:import-path "gotest.tools/gotestsum"
+      #:test-flags
+      #~(list "-skip"
+              (string-join
+               (list "TestE2E_IgnoresWarnings"
+                     "TestE2E_MaxFails_EndTestRun"
+                     "TestScanTestOutput_TestTimeoutPanicRace/panic-race-2")
+               "|"))
+      ;; Run just unit test, integration tests from "testjson" require: run
+      ;; 'go test . -update' to automatically update
+      ;; testdata/summary/with-run-id to the new expected value.'
+      #:test-subdirs #~(list "cmd/..." "internal/...")))
+    (native-inputs
+     (list go-github-com-bitfield-gotestdox
+           go-github-com-dnephin-pflag
+           go-github-com-fatih-color
+           go-github-com-fsnotify-fsnotify
+           go-github-com-google-go-cmp
+           go-github-com-google-shlex
+           go-golang-org-x-sync
+           go-golang-org-x-sys
+           go-golang-org-x-term
+           go-golang-org-x-tools
+           go-gotest-tools-v3))
+    (synopsis "Go test runner with output optimized for humans")
+    (description "This package provides a @code{go test} runner with output
+optimized for humans, JUnit XML for CI integration, and a summary of the
+test results.")
+    (home-page "https://github.com/gotestyourself/gotestsum")
+    (license license:asl2.0)))
+
 (define-public greatest
   (package
    (name "greatest")
@@ -1300,7 +1352,7 @@ but it works for any C/C++ project.")
 (define-public actionlint
   (package
     (name "actionlint")
-    (version "1.7.2")
+    (version "1.7.6")
     (source
      (origin
        (method git-fetch)
@@ -1309,7 +1361,7 @@ but it works for any C/C++ project.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1rgsxv4clgfyl4gr8bjk81p4b87c6hr34flxzw6011h0vjc54n7x"))))
+        (base32 "1waq9v48pbys8b8qmmvl0wi77jzri033fh8194gcwfzipvxb6y9l"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -1321,13 +1373,16 @@ but it works for any C/C++ project.")
       #:unpack-path "github.com/rhysd/actionlint"))
     ;; XXX: Install Man page, wrap with shellcheck and pyflakes.
     (native-inputs
-     (list go-github-com-fatih-color
+     (list go-github-com-bmatcuk-doublestar-v4
+           go-github-com-fatih-color
+           go-github-com-google-go-cmp
            go-github-com-mattn-go-colorable
            go-github-com-mattn-go-runewidth
-           go-github-com-robfig-cron
+           go-github-com-mattn-go-shellwords
+           go-github-com-robfig-cron-v3
+           go-github-com-yuin-goldmark
            go-golang-org-x-sync
-           go-golang-org-x-sync
-           go-github-com-google-go-cmp
+           go-golang-org-x-sys
            go-gopkg-in-yaml-v3))
     (home-page "https://rhysd.github.io/actionlint/")
     (synopsis "Static checker for GitHub Actions workflow files")
@@ -1985,33 +2040,6 @@ Python's @code{random.seed}.")
 @file{setup.py} files can use to run tests.")
     (license license:expat)))
 
-(define-public python-pytest-lazy-fixture
-  (package
-    (name "python-pytest-lazy-fixture")
-    (version "0.6.3")
-    (source
-      (origin
-        (method url-fetch)
-        (uri (pypi-uri "pytest-lazy-fixture" version))
-        (sha256
-         (base32 "1b0hmnsxw4s2wf9pks8dg6dfy5cx3zcbzs8517lfccxsfizhqz8f"))))
-    (build-system python-build-system)
-    (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             ;; Make the installed plugin discoverable by Pytest.
-             (add-installed-pythonpath inputs outputs)
-             (invoke "pytest" "-vv"))))))
-    (propagated-inputs
-     (list python-pytest))
-    (home-page "https://github.com/tvorog/pytest-lazy-fixture")
-    (synopsis "Use fixtures in @code{pytest.mark.parametrize}")
-    (description "This plugin helps to use fixtures in
-@code{pytest.mark.parametrize}.")
-    (license license:expat)))
-
 (define-public python-pytest-lazy-fixtures
   (package
     (name "python-pytest-lazy-fixtures")
@@ -2184,6 +2212,9 @@ side-effects (such as setting environment variables).")
     (build-system python-build-system)
     (native-inputs
      (list python-pytest))
+    (arguments
+     ;; Tests not shipped with PyPI archive, and require TLS CA cert.
+     (list #:tests? #f))
     (home-page (string-append "https://web.archive.org/web/20161029233413/"
                               "http://pythonpaste.org/scripttest/"))
     (synopsis "Python library to test command-line scripts")
@@ -2195,19 +2226,21 @@ subprocess and see the output as well as any file modifications.")
 (define-public python-testtools-bootstrap
   (package
     (name "python-testtools-bootstrap")
-    (version "2.6.0")
+    (version "2.7.2")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "testtools" version))
        (sha256
         (base32
-         "02mkphygx8897617m8qnmj0alksyvvfcjmazzfxyrlzjq0a5xdi8"))))
-    (build-system python-build-system)
-    (arguments '(#:tests? #f))
+         "18vy77n4ab2dvgx5ni6gfp2d0haxhh3yrkm6mih8n3zsy30vprav"))))
+    (build-system pyproject-build-system)
+    (arguments (list #:tests? #f))
     (propagated-inputs
-     `(("python-fixtures" ,python-fixtures-bootstrap)
-       ("python-pbr" ,python-pbr-minimal)))
+     (list python-fixtures-bootstrap python-pbr-minimal))
+    (native-inputs
+     (list python-hatchling python-hatch-vcs
+           python-setuptools)) ;due to python-pbr-minimal
     (home-page "https://github.com/testing-cabal/testtools")
     (synopsis
      "Extensions to the Python standard library unit testing framework")
@@ -2220,17 +2253,31 @@ subprocess and see the output as well as any file modifications.")
     (inherit python-testtools-bootstrap)
     (name "python-testtools")
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
+     (list
+      #:phases
+      '(modify-phases %standard-phases
          (replace 'check
            (lambda* (#:key tests? #:allow-other-keys)
              (when tests?
+               ;; There are six failing tests:
+               ;; "test_fast_keyboard_interrupt_stops_test_run"
+               ;; "test_keyboard_interrupt_stops_test_run"
+               ;; "test_fast_sigint_raises_no_result_error"
+               ;; "test_fast_sigint_raises_no_result_error_second_time"
+               ;; "test_sigint_raises_no_result_error"
+               ;; "test_sigint_raises_no_result_error_second_time"
+               (substitute* "testtools/tests/twistedsupport/__init__.py"
+                 (("test_spinner,") "")
+                 (("test_runtest,") ""))
                (invoke "python" "-m" "testtools.run"
                        "testtools.tests.test_suite")))))))
     (propagated-inputs
      (list python-fixtures python-pbr))
     (native-inputs
-     `(("python-testscenarios" ,python-testscenarios-bootstrap)))
+     (list python-hatchling python-hatch-vcs
+           python-testscenarios-bootstrap
+           python-twisted
+           python-setuptools)) ;due to python-pbr
     (description
      "Testtools extends the Python standard library unit testing framework to
 provide matchers, more debugging information, and cross-Python
@@ -2546,6 +2593,23 @@ to make testing async code easier.")
        (sha256
         (base32 "1lz4h8y6m6hxnsl7kqh0rjxqp5q2wc2m5gd88371rikd7ari16vm"))))))
 
+(define-public python-pytest-asyncio-0.21
+  (package
+    (inherit python-pytest-asyncio)
+    (version "0.21.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pytest_asyncio" version))
+       (sha256
+        (base32 "0iag2lmglfajiasxi3dr2110gq0nxc5paq6hp4kb751b4gy3hxyn"))))
+    (native-inputs
+     (list python-flaky
+           python-pytest-trio
+           python-setuptools-scm
+           python-setuptools
+           python-wheel))))
+
 (define-public python-cov-core
   (package
     (name "python-cov-core")
@@ -2594,7 +2658,7 @@ C/C++, R, and more, and uploads it to the @code{codecov.io} service.")
 (define-public python-testpath
   (package
     (name "python-testpath")
-    (version "0.5.0")
+    (version "0.6.0")
     (source
      (origin
        (method git-fetch)
@@ -2604,32 +2668,11 @@ C/C++, R, and more, and uploads it to the @code{codecov.io} service.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "08r1c6bhvj8pcdvzkqv1950k36a6q3v81fd2p1yqdq3c07mcwgif"))))
-    (build-system python-build-system)
-    (arguments
-     (list
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'relax-requirements
-            (lambda _
-              (substitute* "pyproject.toml"
-                (("flit_core >=3.2.0,<3.3")
-                 "flit_core >=3.2.0"))))
-          ;; XXX: PEP 517 manual build copied from python-isort.
-          (replace 'build
-            (lambda _
-              (invoke "python" "-m" "build" "--wheel" "--no-isolation" ".")))
-          (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (when tests?
-               (invoke "pytest"))))
-          (replace 'install
-            (lambda _
-              (let ((whl (car (find-files "dist" "\\.whl$"))))
-                (invoke "pip" "--no-cache-dir" "--no-input"
-                        "install" "--no-deps" "--prefix" #$output whl)))))))
+         "0pib1xsvjwwyyhv0sqzxvgg814k83dmv1ppwfkkq9llkhr8k7s9y"))))
+    (build-system pyproject-build-system)
     (native-inputs
-     (list python-pypa-build python-flit-core python-pytest))
+     (list python-flit-core
+           python-pytest))
     (home-page "https://github.com/jupyter/testpath")
     (synopsis "Test utilities for code working with files and commands")
     (description
@@ -2714,6 +2757,15 @@ enables you to test server connections locally.")
        (sha256
         (base32 "03y61h42sc343ddhsz7glxmv9ga83k4grrayfmbbrsl6fmip1qhm"))))
     (build-system pyproject-build-system)
+    (arguments
+     (if (target-riscv64?)
+         (list
+          #:test-flags
+          #~(list "-k"
+                  ;; Unclear why these tests are failing on riscv64-linux.
+                  (string-append "not test_startup_without_pattern"
+                                 " and not test_startup_with_pattern_and_callback")))
+         '()))
     (native-inputs
      (list python-setuptools
            python-setuptools-scm
@@ -2741,11 +2793,11 @@ across test runs.")
     (propagated-inputs
      (list python-pytest))
     (synopsis "Set-up and tear-down fixtures for unit tests")
-    (description "This plugin allows you to set up and tear down fixtures within
-unit test functions that use @code{py.test}. This is useful for using
-@command{hypothesis} inside py.test, as @command{hypothesis} will call the test
-function multiple times, without setting up or tearing down fixture state as is
-normally the case.")
+    (description "This plugin allows you to set up and tear down fixtures
+within unit test functions that use @code{py.test}.  This is useful for using
+@command{hypothesis} inside py.test, as @command{hypothesis} will call the
+test function multiple times, without setting up or tearing down fixture state
+as is normally the case.")
     (home-page "https://github.com/untitaker/pytest-subtesthack/")
     (license license:unlicense)))
 
@@ -2983,7 +3035,16 @@ by the test.")
     (build-system pyproject-build-system)
     (arguments
      (list
-      #:test-flags #~(list "--numprocesses" "auto")))
+      #:test-flags #~(list "--numprocesses" "auto")
+      #:phases
+      (if (target-riscv64?)
+          #~(modify-phases %standard-phases
+              (add-after 'unpack 'extend-test-timeout
+                (lambda _
+                  ;; Some architectures need an even longer timeout.
+                  (substitute* "tests/test_pytest_mypy.py"
+                    (("60\\.0") "180.0")))))
+          #~%standard-phases)))
     (native-inputs
      (list python-pexpect
            python-pytest-xdist
@@ -3656,14 +3717,15 @@ time by mocking the datetime module.")
 (define-public python-flexmock
   (package
     (name "python-flexmock")
-    (version "0.10.4")
+    (version "0.12.2")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "flexmock" version))
               (sha256
                (base32
-                "0b6qw3grhgx58kxlkj7mdma7xdvlj02zabvcf7w2qifnfjwwwcsh"))))
-    (build-system python-build-system)
+                "18dcr7mpldf3cxsqi9rak75n4z7x3j544l4ixdspairm7cf6cp23"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list poetry python-pytest))
     (home-page "https://flexmock.readthedocs.org")
     (synopsis "Testing library for Python")
     (description
@@ -3804,6 +3866,107 @@ encoders that reject @emph{invalid} tests pass the tests, and decoders that
 accept @emph{valid} tests and output precisely what is expected pass the
 tests.  The output format is JSON.")
     (license license:expat)))
+
+(define-public trompeloeil
+  (package
+    (name "trompeloeil")
+    (version "49")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/rollbear/trompeloeil")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0m4bfzcj033qfk3sihbikrhk9krsdbsqk79nsambnsnqqcgc2903"))))
+    (build-system cmake-build-system)
+    (arguments
+     (append
+      (if (%current-target-system)
+          (list)
+          (list #:configure-flags #~(list "-DTROMPELOEIL_BUILD_TESTS=yes")))
+      (list
+       #:test-target "test/self_test"
+       #:phases #~(modify-phases %standard-phases
+                    (replace 'check
+                      (lambda* (#:key tests? test-target #:allow-other-keys)
+                        (when tests?
+                          (invoke test-target))))))))
+    (native-inputs (list catch2-3))
+    (home-page "https://github.com/rollbear/trompeloeil")
+    (synopsis "Header only C++14 mocking framework")
+    (description
+     "Trompeloeil is a thread-safe header-only mocking framework for C++11/14.")
+    (license license:boost1.0)))
+
+(define-public tidyall
+  (package
+    (name "tidyall")
+    (version "0.84")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append
+             "mirror://cpan/authors/id/D/DR/DROLSKY/Code-TidyAll-" version
+             ".tar.gz"))
+       (sha256
+        (base32 "1xxil8yfbd4nizwaaris07sp441nhx3ixr4qj13l1x6pxphi9h5k"))))
+    (build-system perl-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (delete 'remove-command-line-tool)
+                   (add-after 'install 'wrap-programs
+                     (lambda _
+                       (wrap-program (string-append #$output "/bin/tidyall")
+                         (list "PERL5LIB" ":"
+                               'prefix
+                               (list (getenv "PERL5LIB")
+                                     (string-append #$output
+                                                    "/lib/perl5/site_perl")))))))))
+    (native-inputs (list perl-test-class-most
+                         perl-test-differences
+                         perl-test-fatal
+                         perl-test-warnings
+                         perl-lib-relative
+                         php))
+    (inputs (list bash-minimal))
+    (propagated-inputs (list perl-capture-tiny
+                             perl-config-ini
+                             perl-timedate
+                             perl-file-which
+                             perl-ipc-run3
+                             perl-ipc-system-simple
+                             perl-list-compare
+                             perl-list-someutils
+                             perl-log-any
+                             perl-module-runtime
+                             perl-moo-2
+                             perl-path-tiny
+                             perl-scope-guard
+                             perl-specio
+                             perl-specio-library-path-tiny
+                             perl-text-diff
+                             perl-time-duration-parse
+                             perl-try-tiny
+                             perl-parallel-forkmanager
+                             perl-file-pushd))
+    (home-page "https://metacpan.org/release/Code-TidyAll")
+    (synopsis "Engine for tidyall, your all-in-one code tidier and validator")
+    (description
+     "@command{tidyall} makes a lot of code tidiers and validators available
+from a single unified interface.  You can run @command{tidyall} on a
+single file or on an entire project hierarchy, and configure which
+tidiers/validators are applied to which files.  @command{tidyall} will
+back up files beforehand, and for efficiency will only consider files
+that have changed since they were last processed.
+
+Note that if you see some missing tidier or validator modules error,
+you can let tidyall load them after install them.  For example, one
+can run @code{guix shell perl-perl-tidy perl} in advance to load
+@code{Perl::Tidy}.")
+    (license license:perl-license)))
 
 (define-public unittest-cpp
   (package
@@ -4278,6 +4441,7 @@ data.")
      ;; Tests require pytest < 6
      (list #:tests? #f))
     (propagated-inputs (list python-pytest python-tornado))
+    (native-inputs (list python-setuptools python-wheel))
     (home-page "https://github.com/vidartf/pytest-tornado")
     (synopsis
      "Fixtures and markers to simplify testing of Tornado applications")
@@ -4394,3 +4558,43 @@ helpers for writing tests.")
 command line filters to process a subunit stream and language bindings for
 Python, C, C++ and shell.  Bindings are easy to write for other languages.")
     (license (list license:asl2.0 license:bsd-3)))) ;user can pick
+
+(define-public munit
+  ;; Last release in 2016, see also <https://github.com/nemequ/munit/issues/95>.
+  (let ((commit "fbbdf1467eb0d04a6ee465def2e529e4c87f2118")
+        (revision "1"))
+    (package
+      (name "munit")
+      (version (git-version "0.2.0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/nemequ/munit")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "13725v4pps2bpndniksa58nqi9gvx0f0900k0rqvp95bxw5z8vda"))))
+      (build-system meson-build-system)
+      (arguments
+       (list
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'fix-install
+              ;; munit is paradoxically configured to only be installed
+              ;; when built as a subproject.
+              ;; See <https://github.com/nemequ/munit/pull/67> for a
+              ;; pull request that aims to fix this.  As we don't care about
+              ;; bundling scenarios (or rather: aim to unbundle everything),
+              ;; install it unconditionally.
+              (lambda _
+                (substitute* "meson.build"
+                  (("install: meson.is_subproject\\(\\)")
+                   "install: true")))))))
+      (synopsis "Small unit testing framework for C")
+      (description
+       "µnit is a small testing framework for C with nested test suites,
+parameterized tests, timing of the wall clock and CPU time, reproducible
+random number generation, and more.")
+      (home-page "https://nemequ.github.io/munit/")
+      (license license:x11))))

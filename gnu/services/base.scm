@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2013-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2013-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2015, 2016 Alex Kost <alezost@gmail.com>
 ;;; Copyright © 2015, 2016, 2020 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2015 Sou Bunnbu <iyzsong@gmail.com>
@@ -16,12 +16,13 @@
 ;;; Copyright © 2021 qblade <qblade@protonmail.com>
 ;;; Copyright © 2021 Hui Lu <luhuins@163.com>
 ;;; Copyright © 2021, 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
-;;; Copyright © 2021 muradm <mail@muradm.net>
+;;; Copyright © 2021, 2025 muradm <mail@muradm.net>
 ;;; Copyright © 2022 Guillaume Le Vaillant <glv@posteo.net>
 ;;; Copyright © 2022 Justin Veilleux <terramorpha@cock.li>
 ;;; Copyright © 2022 ( <paren@disroot.org>
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024 Andreas Enge <andreas@enge.fr>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -224,6 +225,7 @@
             guix-configuration-build-group
             guix-configuration-build-accounts
             guix-configuration-build-machines
+            guix-configuration-chroot?
             guix-configuration-authorize-key?
             guix-configuration-authorized-keys
             guix-configuration-use-substitutes?
@@ -274,9 +276,12 @@
             greetd-service-type
             greetd-configuration
             greetd-terminal-configuration
+            greetd-user-session
             greetd-agreety-session
-            greetd-wlgreet-session
+            greetd-wlgreet-session  ; deprecated
+            greetd-wlgreet-configuration
             greetd-wlgreet-sway-session
+            greetd-gtkgreet-sway-session
 
             %base-services))
 
@@ -716,7 +721,7 @@ down.")))
 
       (shepherd-service
         (documentation "Add TRNG to entropy pool.")
-        (requirement '(udev))
+        (requirement '(user-processes udev))
         (provision '(trng))
         (start #~(make-forkexec-constructor '#$rngd-command))
         (stop #~(make-kill-destructor))))
@@ -1679,18 +1684,26 @@ reload its settings file.")))
    (start #~(make-forkexec-constructor
              (list #$(syslog-configuration-syslogd config)
                    ;; the -f option here is compatible with rsyslog
-                   #$(string-append "-f " syslog.conf)
+                   "-f" #$syslog.conf
                    #$@(syslog-configuration-extra-options config))
              #:file-creation-mask #o137
              #:pid-file "/var/run/syslog.pid"))
    (stop #~(make-kill-destructor))))
+
+(define %default-syslog-files
+  ;; List of files usually produced by syslogd that should be rotated.
+  '("/var/log/messages" "/var/log/secure" "/var/log/debug"
+    "/var/log/maillog"))
 
 (define syslog-service-type
   (service-type
    (name 'syslog)
    (default-value (syslog-configuration))
    (extensions (list (service-extension shepherd-root-service-type
-                                        (compose list syslog-shepherd-service))
+                                        (compose list
+                                                 syslog-shepherd-service))
+                     (service-extension log-rotation-service-type
+                                        (const %default-syslog-files))
                      (service-extension etc-service-type syslog-etc)))
    (description "Run the syslog daemon, @command{syslogd}, which is
 responsible for logging system messages.")))
@@ -1913,6 +1926,8 @@ archive' public keys, with GUIX."
                     (default "guixbuild"))
   (build-accounts   guix-configuration-build-accounts ;integer
                     (default 10))
+  (chroot?          guix-configuration-chroot? ;Boolean | 'default
+                    (default 'default))
   (authorize-key?   guix-configuration-authorize-key? ;Boolean
                     (default #t))
   (authorized-keys  guix-configuration-authorized-keys ;list of gexps
@@ -2014,7 +2029,7 @@ proxy of 'guix-daemon'...~%")
           glibc-utf8-locales)))
 
   (match-record config <guix-configuration>
-    (guix build-group build-accounts authorize-key? authorized-keys
+    (guix build-group build-accounts chroot? authorize-key? authorized-keys
           use-substitutes? substitute-urls max-silent-time timeout
           log-compression discover? extra-options log-file
           http-proxy tmpdir chroot-directories environment
@@ -2084,6 +2099,9 @@ proxy of 'guix-daemon'...~%")
                           "--substitute-urls" #$(string-join substitute-urls)
                           #$@extra-options
 
+                          #$@(if chroot?
+                                 '()
+                                 '("--disable-chroot"))
                           ;; Add CHROOT-DIRECTORIES and all their dependencies
                           ;; (if these are store items) to the chroot.
                           (append-map
@@ -2354,12 +2372,6 @@ raise a deprecation warning if the 'compression-level' field was used."
          (home-directory "/var/empty")
          (shell (file-append shadow "/sbin/nologin")))))
 
-(define %guix-publish-log-rotations
-  (list (log-rotation
-         (files (list "/var/log/guix-publish.log"))
-         (options `("rotate 4"                    ;don't keep too many of them
-                    ,@%default-log-rotation-options)))))
-
 (define (guix-publish-activation config)
   (let ((cache (guix-publish-configuration-cache config)))
     (if cache
@@ -2381,8 +2393,6 @@ raise a deprecation warning if the 'compression-level' field was used."
                                           guix-publish-shepherd-service)
                        (service-extension account-service-type
                                           (const %guix-publish-accounts))
-                       (service-extension rottlog-service-type
-                                          (const %guix-publish-log-rotations))
                        (service-extension activation-service-type
                                           guix-publish-activation)))
                 (default-value (guix-publish-configuration))
@@ -2781,7 +2791,7 @@ NAME-udev-hardware."
   (match-record config <gpm-configuration>
     (gpm options)
     (list (shepherd-service
-           (requirement '(udev))
+           (requirement '(user-processes udev))
            (provision '(gpm))
            ;; 'gpm' runs in the background and sets a PID file.
            ;; Note that it requires running as "root".
@@ -3055,172 +3065,150 @@ to CONFIG."
   ;; The Hurd implements SIOCGIFADDR and other old-style ioctls, but the only
   ;; way to set up IPv6 is by starting pfinet with the right options.
   (if (equal? (static-networking-provision config) '(loopback))
-      (scheme-file "set-up-pflocal" #~(begin 'nothing-to-do! #t))
-      (scheme-file "set-up-pfinet"
-                   (with-imported-modules '((guix build utils))
-                     #~(begin
-                         (use-modules (guix build utils)
-                                      (ice-9 format))
+      (program-file "set-up-pflocal" #~(begin 'nothing-to-do! #t))
+      (program-file "set-up-pfinet"
+                    (with-imported-modules '((guix build utils))
+                      #~(begin
+                          (use-modules (guix build utils)
+                                       (ice-9 format))
 
-                         ;; TODO: Do that without forking.
-                         (let ((options '#$(static-networking->hurd-pfinet-options
-                                            config)))
-                           (format #t "starting '~a~{ ~s~}'~%"
+                          ;; TODO: Do that without forking.
+                          (let ((options '#$(static-networking->hurd-pfinet-options
+                                             config)))
+                            (format #t "starting '~a~{ ~s~}'~%"
+                                    #$(file-append hurd "/hurd/pfinet")
+                                    options)
+                            (apply invoke #$(file-append hurd "/bin/settrans")
+                                   "--active"
+                                   "--create"
+                                   "--keep-active"
+                                   "/servers/socket/2"
                                    #$(file-append hurd "/hurd/pfinet")
-                                   options)
-                           (apply invoke #$(file-append hurd "/bin/settrans")
-                                  "--active"
-                                  "--create"
-                                  "--keep-active"
-                                  "/servers/socket/2"
-                                  #$(file-append hurd "/hurd/pfinet")
-                                  options)))))))
+                                   options)))))))
 
 (define (network-tear-down/hurd config)
-  (scheme-file "tear-down-pfinet"
-               (with-imported-modules '((guix build utils))
-                 #~(begin
-                     (use-modules (guix build utils))
+  (program-file "tear-down-pfinet"
+                (with-imported-modules '((guix build utils))
+                  #~(begin
+                      (use-modules (guix build utils))
 
-                     ;; Forcefully terminate pfinet.  XXX: In theory this
-                     ;; should just undo the addresses and routes of CONFIG;
-                     ;; this could be done using ioctls like SIOCDELRT, but
-                     ;; these are IPv4-only; another option would be to use
-                     ;; fsysopts but that seems to crash pfinet.
-                     (invoke #$(file-append hurd "/bin/settrans") "-fg"
-                             "/servers/socket/2")
-                     #f))))
+                      ;; Forcefully terminate pfinet.  XXX: In theory this
+                      ;; should just undo the addresses and routes of CONFIG;
+                      ;; this could be done using ioctls like SIOCDELRT, but
+                      ;; these are IPv4-only; another option would be to use
+                      ;; fsysopts but that seems to crash pfinet.
+                      (invoke #$(file-append hurd "/bin/settrans") "-fg"
+                              "/servers/socket/2")
+                      #f))))
 
 (define (network-set-up/linux config)
+  (define max-set-up-duration
+    ;; Maximum waiting time in seconds for devices to be up.
+    60)
+
   (match-record config <static-networking>
     (addresses links routes)
-    (scheme-file "set-up-network"
-                 (with-extensions (list guile-netlink)
-                   #~(begin
-                       (use-modules (ip addr) (ip link) (ip route)
-                                    (srfi srfi-1)
-                                    (ice-9 format)
-                                    (ice-9 match))
+    (program-file "set-up-network"
+                  (with-extensions (list guile-netlink)
+                    #~(begin
+                        (use-modules (ip addr) (ip link) (ip route)
+                                     (srfi srfi-1)
+                                     (ice-9 format)
+                                     (ice-9 match))
 
-                       (define (match-link-by field-accessor value)
-                         (fold (lambda (link result)
-                                 (if (equal? (field-accessor link) value)
-                                     link
-                                     result))
-                               #f
-                               (get-links)))
+                        (define (match-link-by field-accessor value)
+                          (fold (lambda (link result)
+                                  (if (equal? (field-accessor link) value)
+                                      link
+                                      result))
+                                #f
+                                (get-links)))
 
-                       (define (alist->keyword+value alist)
-                         (fold (match-lambda*
-                                 (((k . v) r)
-                                  (cons* (symbol->keyword k) v r))) '() alist))
+                        (define (alist->keyword+value alist)
+                          (fold (match-lambda*
+                                  (((k . v) r)
+                                   (cons* (symbol->keyword k) v r))) '() alist))
 
-                       ;; FIXME: It is interesting that "modprobe bonding" creates an
-                       ;; interface bond0 straigt away.  If we won't have bonding
-                       ;; module, and execute `ip link add name bond0 type bond' we
-                       ;; will get
-                       ;;
-                       ;; RTNETLINK answers: File exists
-                       ;;
-                       ;; This breaks our configuration if we want to
-                       ;; use `bond0' name.  Create (force modprobe
-                       ;; bonding) and delete the interface to free up
-                       ;; bond0 name.
-                       #$(let lp ((links links))
-                           (cond
-                            ((null? links) #f)
-                            ((and (network-link? (car links))
-                                  ;; Type is not mandatory
-                                  (false-if-exception
-                                   (eq? (network-link-type (car links)) 'bond)))
-                             #~(begin
-                                 (false-if-exception (link-add "bond0" "bond"))
-                                 (link-del "bond0")))
-                            (else (lp (cdr links)))))
+                        ;; FIXME: It is interesting that "modprobe bonding" creates an
+                        ;; interface bond0 straigt away.  If we won't have bonding
+                        ;; module, and execute `ip link add name bond0 type bond' we
+                        ;; will get
+                        ;;
+                        ;; RTNETLINK answers: File exists
+                        ;;
+                        ;; This breaks our configuration if we want to
+                        ;; use `bond0' name.  Create (force modprobe
+                        ;; bonding) and delete the interface to free up
+                        ;; bond0 name.
+                        #$(let lp ((links links))
+                            (cond
+                             ((null? links) #f)
+                             ((and (network-link? (car links))
+                                   ;; Type is not mandatory
+                                   (false-if-exception
+                                    (eq? (network-link-type (car links)) 'bond)))
+                              #~(begin
+                                  (false-if-exception (link-add "bond0" "bond"))
+                                  (link-del "bond0")))
+                             (else (lp (cdr links)))))
 
-                       #$@(map (match-lambda
-                                 (($ <network-link> name type mac-address arguments)
-                                  (cond
-                                   ;; Create a new interface
-                                   ((and (string? name) (symbol? type))
-                                    #~(begin
-                                        (link-add #$name (symbol->string '#$type) #:type-args '#$arguments)
-                                        ;; XXX: If we add routes, addresses must be
-                                        ;; already assigned, and interfaces must be
-                                        ;; up. It doesn't matter if they won't have
-                                        ;; carrier or anything.
-                                        (link-set #$name #:up #t)))
+                        #$@(map (match-lambda
+                                  (($ <network-link> name type mac-address arguments)
+                                   (cond
+                                    ;; Create a new interface
+                                    ((and (string? name) (symbol? type))
+                                     #~(begin
+                                         (link-add #$name (symbol->string '#$type) #:type-args '#$arguments)
+                                         ;; XXX: If we add routes, addresses must be
+                                         ;; already assigned, and interfaces must be
+                                         ;; up. It doesn't matter if they won't have
+                                         ;; carrier or anything.
+                                         (link-set #$name #:up #t)))
 
-                                   ;; Amend an existing interface
-                                   ((and (string? name)
-                                         (eq? type #f))
-                                    #~(let ((link (match-link-by link-name #$name)))
-                                        (if link
-                                            (apply link-set
-                                                   (link-id link)
-                                                   (alist->keyword+value '#$arguments))
-                                            (format #t (G_ "Interface with name '~a' not found~%") #$name))))
-                                   ((string? mac-address)
-                                    #~(let ((link (match-link-by link-addr #$mac-address)))
-                                        (if link
-                                            (apply link-set
-                                                   (link-id link)
-                                                   (alist->keyword+value '#$arguments))
-                                            (format #t (G_ "Interface with mac-address '~a' not found~%") #$mac-address)))))))
-                                        links)
+                                    ;; Amend an existing interface
+                                    ((and (string? name)
+                                          (eq? type #f))
+                                     #~(let ((link (match-link-by link-name #$name)))
+                                         (if link
+                                             (apply link-set
+                                                    (link-id link)
+                                                    (alist->keyword+value '#$arguments))
+                                             (format #t (G_ "Interface with name '~a' not found~%") #$name))))
+                                    ((string? mac-address)
+                                     #~(let ((link (match-link-by link-addr #$mac-address)))
+                                         (if link
+                                             (apply link-set
+                                                    (link-id link)
+                                                    (alist->keyword+value '#$arguments))
+                                             (format #t (G_ "Interface with mac-address '~a' not found~%") #$mac-address)))))))
+                                links)
 
-                       #$@(map (lambda (address)
-                                 #~(begin
-                                     ;; Before going any further, wait for the
-                                     ;; device to show up.
-                                     (wait-for-link
-                                      #$(network-address-device address)
-                                      #:blocking? #f)
+                        ;; 'wait-for-link' below could wait forever when
+                        ;; passed a non-existent device.  To ensure timely
+                        ;; completion, install an alarm.
+                        (alarm #$max-set-up-duration)
 
-                                     (addr-add #$(network-address-device address)
-                                               #$(network-address-value address)
-                                               #:ipv6?
-                                               #$(network-address-ipv6? address))
-                                     ;; FIXME: loopback?
-                                     (link-set #$(network-address-device address)
-                                               #:multicast-on #t
-                                               #:up #t)))
-                               addresses)
+                        #$@(map (lambda (address)
+                                  #~(let ((device
+                                           #$(network-address-device address)))
+                                      ;; Before going any further, wait for the
+                                      ;; device to show up.
+                                      (format #t "Waiting for network device '~a'...~%"
+                                              device)
+                                      (wait-for-link device)
 
-                       #$@(map (lambda (route)
-                                 #~(route-add #$(network-route-destination route)
-                                              #:device
-                                              #$(network-route-device route)
-                                              #:ipv6?
-                                              #$(network-route-ipv6? route)
-                                              #:via
-                                              #$(network-route-gateway route)
-                                              #:src
-                                              #$(network-route-source route)))
-                               routes)
-                       #t)))))
+                                      (addr-add #$(network-address-device address)
+                                                #$(network-address-value address)
+                                                #:ipv6?
+                                                #$(network-address-ipv6? address))
+                                      ;; FIXME: loopback?
+                                      (link-set #$(network-address-device address)
+                                                #:multicast-on #t
+                                                #:up #t)))
+                                addresses)
 
-(define (network-tear-down/linux config)
-  (match-record config <static-networking>
-    (addresses links routes)
-    (scheme-file "tear-down-network"
-                 (with-extensions (list guile-netlink)
-                   #~(begin
-                       (use-modules (ip addr) (ip link) (ip route)
-                                    (netlink error)
-                                    (srfi srfi-34))
-
-                       (define-syntax-rule (false-if-netlink-error exp)
-                         (guard (c ((netlink-error? c) #f))
-                           exp))
-
-                       ;; Wrap calls in 'false-if-netlink-error' so this
-                       ;; script goes as far as possible undoing the effects
-                       ;; of "set-up-network".
-
-                       #$@(map (lambda (route)
-                                 #~(false-if-netlink-error
-                                    (route-del #$(network-route-destination route)
+                        #$@(map (lambda (route)
+                                  #~(route-add #$(network-route-destination route)
                                                #:device
                                                #$(network-route-device route)
                                                #:ipv6?
@@ -3228,31 +3216,63 @@ to CONFIG."
                                                #:via
                                                #$(network-route-gateway route)
                                                #:src
-                                               #$(network-route-source route))))
-                               routes)
+                                               #$(network-route-source route)))
+                                routes)
+                        #t)))))
 
-                       ;; Cleanup addresses first, they might be assigned to
-                       ;; created bonds, vlans or bridges.
-                       #$@(map (lambda (address)
-                                 #~(false-if-netlink-error
-                                    (addr-del #$(network-address-device
-                                                 address)
-                                              #$(network-address-value address)
-                                              #:ipv6?
-                                              #$(network-address-ipv6? address))))
-                               addresses)
+(define (network-tear-down/linux config)
+  (match-record config <static-networking>
+    (addresses links routes)
+    (program-file "tear-down-network"
+                  (with-extensions (list guile-netlink)
+                    #~(begin
+                        (use-modules (ip addr) (ip link) (ip route)
+                                     (netlink error)
+                                     (srfi srfi-34))
 
-                       ;; It is now safe to delete some links
-                       #$@(map (match-lambda
-                                 (($ <network-link> name type mac-address arguments)
-                                  (cond
-                                   ;; We delete interfaces that were created
-                                   ((and (string? name) (symbol? type))
-                                    #~(false-if-netlink-error
-                                       (link-del #$name)))
-                                   (else #t))))
-                               links)
-                       #f)))))
+                        (define-syntax-rule (false-if-netlink-error exp)
+                          (guard (c ((netlink-error? c) #f))
+                            exp))
+
+                        ;; Wrap calls in 'false-if-netlink-error' so this
+                        ;; script goes as far as possible undoing the effects
+                        ;; of "set-up-network".
+
+                        #$@(map (lambda (route)
+                                  #~(false-if-netlink-error
+                                     (route-del #$(network-route-destination route)
+                                                #:device
+                                                #$(network-route-device route)
+                                                #:ipv6?
+                                                #$(network-route-ipv6? route)
+                                                #:via
+                                                #$(network-route-gateway route)
+                                                #:src
+                                                #$(network-route-source route))))
+                                routes)
+
+                        ;; Cleanup addresses first, they might be assigned to
+                        ;; created bonds, vlans or bridges.
+                        #$@(map (lambda (address)
+                                  #~(false-if-netlink-error
+                                     (addr-del #$(network-address-device
+                                                  address)
+                                               #$(network-address-value address)
+                                               #:ipv6?
+                                               #$(network-address-ipv6? address))))
+                                addresses)
+
+                        ;; It is now safe to delete some links
+                        #$@(map (match-lambda
+                                  (($ <network-link> name type mac-address arguments)
+                                   (cond
+                                    ;; We delete interfaces that were created
+                                    ((and (string? name) (symbol? type))
+                                     #~(false-if-netlink-error
+                                        (link-del #$name)))
+                                    (else #t))))
+                                links)
+                        #f)))))
 
 (define (static-networking-shepherd-service config)
   (match-record config <static-networking>
@@ -3267,16 +3287,18 @@ to CONFIG."
 
        (start #~(lambda _
                   ;; Return #t if successfully started.
-                  (load #$(let-system (system target)
-                            (if (string-contains (or target system) "-linux")
-                                (network-set-up/linux config)
-                                (network-set-up/hurd config))))))
+                  (zero? (system*
+                          #$(let-system (system target)
+                              (if (string-contains (or target system) "-linux")
+                                  (network-set-up/linux config)
+                                  (network-set-up/hurd config)))))))
        (stop #~(lambda _
                  ;; Return #f is successfully stopped.
-                 (load #$(let-system (system target)
-                           (if (string-contains (or target system) "-linux")
-                               (network-tear-down/linux config)
-                               (network-tear-down/hurd config))))))
+                 (zero? (system*
+                         #$(let-system (system target)
+                             (if (string-contains (or target system) "-linux")
+                                 (network-tear-down/linux config)
+                                 (network-tear-down/hurd config)))))))
        (respawn? #f)))))
 
 (define (static-networking-shepherd-services networks)
@@ -3381,87 +3403,220 @@ to handle."
 ;;; greetd-service-type -- minimal and flexible login manager daemon
 ;;;
 
+(define-record-type* <greetd-user-session>
+  greetd-user-session make-greetd-user-session greetd-user-session?
+  (command greetd-user-session-command (default (file-append bash "/bin/bash")))
+  (command-args greetd-user-session-command-args (default '("-l")))
+  (extra-env greetd-user-session-extra-env (default '()))
+  (xdg-session-type greetd-user-session-xdg-session-type (default "tty"))
+  (xdg-env? greetd-user-session-xdg-env? (default #t)))
+
+(define (make-greetd-user-session-command config)
+  (match-record config <greetd-user-session>
+                (command command-args extra-env)
+                (program-file
+                 "greetd-user-session-command"
+                 #~(begin
+                     (use-modules (ice-9 match))
+                     (for-each (match-lambda ((var . val) (setenv var val)))
+                               (quote (#$@extra-env)))
+                     (apply execl #$command #$command
+                            (list #$@command-args))))))
+
+(define (make-greetd-xdg-user-session-command config)
+  (match-record config <greetd-user-session>
+                (command command-args extra-env xdg-session-type)
+                (program-file
+                 "greetd-xdg-user-session-command"
+                 #~(begin
+                     (use-modules (ice-9 match))
+                     (let* ((username (getenv "USER"))
+                            (useruid (passwd:uid (getpwuid username)))
+                            (useruid (number->string useruid)))
+                       (setenv "XDG_SESSION_TYPE" #$xdg-session-type)
+                       (setenv "XDG_RUNTIME_DIR"
+                               (string-append "/run/user/" useruid)))
+                     (for-each (match-lambda ((var . val) (setenv var val)))
+                               (quote (#$@extra-env)))
+                     (apply execl #$command #$command
+                            (list #$@command-args))))))
+
+(define-gexp-compiler (greetd-user-session-compiler
+                       (session <greetd-user-session>)
+                       system target)
+  (lower-object
+   ((if (greetd-user-session-xdg-env? session)
+        make-greetd-xdg-user-session-command
+        make-greetd-user-session-command) session)))
+
 (define-record-type* <greetd-agreety-session>
-  greetd-agreety-session make-greetd-agreety-session
-  greetd-agreety-session?
-  (agreety greetd-agreety (default greetd))
-  (command greetd-agreety-command (default (file-append bash "/bin/bash")))
-  (command-args greetd-agreety-command-args (default '("-l")))
-  (extra-env greetd-agreety-extra-env (default '()))
-  (xdg-env? greetd-agreety-xdg-env? (default #t)))
+  greetd-agreety-session make-greetd-agreety-session greetd-agreety-session?
+  (agreety greetd-agreety-session-agreety (default greetd))
+  (command greetd-agreety-session-command
+           (default (greetd-user-session))
+           (sanitize warn-greetd-agreety-session-command-type))
+  (command-args greetd-agreety-command-args
+                (default #nil)
+                (sanitize warn-deprecated-greetd-agreety-command-args))
+  (extra-env greetd-agreety-extra-env
+             (default #nil)
+             (sanitize warn-deprecated-greetd-agreety-extra-env))
+  (xdg-env? greetd-agreety-xdg-env?
+            (default #nil)
+            (sanitize warn-deprecated-greetd-agreety-xdg-env?)))
 
-(define (greetd-agreety-tty-session-command config)
-  (match-record config <greetd-agreety-session>
-    (command command-args extra-env)
-    (program-file
-     "agreety-tty-session-command"
-     #~(begin
-         (use-modules (ice-9 match))
-         (for-each (match-lambda ((var . val) (setenv var val)))
-                   (quote (#$@extra-env)))
-         (apply execl #$command #$command (list #$@command-args))))))
+(define (warn-deprecated-greetd-agreety-command-args value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'command-args #f
+     #:replacement '<greetd-user-seesion>))
+  value)
 
-(define (greetd-agreety-tty-xdg-session-command config)
-  (match-record config <greetd-agreety-session>
-    (command command-args extra-env)
-    (program-file
-     "agreety-tty-xdg-session-command"
-     #~(begin
-         (use-modules (ice-9 match))
-         (let*
-             ((username (getenv "USER"))
-              (useruid (passwd:uid (getpwuid username)))
-              (useruid (number->string useruid)))
-           (setenv "XDG_SESSION_TYPE" "tty")
-           (setenv "XDG_RUNTIME_DIR" (string-append "/run/user/" useruid)))
-         (for-each (match-lambda ((var . val) (setenv var val)))
-                   (quote (#$@extra-env)))
-         (apply execl #$command #$command (list #$@command-args))))))
+(define (warn-deprecated-greetd-agreety-extra-env value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'extra-env #f
+     #:replacement '<greetd-user-seesion>))
+  value)
+
+(define (warn-deprecated-greetd-agreety-xdg-env? value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'xdg-env? #f
+     #:replacement '<greetd-user-seesion>))
+  value)
+
+(define-deprecated/alias greetd-agreety greetd-agreety-session-agreety)
+(define-deprecated/alias greetd-agreety-command greetd-agreety-session-command)
+
+(define (warn-greetd-agreety-session-command-type value)
+  (unless (greetd-user-session? value)
+    (warn-about-deprecation
+     "arbitrary command" #f
+     #:replacement '<greetd-user-session>))
+  value)
+
+(define (greetd-agreety-session-to-user-session session default-command)
+  (let ((command (greetd-agreety-session-command session))
+        (command-args (or (greetd-agreety-command-args session)
+                          (greetd-user-session-command-args default-command)))
+        (extra-env (or (greetd-agreety-extra-env session)
+                       (greetd-user-session-extra-env default-command)))
+        (xdg-env? (or (greetd-agreety-xdg-env? session)
+                      (greetd-user-session-xdg-env? default-command))))
+    (greetd-user-session
+     (command command)
+     (command-args command-args)
+     (extra-env extra-env)
+     (xdg-env? xdg-env?))))
 
 (define-gexp-compiler (greetd-agreety-session-compiler
                        (session <greetd-agreety-session>)
                        system target)
-  (let ((agreety (file-append (greetd-agreety session)
-                              "/bin/agreety"))
-        (command ((if (greetd-agreety-xdg-env? session)
-                      greetd-agreety-tty-xdg-session-command
-                      greetd-agreety-tty-session-command)
-                  session)))
+  (let* ((agreety
+          (file-append (greetd-agreety-session-agreety session) "/bin/agreety"))
+         (command
+          (greetd-agreety-session-command session))
+         (command
+          (if (greetd-user-session? command)
+              command
+              (greetd-agreety-session-to-user-session
+               session
+               (greetd-user-session)))))
     (lower-object
-     (program-file "agreety-command"
-       #~(execl #$agreety #$agreety "-c" #$command)))))
+     (program-file
+      "agreety-wrapper"
+      #~(execl #$agreety #$agreety "-c" #$command)))))
 
-(define-record-type* <greetd-wlgreet-session>
-  greetd-wlgreet-session make-greetd-wlgreet-session
-  greetd-wlgreet-session?
-  (wlgreet greetd-wlgreet (default wlgreet))
+(define (make-greetd-sway-greeter-command sway sway-config)
+  (let ((sway-bin (file-append sway "/bin/sway")))
+    (program-file
+     "greeter-sway-command"
+     (with-imported-modules '((guix build utils))
+       #~(begin
+           (use-modules (guix build utils))
+
+           (let* ((username (getenv "USER"))
+                  (user (getpwnam username))
+                  (useruid (passwd:uid user))
+                  (usergid (passwd:gid user))
+                  (useruid-s (number->string useruid))
+                  ;; /run/user/<greeter-user-uid> won't exist yet
+                  ;; this will contain WAYLAND_DISPLAY socket file
+                  ;; and log-file below
+                  (user-home-dir "/tmp/.greeter-home")
+                  (user-xdg-runtime-dir (string-append user-home-dir "/run"))
+                  (user-xdg-cache-dir (string-append user-home-dir "/cache"))
+                  (log-file (string-append (number->string (getpid)) ".log"))
+                  (log-file (string-append user-home-dir "/" log-file)))
+             (for-each (lambda (d)
+                         (mkdir-p d)
+                         (chown d useruid usergid) (chmod d #o700))
+                       (list user-home-dir
+                             user-xdg-runtime-dir
+                             user-xdg-cache-dir))
+             (setenv "HOME" user-home-dir)
+             (setenv "XDG_CACHE_DIR" user-xdg-cache-dir)
+             (setenv "XDG_RUNTIME_DIR" user-xdg-runtime-dir)
+             (dup2 (open-fdes log-file
+                              (logior O_CREAT O_WRONLY O_APPEND) #o640) 1)
+             (dup2 1 2)
+             (execl #$sway-bin #$sway-bin "-d" "-c" #$sway-config)))))))
+
+(define-record-type* <greetd-wlgreet-configuration>
+  greetd-wlgreet-configuration make-greetd-wlgreet-configuration
+  greetd-wlgreet-configuration?
+  (output-mode greetd-wlgreet-configuration-output-mode (default "all"))
+  (scale greetd-wlgreet-configuration-scale (default 1))
+  (background greetd-wlgreet-configuration-background (default '(0 0 0 0.9)))
+  (headline greetd-wlgreet-configuration-headline (default '(1 1 1 1)))
+  (prompt greetd-wlgreet-configuration-prompt (default '(1 1 1 1)))
+  (prompt-error greetd-wlgreet-configuration-prompt-error (default '(1 1 1 1)))
+  (border greetd-wlgreet-configuration-border (default '(1 1 1 1)))
+  (wlgreet greetd-wlgreet
+           (default #nil)
+           (sanitize warn-deprecated-greetd-wlgreet))
   (command greetd-wlgreet-command
-           (default (file-append sway "/bin/sway")))
-  (command-args greetd-wlgreet-command-args (default '()))
-  (output-mode greetd-wlgreet-output-mode (default "all"))
-  (scale greetd-wlgreet-scale (default 1))
-  (background greetd-wlgreet-background (default '(0 0 0 0.9)))
-  (headline greetd-wlgreet-headline (default '(1 1 1 1)))
-  (prompt greetd-wlgreet-prompt (default '(1 1 1 1)))
-  (prompt-error greetd-wlgreet-prompt-error (default '(1 1 1 1)))
-  (border greetd-wlgreet-border (default '(1 1 1 1)))
-  (extra-env greetd-wlgreet-extra-env (default '())))
+           (default #nil)
+           (sanitize warn-deprecated-greetd-wlgreet-command))
+  (command-args greetd-wlgreet-command-args
+                (default #nil)
+                (sanitize warn-deprecated-greetd-wlgreet-command-args))
+  (extra-env greetd-wlgreet-extra-env
+             (default #nil)
+             (sanitize warn-deprecated-greetd-wlgreet-extra-env)))
 
-(define (greetd-wlgreet-wayland-session-command session)
-  (program-file "wlgreet-session-command"
-    #~(let* ((username (getenv "USER"))
-             (useruid (number->string
-                       (passwd:uid (getpwuid username))))
-             (command #$(greetd-wlgreet-command session)))
-        (use-modules (ice-9 match))
-        (setenv "XDG_SESSION_TYPE" "wayland")
-        (setenv "XDG_RUNTIME_DIR" (string-append "/run/user/" useruid))
-        (for-each (lambda (env) (setenv (car env) (cdr env)))
-                  '(#$@(greetd-wlgreet-extra-env session)))
-        (apply execl command command
-               (list #$@(greetd-wlgreet-command-args session))))))
+(define-deprecated/alias greetd-wlgreet-session greetd-wlgreet-configuration)
 
-(define (make-wlgreet-config-color section-name color)
+(define (warn-deprecated-greetd-wlgreet value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'wlgreet #f
+     #:replacement '<greetd-wlgreet-sway-session>))
+  value)
+
+(define (warn-deprecated-greetd-wlgreet-command value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'command #f
+     #:replacement '<greetd-wlgreet-sway-session>))
+  value)
+
+(define (warn-deprecated-greetd-wlgreet-command-args value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'command-args #f
+     #:replacement '<greetd-wlgreet-sway-session>))
+  value)
+
+(define (warn-deprecated-greetd-wlgreet-extra-env value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'extra-env #f
+     #:replacement '<greetd-wlgreet-sway-session>))
+  value)
+
+(define (make-greetd-wlgreet-config-color section-name color)
   (match color
     ((red green blue opacity)
      (string-append
@@ -3471,76 +3626,138 @@ to handle."
       "blue = " (number->string blue) "\n"
       "opacity = " (number->string opacity) "\n"))))
 
-(define (make-wlgreet-configuration-file session)
-  (let ((command (greetd-wlgreet-wayland-session-command session))
-        (output-mode (greetd-wlgreet-output-mode session))
-        (scale (greetd-wlgreet-scale session))
-        (background (greetd-wlgreet-background session))
-        (headline (greetd-wlgreet-headline session))
-        (prompt (greetd-wlgreet-prompt session))
-        (prompt-error (greetd-wlgreet-prompt-error session))
-        (border (greetd-wlgreet-border session)))
-    (mixed-text-file "wlgreet.toml"
-      "command = \"" command "\"\n"
-      "outputMode = \"" output-mode "\"\n"
-      "scale = " (number->string scale) "\n"
-      (apply string-append
-             (map (match-lambda
-                    ((section-name . color)
-                     (make-wlgreet-config-color section-name color)))
-                  `(("background" . ,background)
-                    ("headline" . ,headline)
-                    ("prompt" . ,prompt)
-                    ("prompt-error" . ,prompt-error)
-                    ("border" . ,border)))))))
+(define (make-greetd-wlgreet-config command color)
+  (match-record color <greetd-wlgreet-configuration>
+    (output-mode scale background headline prompt prompt-error border)
+    (mixed-text-file
+     "wlgreet.toml"
+     "command = \"" command "\"\n"
+     "outputMode = \"" output-mode "\"\n"
+     "scale = " (number->string scale) "\n"
+     (apply string-append
+            (map (match-lambda
+                   ((section-name . color)
+                    (make-greetd-wlgreet-config-color section-name color)))
+                 `(("background" . ,background)
+                   ("headline" . ,headline)
+                   ("prompt" . ,prompt)
+                   ("prompt-error" . ,prompt-error)
+                   ("border" . ,border)))))))
 
 (define-record-type* <greetd-wlgreet-sway-session>
   greetd-wlgreet-sway-session make-greetd-wlgreet-sway-session
   greetd-wlgreet-sway-session?
-  (wlgreet-session greetd-wlgreet-sway-session-wlgreet-session       ;<greetd-wlgreet-session>
-                   (default (greetd-wlgreet-session)))
-  (sway greetd-wlgreet-sway-session-sway (default sway))             ;<package>
-  (sway-configuration greetd-wlgreet-sway-session-sway-configuration ;file-like
-                      (default (plain-file "wlgreet-sway-config" ""))))
+  (sway greetd-wlgreet-sway-session-sway (default sway))
+  (sway-configuration greetd-wlgreet-sway-session-sway-configuration
+                      (default #f))
+  (wlgreet greetd-wlgreet-sway-session-wlgreet (default wlgreet))
+  (wlgreet-configuration greetd-wlgreet-sway-session-wlgreet-configuration
+                         (default (greetd-wlgreet-configuration)))
+  (command greetd-wlgreet-sway-session-command (default (greetd-user-session)))
+  (wlgreet-session
+   greetd-wlgreet-sway-session-wlgreet-session
+   (default #nil)
+   (sanitize warn-deprecated-greetd-wlgreet-sway-session-wlgreet-session)))
 
-(define (make-wlgreet-sway-configuration-file session)
-  (let* ((wlgreet-session (greetd-wlgreet-sway-session-wlgreet-session session))
-         (wlgreet-config (make-wlgreet-configuration-file wlgreet-session))
-         (wlgreet (file-append (greetd-wlgreet wlgreet-session) "/bin/wlgreet"))
-         (sway-config (greetd-wlgreet-sway-session-sway-configuration session))
-         (swaymsg (file-append (greetd-wlgreet-sway-session-sway session)
-                               "/bin/swaymsg")))
-    (mixed-text-file "wlgreet-sway.conf"
-      "include " sway-config "\n"
-      "xwayland disable\n"
-      "exec \"" wlgreet " --config " wlgreet-config "; "
-      swaymsg " exit\"\n")))
+(define (warn-deprecated-greetd-wlgreet-sway-session-wlgreet-session value)
+  (unless (nil? value)
+    (warn-about-deprecation
+     'wlgreet-session #f
+     #:replacement 'wlgreet-configuration))
+  value)
+
+(define (make-greetd-wlgreet-sway-session-sway-config session)
+  (match-record session <greetd-wlgreet-sway-session>
+                (sway sway-configuration wlgreet wlgreet-configuration command)
+    (let ((wlgreet-bin (file-append wlgreet "/bin/wlgreet"))
+          (wlgreet-config-file
+           (make-greetd-wlgreet-config command wlgreet-configuration))
+          (swaymsg-bin (file-append sway "/bin/swaymsg")))
+      (mixed-text-file
+       "wlgreet-sway-config"
+       (if sway-configuration
+           #~(string-append "include " #$sway-configuration "\n")
+           "")
+       "xwayland disable\n"
+       "exec \"" wlgreet-bin " --config " wlgreet-config-file
+       "; " swaymsg-bin " exit\"\n"))))
+
+(define (greetd-wlgreet-session-to-config session config)
+  (let* ((wlgreet (or (greetd-wlgreet config)
+                      (greetd-wlgreet-sway-session-wlgreet session)))
+         (default-command (greetd-wlgreet-sway-session-command session))
+         (command (or (greetd-wlgreet-command config)
+                      (greetd-user-session-command default-command)))
+         (command-args (or (greetd-wlgreet-command-args config)
+                           (greetd-user-session-command-args default-command)))
+         (extra-env (or (greetd-wlgreet-extra-env config)
+                        (greetd-user-session-extra-env default-command))))
+    (greetd-wlgreet-sway-session
+     (sway (greetd-wlgreet-sway-session-sway session))
+     (sway-configuration
+      (greetd-wlgreet-sway-session-sway-configuration session))
+     (wlgreet wlgreet)
+     (wlgreet-configuration config)
+     (command
+      (greetd-user-session
+       (command command)
+       (command-args command-args)
+       (extra-env extra-env))))))
 
 (define-gexp-compiler (greetd-wlgreet-sway-session-compiler
                        (session <greetd-wlgreet-sway-session>)
                        system target)
-  (let ((sway (file-append (greetd-wlgreet-sway-session-sway session)
-                           "/bin/sway"))
-        (config (make-wlgreet-sway-configuration-file session)))
+  (let ((s (if (nil? (greetd-wlgreet-sway-session-wlgreet-session session))
+               session
+               (greetd-wlgreet-session-to-config
+                session
+                (greetd-wlgreet-sway-session-wlgreet-session session)))))
+    (match-record s <greetd-wlgreet-sway-session> (sway)
+      (lower-object
+       (make-greetd-sway-greeter-command
+        sway
+        (make-greetd-wlgreet-sway-session-sway-config s))))))
+
+(define-record-type* <greetd-gtkgreet-sway-session>
+  greetd-gtkgreet-sway-session make-greetd-gtkgreet-sway-session
+  greetd-gtkgreet-sway-session?
+  (sway greetd-gtkgreet-sway-session-sway (default sway))
+  (sway-configuration greetd-gtkgreet-sway-session-sway-configuration
+                      (default #f))
+  (gtkgreet greetd-gtkgreet-sway-session-gtkgreet (default gtkgreet))
+  (gtkgreet-style greetd-gtkgreet-sway-session-gtkgreet-style (default #f))
+  (command greetd-gtkgreet-sway-session-command
+           (default (greetd-user-session))))
+
+(define (make-greetd-gtkgreet-sway-session-sway-config session)
+  (match-record session <greetd-gtkgreet-sway-session>
+                (sway sway-configuration gtkgreet gtkgreet-style command)
+    (let ((gtkgreet-bin (file-append gtkgreet "/bin/gtkgreet"))
+          (swaymsg-bin (file-append sway "/bin/swaymsg")))
+      (mixed-text-file
+       "gtkgreet-sway-config"
+       (if sway-configuration
+           #~(string-append "include " #$sway-configuration "\n")
+           "")
+       "xwayland disable\n"
+       "exec \"" gtkgreet-bin " -l"
+       (if gtkgreet-style #~(string-append " -s " #$gtkgreet-style) "")
+       " -c " command "; " swaymsg-bin " exit\"\n"))))
+
+(define-gexp-compiler (greetd-gtkgreet-sway-session-compiler
+                       (session <greetd-gtkgreet-sway-session>)
+                       system target)
+  (match-record session <greetd-gtkgreet-sway-session> (sway)
     (lower-object
-     (program-file "wlgreet-sway-session-command"
-       #~(let* ((log-file (open-output-file
-                           (string-append "/tmp/sway-greeter."
-                                          (number->string (getpid))
-                                          ".log")))
-                (username (getenv "USER"))
-                (useruid (number->string (passwd:uid (getpwuid username)))))
-           ;; redirect stdout/err to log-file
-           (dup2 (fileno log-file) 1)
-           (dup2 1 2)
-           (sleep 1) ;give seatd/logind some time to start up
-           (setenv "XDG_RUNTIME_DIR" (string-append "/run/user/" useruid))
-           (execl #$sway #$sway "-d" "-c" #$config))))))
+     (make-greetd-sway-greeter-command
+      sway
+      (make-greetd-gtkgreet-sway-session-sway-config session)))))
 
 (define-record-type* <greetd-terminal-configuration>
   greetd-terminal-configuration make-greetd-terminal-configuration
   greetd-terminal-configuration?
   (greetd greetd-package (default greetd))
+  (extra-shepherd-requirement greetd-extra-shepherd-requirement (default '()))
   (config-file-name greetd-config-file-name (thunked)
                     (default (default-config-file-name this-record)))
   (log-file-name greetd-log-file-name (thunked)
@@ -3613,7 +3830,8 @@ to handle."
          (name "greeter")
          (group "greeter")
          (supplementary-groups (greetd-greeter-supplementary-groups config))
-         (system? #t))))
+         (system? #t)
+         (create-home-directory? #f))))
 
 (define (make-greetd-pam-mount-conf-file config)
   (computed-file
@@ -3663,6 +3881,13 @@ to handle."
                              (list optional-pam-mount))))
            pam))))))
 
+(define (greetd-run-user-activation config)
+  #~(begin
+      (use-modules (guix build utils))
+      (let ((d "/run/user"))
+        (mkdir-p d)
+        (chmod d #o755))))
+
 (define (greetd-shepherd-services config)
   (map
    (lambda (tc)
@@ -3670,10 +3895,12 @@ to handle."
          ((greetd-bin (file-append (greetd-package tc) "/sbin/greetd"))
           (greetd-conf (make-greetd-terminal-configuration-file tc))
           (greetd-log (greetd-log-file-name tc))
-          (greetd-vt (greetd-terminal-vt tc)))
+          (greetd-vt (greetd-terminal-vt tc))
+          (greetd-requirement (greetd-extra-shepherd-requirement tc)))
        (shepherd-service
         (documentation "Minimal and flexible login manager daemon")
-        (requirement '(pam user-processes host-name udev virtual-terminal))
+        (requirement `(pam user-processes host-name udev virtual-terminal
+                           ,@greetd-requirement))
         (provision (list (symbol-append
                           'term-tty
                           (string->symbol (greetd-terminal-vt tc)))))
@@ -3694,6 +3921,7 @@ login manager daemon.")
     (list
      (service-extension account-service-type greetd-accounts)
      (service-extension file-system-service-type (const %greetd-file-systems))
+     (service-extension activation-service-type greetd-run-user-activation)
      (service-extension etc-service-type greetd-etc-service)
      (service-extension pam-root-service-type greetd-pam-service)
      (service-extension shepherd-root-service-type greetd-shepherd-services)))
@@ -3710,7 +3938,7 @@ login manager daemon.")
                         (cons tty %default-console-font))
                       '("tty1" "tty2" "tty3" "tty4" "tty5" "tty6")))
 
-        (service syslog-service-type)
+        (service shepherd-system-log-service-type)
         (service agetty-service-type (agetty-configuration
                                        (extra-options '("-L")) ; no carrier detect
                                        (term "vt100")
@@ -3736,7 +3964,11 @@ login manager daemon.")
         (service guix-service-type)
         (service nscd-service-type)
 
-        (service rottlog-service-type)
+        (service log-rotation-service-type)
+
+        ;; Convenient services brought by the Shepherd.
+        (service shepherd-timer-service-type)
+        (service shepherd-transient-service-type)
 
         ;; Periodically delete old build logs.
         (service log-cleanup-service-type

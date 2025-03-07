@@ -3,11 +3,11 @@
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2015, 2017, 2018, 2019, 2020, 2021 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016 Dennis Mungai <dmngaie@gmail.com>
-;;; Copyright © 2016, 2018, 2019, 2020, 2021, 2023 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2016, 2018, 2019, 2020, 2021, 2023, 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2017 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2018–2022 Marius Bakke <mbakke@fastmail.com>
 ;;; Copyright © 2018, 2019 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2018, 2021-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2018, 2021-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2018 Tim Gesthuizen <tim.gesthuizen@yahoo.de>
 ;;; Copyright © 2018 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2019 Rutger Helling <rhelling@mykolab.com>
@@ -26,7 +26,7 @@
 ;;; Copyright © 2022 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2022 Zhu Zihao <all_but_last@163.com>
 ;;; Copyright © 2023 Hilton Chain <hako@ultrarare.space>
-;;; Copyright © 2023, 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2023-2025 Zheng Junjie <z572@z572.online>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -127,7 +127,8 @@ as \"x86_64-linux\"."
              ("x86_64"      => "X86_64")
              ("i686"        => "X86")
              ("i586"        => "X86")
-             ("avr"         => "AVR"))))
+             ("avr"         => "AVR")
+             ("loongarch64" => "LoongArch"))))
 
 (define (llvm-uri component version)
   ;; LLVM release candidate file names are formatted 'tool-A.B.C-rcN/tool-A.B.CrcN.src.tar.xz'
@@ -567,7 +568,8 @@ output), and Binutils.")
     ("16.0.6" . "0jxmapg7shwkl88m4mqgfjv4ziqdmnppxhjz6vz51ycp2x4nmjky")
     ("17.0.6" . "1a7rq3rgw5vxm8y39fyzr4kv7w97lli4a0c1qrkchwk8p0n07hgh")
     ("18.1.8" . "1l9wm0g9jrpdf309kxjx7xrzf13h81kz8bbp0md14nrz38qll9la")
-    ("19.1.4" . "0y5kavrx13ylpzhci520hm7fgnzyj46mbz7dw3z9h5xi0py5lbda")))
+    ("19.1.7" . "18hkfhsm88bh3vnj21q7f118vrcnf7z6q1ylnwbknyb3yvk0343i")
+    ("20.1.0" . "1ny66g8g186scb3mxqy5hdxbs03rrf1qs1y6smf7574vidxpr9pk")))
 
 (define %llvm-patches
   '(("14.0.6" . ("clang-14.0-libc-search-path.patch"
@@ -581,7 +583,9 @@ output), and Binutils.")
                  "clang-17.0-link-dsymutil-latomic.patch"))
     ("18.1.8" . ("clang-18.0-libc-search-path.patch"
                  "clang-17.0-link-dsymutil-latomic.patch"))
-    ("19.1.4" . ("clang-18.0-libc-search-path.patch"
+    ("19.1.7" . ("clang-18.0-libc-search-path.patch"
+                 "clang-17.0-link-dsymutil-latomic.patch"))
+    ("20.1.0" . ("clang-18.0-libc-search-path.patch"
                  "clang-17.0-link-dsymutil-latomic.patch"))))
 
 (define (llvm-monorepo version)
@@ -594,74 +598,92 @@ output), and Binutils.")
     (sha256 (base32 (assoc-ref %llvm-monorepo-hashes version)))
     (patches (map search-patch (assoc-ref %llvm-patches version)))))
 
-;;; TODO: Make the base llvm all other LLVM inherit from on core-updates.
-(define-public llvm-15
-  (package
-    (name "llvm")
-    (version "15.0.7")
-    (source (llvm-monorepo version))
-    (build-system cmake-build-system)
-    (outputs '("out" "opt-viewer"))
-    (arguments
-     (list
-      #:configure-flags
-      #~(list
-         ;; These options are required for cross-compiling LLVM according
-         ;; to <https://llvm.org/docs/HowToCrossCompileLLVM.html>.
-         #$@(if (%current-target-system)
-                (or (and=>
-                     (system->llvm-target-arch)
-                     (lambda (llvm-target-arch)
-                       #~((string-append "-DLLVM_TABLEGEN="
-                                  #+(file-append this-package
-                                                 "/bin/llvm-tblgen"))
-                          #$(string-append "-DLLVM_DEFAULT_TARGET_TRIPLE="
-                                           (%current-target-system))
-                          #$(string-append "-DLLVM_TARGET_ARCH=" llvm-target-arch)
-                          #$(string-append "-DLLVM_TARGETS_TO_BUILD="
-                                           (system->llvm-target)))))
-                    (raise (condition
-                            (&package-unsupported-target-error
-                             (package this-package)
-                             (target (%current-target-system))))))
-                '())
-         ;; Note: sadly, the build system refuses the use of
-         ;; -DBUILD_SHARED_LIBS=ON and the large static archives are needed to
-         ;; build clang-runtime, so we cannot delete them.
-         "-DLLVM_BUILD_LLVM_DYLIB=ON"
-         "-DLLVM_LINK_LLVM_DYLIB=ON"
-         "-DLLVM_ENABLE_FFI=ON"
-         "-DLLVM_ENABLE_RTTI=ON"        ;for some third-party utilities
-         "-DLLVM_INSTALL_UTILS=ON"      ;needed for rustc
-         "-DLLVM_PARALLEL_LINK_JOBS=1") ;cater to smaller build machines
-      ;; Don't use '-g' during the build, to save space.
-      #:build-type "Release"
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'change-directory
-            (lambda _
-              (chdir "llvm")))
-          (add-after 'install 'install-opt-viewer
-            (lambda* (#:key outputs #:allow-other-keys)
-              (let* ((opt-viewer-share (string-append #$output:opt-viewer
-                                                      "/share")))
-                (mkdir-p opt-viewer-share)
-                (rename-file (string-append #$output "/share/opt-viewer")
-                             opt-viewer-share)))))))
-    (native-inputs (list python-wrapper perl))
-    (inputs (list libffi))
-    (propagated-inputs (list zlib))     ;to use output from llvm-config
-    (home-page "https://www.llvm.org")
-    (synopsis "Optimizing compiler infrastructure")
-    (description
-     "LLVM is a compiler infrastructure designed for compile-time, link-time,
+;; A base llvm package that can be used for creating other llvm packages.
+(define make-llvm
+  (mlambda (version)
+    (package
+      (name "llvm")
+      (version version)
+      (source (llvm-monorepo version))
+      (build-system cmake-build-system)
+      (outputs '("out" "opt-viewer"))
+      (arguments
+       (list
+        #:configure-flags
+        #~(list
+           ;; These options are required for cross-compiling LLVM according
+           ;; to <https://llvm.org/docs/HowToCrossCompileLLVM.html>.
+           #$@(if (%current-target-system)
+                  (or (and=>
+                       (system->llvm-target-arch)
+                       (lambda (llvm-target-arch)
+                         #~((string-append "-DLLVM_TABLEGEN="
+                                    #+(file-append this-package
+                                                   "/bin/llvm-tblgen"))
+                            #$@(if (version>=? version "16.0")
+                                   #~((string-append
+                                        "-DLLVM_NATIVE_TOOL_DIR="
+                                        #+(file-append this-package "/bin")))
+                                   #~())
+                            #$@(if (version>=? version "17.0")
+                                 #~((string-append "-DLLVM_HOST_TRIPLE="
+                                                   #$(%current-target-system)))
+                                 #~((string-append "-DLLVM_DEFAULT_TARGET_TRIPLE="
+                                                   #$(%current-target-system))
+                                    (string-append "-DLLVM_TARGET_ARCH="
+                                                   #$llvm-target-arch)))
+                            #$(string-append "-DLLVM_TARGETS_TO_BUILD="
+                                             (system->llvm-target)))))
+                      (raise (condition
+                              (&package-unsupported-target-error
+                               (package this-package)
+                               (target (%current-target-system))))))
+                  '())
+           ;; Note: sadly, the build system refuses the use of
+           ;; -DBUILD_SHARED_LIBS=ON and the large static archives are needed to
+           ;; build clang-runtime, so we cannot delete them.
+           "-DLLVM_BUILD_LLVM_DYLIB=ON"
+           "-DLLVM_LINK_LLVM_DYLIB=ON"
+           "-DLLVM_ENABLE_FFI=ON"
+           "-DLLVM_ENABLE_RTTI=ON"        ;for some third-party utilities
+           "-DLLVM_INSTALL_UTILS=ON"      ;needed for rustc
+           "-DLLVM_PARALLEL_LINK_JOBS=1") ;cater to smaller build machines
+        ;; Don't use '-g' during the build, to save space.
+        #:build-type "Release"
+        #:phases
+        #~(modify-phases %standard-phases
+            (add-after 'unpack 'change-directory
+              (lambda _
+                (chdir "llvm")))
+            (add-after 'install 'install-opt-viewer
+              (lambda* (#:key outputs #:allow-other-keys)
+                (let* ((opt-viewer-share (string-append #$output:opt-viewer
+                                                        "/share")))
+                  (mkdir-p opt-viewer-share)
+                  (rename-file (string-append #$output "/share/opt-viewer")
+                               opt-viewer-share))))
+            ;; The build daemon goes OOM on i686-linux on this phase.
+            #$@(if (and (version>=? version "16.0")
+                        (target-x86-32?))
+                   #~((delete 'make-dynamic-linker-cache))
+                   #~()))))
+      (native-inputs (list python-wrapper perl))
+      (inputs (list libffi))
+      (propagated-inputs (list zlib))     ;to use output from llvm-config
+      (home-page "https://www.llvm.org")
+      (synopsis "Optimizing compiler infrastructure")
+      (description
+       "LLVM is a compiler infrastructure designed for compile-time, link-time,
 runtime, and idle-time optimization of programs from arbitrary programming
 languages.  It currently supports compilation of C and C++ programs, using
 front-ends derived from GCC 4.0.1.  A new front-end for the C family of
 languages is in development.  The compiler infrastructure includes mirror sets
 of programming tools as well as libraries with equivalent functionality.")
-    (license license:asl2.0)
-    (properties `((release-monitoring-url . ,%llvm-release-monitoring-url)))))
+      (license license:asl2.0)
+      (properties `((release-monitoring-url . ,%llvm-release-monitoring-url))))))
+
+(define-public llvm-15
+  (make-llvm "15.0.7"))
 
 (define-public llvm-14
   (package
@@ -1428,18 +1450,7 @@ Library.")
                    #:patches '("clang-3.5-libc-search-path.patch")))
 
 (define-public llvm-16
-  (package
-    (inherit llvm-15)
-    (version "16.0.6")
-    (source (llvm-monorepo version))
-    (arguments
-     (substitute-keyword-arguments (package-arguments llvm-15)
-       ;; The build daemon goes OOM on i686-linux on this phase.
-       ((#:phases phases #~'%standard-phases)
-        (if (target-x86-32?)
-            #~(modify-phases #$phases
-                (delete 'make-dynamic-linker-cache))
-            phases))))))
+  (make-llvm "16.0.6"))
 
 (define-public clang-runtime-16
   (clang-runtime-from-llvm llvm-16))
@@ -1470,18 +1481,7 @@ Library.")
   (make-clang-toolchain clang-16 libomp-16))
 
 (define-public llvm-17
-  (package
-    (inherit llvm-15)
-    (version "17.0.6")
-    (source (llvm-monorepo version))
-    (arguments
-     (substitute-keyword-arguments (package-arguments llvm-15)
-       ;; The build daemon goes OOM on i686-linux on this phase.
-       ((#:phases phases #~'%standard-phases)
-        (if (target-x86-32?)
-            #~(modify-phases #$phases
-                (delete 'make-dynamic-linker-cache))
-            phases))))))
+    (make-llvm "17.0.6"))
 
 (define-public clang-runtime-17
   (clang-runtime-from-llvm llvm-17))
@@ -1518,6 +1518,30 @@ Library.")
     (source (llvm-monorepo version))
     (arguments
      (substitute-keyword-arguments (package-arguments llvm-15)
+       ((#:modules modules '((guix build cmake-build-system)
+                             (guix build utils)))
+        (if (%current-target-system)
+            `((ice-9 regex)
+              (srfi srfi-1)
+              (srfi srfi-26)
+              ,@modules)
+            modules))
+       ((#:configure-flags cf #~'())
+        (if (%current-target-system)
+            ;; Use a newer version of llvm-tblgen and add the new
+            ;; configure-flag needed for cross-building.
+            #~(cons* (string-append "-DLLVM_TABLEGEN="
+                                    #+(file-append this-package
+                                                   "/bin/llvm-tblgen"))
+                     (string-append "-DLLVM_NATIVE_TOOL_DIR="
+                                    #+(file-append this-package "/bin"))
+                     (string-append "-DLLVM_HOST_TRIPLE="
+                                    #$(%current-target-system))
+                     (remove
+                       (cut string-match
+                            "-DLLVM_(DEFAULT_TARGET|TARGET_ARCH|TABLEGEN).*" <>)
+                       #$cf))
+            cf))
        ;; The build daemon goes OOM on i686-linux on this phase.
        ((#:phases phases #~'%standard-phases)
         (if (target-x86-32?)
@@ -1554,18 +1578,7 @@ Library.")
   (make-clang-toolchain clang-18 libomp-18))
 
 (define-public llvm-19
-  (package
-    (inherit llvm-15)
-    (version "19.1.4")
-    (source (llvm-monorepo version))
-    (arguments
-     (substitute-keyword-arguments (package-arguments llvm-15)
-       ;; The build daemon goes OOM on i686-linux on this phase.
-       ((#:phases phases #~'%standard-phases)
-        (if (target-x86-32?)
-            #~(modify-phases #$phases
-                (delete 'make-dynamic-linker-cache))
-            phases))))))
+  (make-llvm "19.1.7"))
 
 (define-public clang-runtime-19
   (clang-runtime-from-llvm llvm-19))
@@ -1580,7 +1593,7 @@ Library.")
                     (package-version llvm-19)))
      (sha256
       (base32
-       "19jgfdiwjx36d42219s6kdanwiapjdj49nnv8pn3vp74pgn0p7g0")))))
+       "1rqv769nvr07a9n1sgwbq5rm411x31kyq3ngls800m90z25hh2s3")))))
 
 (define-public libomp-19
   (package
@@ -1594,6 +1607,37 @@ Library.")
 
 (define-public clang-toolchain-19
   (make-clang-toolchain clang-19 libomp-19))
+
+(define-public llvm-20
+  (make-llvm "20.1.0"))
+
+(define-public clang-runtime-20
+  (clang-runtime-from-llvm llvm-20))
+
+(define-public clang-20
+  (clang-from-llvm
+   llvm-20 clang-runtime-20
+   #:tools-extra
+   (origin
+     (method url-fetch)
+     (uri (llvm-uri "clang-tools-extra"
+                    (package-version llvm-20)))
+     (sha256
+      (base32
+       "19ksp5qnl5p5jqywfvvff8jjb0vbwmj33q58g1nhyj1ik48h9rcq")))))
+
+(define-public libomp-20
+  (package
+    (inherit libomp-15)
+    (version (package-version llvm-20))
+    (source (llvm-monorepo version))
+    (native-inputs
+     (modify-inputs (package-native-inputs libomp-15)
+       (replace "clang" clang-20)
+       (replace "llvm" llvm-20)))))
+
+(define-public clang-toolchain-20
+  (make-clang-toolchain clang-20 libomp-20))
 
 ;; Default LLVM and Clang version.
 (define-public libomp libomp-13)
@@ -1849,14 +1893,14 @@ which highly leverage existing libraries in the larger LLVM project.")
 (define-public libcxx
   (package
     (name "libcxx")
-    (version (package-version llvm-15))
+    (version (package-version llvm-19))
     (source (llvm-monorepo version))
     (build-system cmake-build-system)
     (arguments
      (list
       #:tests? #f
       #:configure-flags
-      #~(list "-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi"
+      #~(list "-DLLVM_ENABLE_RUNTIMES=libcxx;libcxxabi;libunwind"
               "-DCMAKE_C_COMPILER=clang"
               "-DCMAKE_CXX_COMPILER=clang++"
               ;; libc++.so is actually a GNU ld style linker script, however,
@@ -1885,7 +1929,7 @@ which highly leverage existing libraries in the larger LLVM project.")
                         (getenv "CPLUS_INCLUDE_PATH"))
                 #t))))))
     (native-inputs
-     (list clang llvm python))
+     (list clang-19 libunwind-headers llvm python))
     (home-page "https://libcxx.llvm.org")
     (synopsis "C++ standard library")
     (description
@@ -2062,30 +2106,31 @@ requirements according to version 1.1 of the OpenCL specification.")
 (define-public python-llvmlite
   (package
     (name "python-llvmlite")
-    (version "0.42.0")
+    (version "0.44.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "llvmlite" version))
        (sha256
         (base32
-         "0jl50faakmv131x6qx5kyp89a4lfpmkkz64bv9bz9hqc7hj0jazr"))))
+         "1m4lzja9xy82bhwa914p49pkbjckjc5nraspj7nsnl6ilmk7srh7"))))
     (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-before 'build 'set-compiler/linker-flags
-           (lambda* (#:key inputs #:allow-other-keys)
-             (let ((llvm (assoc-ref inputs "llvm")))
-               ;; Refer to ffi/Makefile.linux.
-               (setenv "CPPFLAGS" "-fPIC")
-               (setenv "LDFLAGS" (string-append "-Wl,-rpath="
-                                                llvm "/lib"))))))))
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'build 'set-compiler/linker-flags
+            (lambda _
+              (let ((llvm #$(this-package-input "llvm")))
+                ;; Refer to ffi/Makefile.linux.
+                (setenv "CPPFLAGS" "-fPIC")
+                (setenv "LDFLAGS" (string-append "-Wl,-rpath="
+                                                 llvm "/lib"))))))))
     (native-inputs (list python-setuptools python-wheel))
     (inputs
      (list
       (let* ((patches-commit
-              "530bed8f4b872d22a7089167d16198f373442d86")
+              "c52dd17d97aa5f3698cf7f8152b8f6551c10132a")
              (patch-uri (lambda (name)
                           (string-append
                            "https://raw.githubusercontent.com/numba/"
@@ -2096,36 +2141,24 @@ requirements according to version 1.1 of the OpenCL specification.")
              (patch-origin (lambda (name hash)
                              (origin (method url-fetch)
                                      (uri (patch-uri name))
-                                     (sha256 (base32 hash))
-                                     (modules '((ice-9 ftw)
-                                                (guix build utils)))
-                                     (snippet
-                                      '(let ((file (car
-                                                    (scandir "."
-                                                             (lambda (name)
-                                                               (not
-                                                                (member name
-                                                                        (quote
-                                                                         ("." "..")))))))))
-                                         (substitute* file
-                                           (("llvm-14.0.6.src/") "llvm/")))))))
+                                     (sha256 (base32 hash)))))
              (arch-independent-patches
               (list (patch-origin
-                     "llvm14-clear-gotoffsetmap.patch"
-                     "1gzs959hmh4wankalhg7idbhqjpk9q678bphhwfy308appf9c339")
+                     "llvm15-clear-gotoffsetmap.patch"
+                     "097iypk4l1shyrhb72msjnl7swlc78nsnb7lv507rl0vs08n6j94")
                     (patch-origin
-                     "llvm14-remove-use-of-clonefile.patch"
-                     "1wd156yjdshzh67dfk7c860hpx3nf5mn59sgmgb7lv1c55i6w97x")
+                     "llvm15-remove-use-of-clonefile.patch"
+                     "01qxzr15q3wh1ikbfi8jcs83fh27fs2w6damf7giybs6gx4iynnd")
                     (patch-origin
-                     "llvm14-svml.patch"
-                     "1dx1mgd36m0d1x6acd9ky9allvqhshjcbhfb5vj9sizk9bm1ipsr"))))
+                     "llvm15-svml.patch"
+                     "15n5vph2m7nd0jlf75n3h63h89m1kf4zn4s2jd1xmjrs848lgg87"))))
         (package
-          (inherit llvm-14)
+          (inherit llvm-15)
           (source
            (origin
-             (inherit (package-source llvm-14))
+             (inherit (package-source llvm-15))
              (patches (append arch-independent-patches
-                              (origin-patches (package-source llvm-14))))))))))
+                              (origin-patches (package-source llvm-15))))))))))
     (home-page "https://llvmlite.pydata.org")
     (synopsis "Wrapper around basic LLVM functionality")
     (description
@@ -2331,6 +2364,7 @@ LLVM."))))
        (sha256
         (base32 "0cf31hixzq5bzkxv91rvadlhrpxzy934134scv4frj85bxbpl19y"))))
     (build-system pyproject-build-system)
+    (native-inputs (list python-setuptools python-wheel))
     (home-page "https://github.com/SRI-CSL/whole-program-llvm")
     (synopsis "Whole Program LLVM")
     (description "This package provides a toolkit for building whole-program

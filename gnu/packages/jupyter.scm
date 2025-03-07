@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2019, 2022 Ludovic Courtès <ludo@gnu.org>
-;;; Copyright © 2021-2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2021-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2021 Hugo Lecomte <hugo.lecomte@inria.fr>
 ;;; Copyright © 2022 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
@@ -64,6 +64,13 @@
        (sha256
         (base32 "1qrhzazq10dz64y9mawr3ns595fsdhrj1wvbb42xhmcl66r1xq8a"))))
     (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases
+      ;; Because python-jsonschema has an old python-webcolor.  Remove this
+      ;; when python-team branch is merged.
+      '(modify-phases %standard-phases
+         (delete 'sanity-check))))
     (propagated-inputs (list python-argon2-cffi
                              python-ipykernel
                              python-ipython-genutils
@@ -126,6 +133,38 @@ the namespace @code{/nbclassic/}.")
     (description
      "This project provides a way for JupyterLab and other frontends to switch
 to Jupyter Server for their Python Web application backend.")
+    (license license:bsd-3)))
+
+(define-public python-jupyter-lsp
+  (package
+    (name "python-jupyter-lsp")
+    (version "2.2.5")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "jupyter-lsp" version))
+       (sha256
+        (base32 "00ahai7wp0m98glpqsrd1bymcllzkb8irvskzl4zhinlbah4fcbr"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags
+      ;; No R language server is present.
+      '(list "-k" "not test_r_package_detection")
+      #:phases
+      '(modify-phases %standard-phases
+         ;; Some tests require a writable HOME
+         (add-before 'check 'set-HOME
+           (lambda _ (setenv "HOME" "/tmp"))))))
+    (propagated-inputs (list python-jupyter-server))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
+    (home-page "https://pypi.org/project/jupyter-lsp/")
+    (synopsis "Multi-Language Server WebSocket proxy for Jupyter Notebook/Lab server")
+    (description
+     "This package provides a multi-language server WebSocket proxy for
+Jupyter Notebook/Lab server.  It provides coding assistance for
+JupyterLab (code navigation, hover suggestions, linters, autocompletion, and
+rename) using the Language Server Protocol.")
     (license license:bsd-3)))
 
 (define-public python-jupyter-protocol
@@ -562,7 +601,7 @@ JavaScript build steps.")
               (setenv "PATH"
                       (string-append #$output "/bin:" (getenv "PATH"))))))))
     (propagated-inputs
-     (list python-anyio
+     (list python-anyio/without-dataclasses
            python-argon2-cffi
            python-jinja2
            python-jupyter-client
@@ -828,21 +867,21 @@ nbshow present a single notebook in a terminal-friendly way
 (define-public python-nbstripout
   (package
     (name "python-nbstripout")
-    (version "0.5.0")
+    (version "0.8.1")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "nbstripout" version))
               (sha256
                (base32
-                "1n57nvxsc94gz9w8ymi83bjkfhfwkpmx4y14m6gjrmlqd49m1aw6"))))
+                "1c8b4fz807qlh028yi35gahwbas4pbwc1wjx3vz8v7kj9rmqpb7a"))))
     (build-system pyproject-build-system)
     (arguments
      (list
-      ;; These tests use git and hg, and they are sensitive to the
-      ;; exact printed output.
-      #:test-flags '(map (lambda (test)
-                           (string-append "--ignore=tests/test-" test ".t"))
-                         '("git" "hg" "status" "uninstall"))
+      #:test-flags
+      ;; These tests use git.
+      '(list "--ignore=tests/test_git_integration.py"
+             ;; These complain about missing files.
+             "--ignore=tests/test_end_to_end.py")
       #:phases
       #~(modify-phases %standard-phases
           (add-before 'check 'set-CRAMSHELL
@@ -850,12 +889,7 @@ nbshow present a single notebook in a terminal-friendly way
               (setenv "CRAMSHELL" (which "bash")))))))
     (propagated-inputs (list python-nbformat))
     (native-inputs
-     (list python-pytest
-           python-pytest-cram
-           python-pytest-flake8
-           python-pytest-runner
-           python-setuptools
-           python-wheel))
+     (list python-pytest python-setuptools python-wheel))
     (home-page "https://github.com/kynan/nbstripout")
     (synopsis "Strips outputs from Jupyter and IPython notebooks")
     (description
@@ -1076,9 +1110,18 @@ JupyterLab.")
                 "-k" (string-append
                       "not test_dataunion_constricts_widget_data"
                       " and not test_dataunion_widget_change_notified"
-                      " and not test_datawidget_creation_blank_comm"))))))))
+                      " and not test_datawidget_creation_blank_comm"
+                      ;; TODO: type object 'Widget' has no attribute '_ipython_display_'
+                      " and not test_notification"
+                      " and not test_manual_notification"
+                      " and not test_sync_segment"
+                      " and not test_hold_sync"
+                      " and not test_hold_sync_segment"))))))))
     (propagated-inputs
-     (list python-ipywidgets python-numpy python-six python-traittypes))
+     (list python-ipython-genutils
+           python-ipywidgets
+           python-numpy
+           python-traittypes))
     (native-inputs
      (list python-jupyter-packaging
            python-nbval
@@ -1151,7 +1194,7 @@ analyzing Jupyter Notebooks.")
 (define-public python-voila
   (package
     (name "python-voila")
-    (version "0.3.5")
+    (version "0.5.8")
     (source
      (origin
        (method git-fetch)               ;no tests in pypi archive
@@ -1161,26 +1204,65 @@ analyzing Jupyter Notebooks.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "10qn34ddmcwcl9zxa0gwxarxr64k8hx4yysdwrf0iqvmzmkwmbbj"))))
-    (build-system python-build-system)
+         "1fxw7m03iqd4bj1075mx6bspl48nj1rddi4mbs9jkziadc5yv7in"))))
+    (build-system pyproject-build-system)
     (arguments
      (list
+      ;; Many tests depend on Node JavaScript dependencies and a running HTTP
+      ;; server; ignore them.
+      #:test-flags
+      '(list "--ignore" "tests/app"
+             "--ignore" "tests/server"
+             ;; No python3 jupyter kernel in the build environment.
+             "-k" "not test_execute_output")
       #:phases
       #~(modify-phases %standard-phases
-          (add-after 'unpack 'relax-requirements
-            (lambda _
-              (substitute* "setup.cfg"
-                (("nbclient>=0.4.0,<0.6")
-                 "nbclient"))))
-          (replace 'check
-            (lambda* (#:key tests? #:allow-other-keys)
-              (when tests?
-                (setenv "HOME" "/tmp")
-                (invoke "pytest" "-vv"
-                        ;; Many tests depend on Node JavaScript dependencies
-                        ;; and a running HTTP server; ignore them.
-                        "--ignore" "tests/app"
-                        "--ignore" "tests/server")))))))
+          (add-after 'unpack 'prepare-css
+            (lambda* (#:key inputs #:allow-other-keys)
+              ;; FIXME: we skip the build of the JavaScript extension.  We
+              ;; hadn't built it in previous versions, because we could easily
+              ;; get away with it, but in this version we have to patch the
+              ;; build system.
+              (substitute* "pyproject.toml"
+                (("\"voila/labextensions/jupyterlab-preview/static/style.js\",") "")
+                (("\"share/jupyter/voila/themes/@jupyterlab/theme-dark-extension/index.css\"") ""))
+              (copy-file (assoc-ref inputs "variables.css")
+                         "share/jupyter/voila/templates/base/static/labvariables.css")
+              (copy-file (assoc-ref inputs "materialcolors.css")
+                         "share/jupyter/voila/templates/base/static/materialcolors.css")))
+          ;; FIXME: This is likely wrong.  The official wheel has very
+          ;; different contents, which must be the result of actually running
+          ;; jlpm and building the JavaScript packages.
+          (add-after 'install 'install-extensions
+            (lambda* (#:key inputs #:allow-other-keys)
+              (let ((dir (string-append #$output
+                                        "/share/jupyter/voila/labextensions/"
+                                        "@voila-dashboards/widgets-manager7")))
+                (mkdir-p dir)
+                (invoke "tar" "xf"
+                        (assoc-ref inputs
+                                   (string-append "voila-dashboards-widgets-manager7-"
+                                                  #$version ".tgz"))
+                        "--strip-components=1" "-C" dir))
+              (let ((dir (string-append #$output
+                                        "/share/jupyter/voila/labextensions/"
+                                        "@voila-dashboards/widgets-manager8")))
+                (mkdir-p dir)
+                (invoke "tar" "xf"
+                        (assoc-ref inputs
+                                   (string-append "voila-dashboards-widgets-manager8-"
+                                                  #$version ".tgz"))
+                        "--strip-components=1" "-C" dir))
+              (let ((dir (string-append #$output
+                                        "/share/jupyter/voila/labextensions/"
+                                        "@voila-dashboards/jupyterlab-preview")))
+                (mkdir-p dir)
+                (invoke "tar" "xf"
+                        (assoc-ref inputs
+                                   "voila-dashboards-jupyterlab-preview-2.3.8.tgz")
+                        "--strip-components=1" "-C" dir))))
+          (add-before 'check 'set-HOME
+            (lambda _ (setenv "HOME" "/tmp"))))))
     (propagated-inputs
      (list python-jupyter-client
            python-jupyter-server
@@ -1190,14 +1272,53 @@ analyzing Jupyter Notebooks.")
            python-traitlets
            python-websockets))
     (native-inputs
-     (list python-ipywidgets
+     (list python-hatchling
+           python-hatch-jupyter-builder
+           python-ipywidgets
            python-matplotlib
            python-mock
            python-numpy
            python-pandas
            python-pytest
            python-pytest-tornasync
-           python-tornado-6))
+           python-tornado-6
+           (origin
+             (method url-fetch)
+             (uri "https://unpkg.com/@jupyterlab/apputils@3.2.8/style/materialcolors.css")
+             (sha256
+              (base32
+               "1kvb24r3hbhmjdiip09w9pgzv6xmjzndch279r3ppf7rkgdcgirs")))
+           (origin
+             (method url-fetch)
+             (uri "https://unpkg.com/@jupyterlab/theme-light-extension@3.2.8/style/variables.css")
+             (sha256
+              (base32
+               "1mq6pr8w1r4jb2jgav15kkmjbca0x3nfsdv7q40xai994gsw5ygi")))
+           (origin
+             (method url-fetch)
+             (uri (string-append
+                   "https://github.com/voila-dashboards/voila/releases/download/v"
+                   version "/voila-dashboards-widgets-manager7-" version ".tgz"))
+             (sha256
+              (base32
+               "14fzn89nd6fnixzsy8jhz1y40z82msj5n44242zsjfxhlq8203rm")))
+           (origin
+             (method url-fetch)
+             (uri (string-append
+                   "https://github.com/voila-dashboards/voila/releases/download/v"
+                   version "/voila-dashboards-widgets-manager8-" version ".tgz"))
+             (sha256
+              (base32
+               "09kdrzpiw5psdq0ybrmmav1bwbli9gb4bdg0507069sipkap1nh4")))
+           ;; FIXME: we are not yet using this release tarball.
+           (origin
+             (method url-fetch)
+             (uri (string-append
+                   "https://github.com/voila-dashboards/voila/releases/download/v"
+                   version "/voila-dashboards-jupyterlab-preview-2.3.8.tgz"))
+             (sha256
+              (base32
+               "1bj2v03183aksn0qcqvb6p6kh8p992pk0zyz1x4s2xpijyh0fxpm")))))
     (home-page "https://github.com/voila-dashboards/voila")
     (synopsis "Render live Jupyter notebooks with interactive widgets")
     (description

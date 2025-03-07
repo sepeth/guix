@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015-2021, 2023, 2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015-2021, 2023-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Mckinley Olsen <mck.olsen@gmail.com>
 ;;; Copyright © 2016, 2017, 2019 Alex Griffin <a@ajgrf.com>
 ;;; Copyright © 2016 David Craven <david@craven.ch>
@@ -42,7 +42,7 @@
 ;;; Copyright © 2024 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
 ;;; Copyright © 2024 Ashvith Shetty <ashvithshetty10@gmail.com>
-;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2024, 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -184,7 +184,7 @@ less to gain, as only the helper process is running with privileges (e.g.,
                       (for-each make-file-writable
                                 (find-files "po" ".")) #t)))))
     (native-inputs (list autoconf-2.71 automake gettext-minimal pkg-config))
-    (inputs (list libconfuse vte))
+    (inputs (list libconfuse vte/gtk+-3))
     (synopsis "GTK+-based drop-down terminal")
     (description
      "Tilda is a terminal emulator similar to normal terminals like
@@ -851,7 +851,7 @@ eye-candy, customizable, and reasonably lightweight.")
 (define-public foot
   (package
     (name "foot")
-    (version "1.19.0")
+    (version "1.20.2")
     (home-page "https://codeberg.org/dnkl/foot")
     (source
      (origin
@@ -861,7 +861,7 @@ eye-candy, customizable, and reasonably lightweight.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "02y7vdvs09vdsmich59v85y4y4kp3gmpxskj8js0va1in0v9b3hi"))))
+        (base32 "0m6i361wg86zxah28lp9kdxawifrzgz2gbvs9b0ynwl7292nhw5n"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -897,7 +897,7 @@ a server/client mode.")
 (define-public havoc
   (package
     (name "havoc")
-    (version "0.4.0")
+    (version "0.6.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -906,7 +906,7 @@ a server/client mode.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "052nfli8x4kvly2iwbk0w3i8gk82bz2p8i0ygkwxhy03m5187lnc"))))
+                "089maf2xgh9halrccdj6p00l4q573x4f6a29655xb9h3a815s9k0"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -947,7 +947,7 @@ a server/client mode.")
      (list gettext-minimal perl ; for pod2man
            pkg-config))
     (inputs
-     (list libxft vte))
+     (list libxft vte/gtk+-3))
     (home-page "https://launchpad.net/sakura")
     (synopsis "Simple but powerful libvte-based terminal emulator")
     (description "@code{Sakura} is a terminal emulator based on GTK+ and VTE.
@@ -979,7 +979,7 @@ desktop installed to have a decent terminal emulator.")
                                                  #$output))
              #:phases #~(modify-phases %standard-phases
                           (delete 'configure))))
-      (inputs (list gtk+ glib vte))
+      (inputs (list gtk+ glib vte/gtk+-3))
       (native-inputs (list pkg-config))
       (synopsis "Minimalist terminal emulator based on GTK+")
       (description
@@ -988,34 +988,6 @@ between features and simplicity.  This is achieved by using VTE as a powerful
 backend, while UI, configuration, and code try to remain much more
 minimalistic.")
       (home-page "https://www.uninformativ.de/git/xiate/file/README.html")
-      (license license:expat))))
-
-(define-public go-github.com-nsf-termbox-go
-  (let ((commit "288510b9734e30e7966ec2f22b87c5f8e67345e3")
-        (revision "1"))
-    (package
-      (name "go-github.com-nsf-termbox-go")
-      (version (git-version "0.0.0" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://github.com/nsf/termbox-go")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "0hdyisfaf8yb55h3p03p4sbq19546mp9fy28f2kn659mycmhxqk4"))))
-      (build-system go-build-system)
-      (arguments
-       '(#:import-path "github.com/nsf/termbox-go"))
-      (propagated-inputs
-       (list go-github-com-mattn-go-runewidth))
-      (synopsis "@code{termbox} provides a minimal API for text-based user
-interfaces")
-      (description
-       "Termbox is a library that provides a minimalistic API which allows the
-programmer to write text-based user interfaces.")
-      (home-page "https://github.com/nsf/termbox-go")
       (license license:expat))))
 
 (define-public go-github-com-junegunn-fzf
@@ -1488,7 +1460,7 @@ while also supporting native scrolling and @command{tmux} control mode
                   gtk+
                   libsecret
                   libunwind
-                  vte))
+                  vte/gtk+-3))
     (native-inputs (list appstream
                          desktop-file-utils
                          `(,glib "bin")
@@ -1542,7 +1514,7 @@ basic input/output.")
 (define-public alacritty
   (package
     (name "alacritty")
-    (version "0.14.0")
+    (version "0.15.0")
     (source
      (origin
        ;; XXX: The crate at "crates.io" contains only the alacritty subproject
@@ -1554,55 +1526,60 @@ basic input/output.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0wfrj3h6rp90mclvssansh6p48q394xa8pzw74pjznzi2jxjw6b6"))))
+        (base32 "1nh5w037rwf00z9b21803184j561s44js9ilfq9pcqbgbg95y308"))))
     (build-system cargo-build-system)
     (arguments
      `(#:install-source? #f
+       #:cargo-test-flags
+       '("--"
+         ;; Changes in clap regularly break this test.
+         "--skip=cli::tests::completions")
        #:cargo-inputs
-       (("rust-ahash" ,rust-ahash-0.8)
-        ("rust-base64" ,rust-base64-0.22)
-        ("rust-bitflags" ,rust-bitflags-2)
-        ("rust-clap" ,rust-clap-4)
-        ("rust-cocoa" ,rust-cocoa-0.25)
-        ("rust-copypasta" ,rust-copypasta-0.10)
-        ("rust-crossfont" ,rust-crossfont-0.8)
-        ("rust-dirs" ,rust-dirs-5)
-        ("rust-embed-resource" ,rust-embed-resource-2)
-        ("rust-gl-generator" ,rust-gl-generator-0.14)
-        ("rust-glutin" ,rust-glutin-0.32)
-        ("rust-home" ,rust-home-0.5)
-        ("rust-libc" ,rust-libc-0.2)
-        ("rust-log" ,rust-log-0.4)
-        ("rust-miow" ,rust-miow-0.6)
-        ("rust-notify" ,rust-notify-6)
-        ("rust-objc" ,rust-objc-0.2)
-        ("rust-parking-lot" ,rust-parking-lot-0.12)
-        ("rust-piper" ,rust-piper-0.2)
-        ("rust-polling" ,rust-polling-3)
-        ("rust-png" ,rust-png-0.17)
-        ("rust-proc-macro2" ,rust-proc-macro2-1)
-        ("rust-quote" ,rust-quote-1)
-        ("rust-regex-automata" ,rust-regex-automata-0.4)
-        ("rust-rustix-openpty" ,rust-rustix-openpty-0.1)
-        ("rust-serde" ,rust-serde-1)
-        ("rust-serde-json" ,rust-serde-json-1)
-        ("rust-serde-yaml" ,rust-serde-yaml-0.9)
-        ("rust-signal-hook" ,rust-signal-hook-0.3)
-        ("rust-syn" ,rust-syn-2)
-        ("rust-tempfile" ,rust-tempfile-3)
-        ("rust-toml" ,rust-toml-0.8)
-        ("rust-toml-edit" ,rust-toml-edit-0.22)
-        ("rust-unicode-width" ,rust-unicode-width-0.1)
-        ("rust-vte" ,rust-vte-0.13)
-        ("rust-windows-sys" ,rust-windows-sys-0.52)
-        ("rust-winit" ,rust-winit-0.30)
-        ("rust-xdg" ,rust-xdg-2))
+       ,(list rust-ahash-0.8
+              rust-base64-0.22
+              rust-bitflags-2
+              rust-clap-4
+              rust-copypasta-0.10
+              rust-crossfont-0.8
+              rust-dirs-5
+              rust-embed-resource-2
+              rust-gl-generator-0.14
+              rust-glutin-0.32
+              rust-home-0.5
+              rust-libc-0.2
+              rust-log-0.4
+              rust-miow-0.6
+              rust-notify-6
+              rust-objc2-0.5
+              rust-objc2-app-kit-0.2
+              rust-objc2-foundation-0.2
+              rust-parking-lot-0.12
+              rust-piper-0.2
+              rust-polling-3
+              rust-png-0.17
+              rust-proc-macro2-1
+              rust-quote-1
+              rust-regex-automata-0.4
+              rust-rustix-openpty-0.1
+              rust-serde-1
+              rust-serde-json-1
+              rust-serde-yaml-0.9
+              rust-signal-hook-0.3
+              rust-syn-2
+              rust-tempfile-3
+              rust-toml-0.8
+              rust-toml-edit-0.22
+              rust-unicode-width-0.1
+              rust-vte-0.13
+              rust-windows-sys-0.52
+              rust-winit-0.30
+              rust-xdg-2)
        #:cargo-development-inputs
-       (("rust-clap-complete" ,rust-clap-complete-4)
-        ("rust-log" ,rust-log-0.4)
-        ("rust-serde" ,rust-serde-1)
-        ("rust-serde-json" ,rust-serde-json-1)
-        ("rust-toml" ,rust-toml-0.8))
+       ,(list rust-clap-complete-4
+              rust-log-0.4
+              rust-serde-1
+              rust-serde-json-1
+              rust-toml-0.8)
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'patch-xdg-open

@@ -23,6 +23,7 @@
 ;;; Copyright © 2024 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2024 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
+;;; Copyright © 2025 Jonas Freimuth <jonas.freimuth@posteo.de>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -102,6 +103,7 @@
   #:use-module (gnu packages swig)
   #:use-module (gnu packages tbb)
   #:use-module (gnu packages tcl)
+  #:use-module (gnu packages terminals)
   #:use-module (gnu packages tex)
   #:use-module (gnu packages texinfo)
   #:use-module (gnu packages time)
@@ -2281,16 +2283,18 @@ dataset under a GP prior, even as this dataset gets Big.")
 (define-public python-getdist
   (package
     (name "python-getdist")
-    (version "1.5.3")
+    (version "1.5.4")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "getdist" version))
        (sha256
-        (base32 "0hqq6zdm9byalypgb47ifxv67q1xgfgiq5aw0md2jndla4b546bq"))))
+        (base32 "01s1p53pqpxbi8sy2030jpjn7gsy67zb7y6p0gf57lgxvp4zx74q"))))
     (build-system pyproject-build-system)
     (native-inputs
-     (list python-pytest))
+     (list python-pytest
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list python-matplotlib
            python-numpy
@@ -2587,13 +2591,13 @@ Meier, Nelson Aalen and regression.")
 (define-public python-mapie
   (package
     (name "python-mapie")
-    (version "0.9.1")
+    (version "0.9.2")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "MAPIE" version))
               (sha256
                (base32
-                "1lyqszfgmqfsyvfaxplzz84iqm7s49rdscjjhnxlymrasrizfp26"))))
+                "00qhgfrix5aq7ng1xpvz2gk0d2d2maidbbd8ic9psq1vdqs6vp2a"))))
     (build-system pyproject-build-system)
     (native-inputs (list python-pandas python-pytest python-setuptools
                          python-wheel))
@@ -2694,7 +2698,7 @@ inference for statistical models.")
 (define-public python-openturns
   (package
     (name "python-openturns")
-    (version "1.21.3")
+    (version "1.24")
     (source
      (origin
        (method git-fetch)
@@ -2703,7 +2707,7 @@ inference for statistical models.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0nf77p6zv2br23n3c0yidnclb0234ni07y67h1h1f2bng4kdn8jp"))))
+        (base32 "1k7vgmlg5dybrbn61nzlsyx2142byi9jv357zv7mzf6b4y133k7k"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -2732,7 +2736,11 @@ inference for statistical models.")
                                "pyinstallcheck_Bonmin_swiler2014"
                                "pyinstallcheck_Ipopt_std"
                                "pyinstallcheck_example_plot_optimization_bonmin"
-                               "pyinstallcheck_coupling_tools")
+                               "pyinstallcheck_coupling_tools"
+                               ;; Subprocess aborted for these tests.
+                               "pyinstallcheck_Study_std"
+                               "pyinstallcheck_OptimizationAlgorithm_std"
+                               "pyinstallcheck_docstring_missing")
                          "|"))))))))
     (native-inputs
      (list bison
@@ -7153,6 +7161,86 @@ functions.")
     ;; in "setup.py".
     (license (list license:mpl2.0 license:gpl2+ license:lgpl2.1+))))
 
+(define-public python-rchitect
+  (package
+    (name "python-rchitect")
+    (version "0.4.7")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/randy3k/rchitect")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1ijbb0v77ir7j64r4r4kznv03wyc57rcqa9jnsc46476il79dcrk"))))
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-cffi python-packaging python-six))
+    (native-inputs (list python-pytest
+                         python-pytest-cov
+                         python-pytest-mock
+                         python-setuptools
+                         python-wheel
+                         ;; R dependencies needed only for testing.
+                         r-minimal
+                         r-reticulate))
+    (home-page "https://github.com/randy3k/rchitect")
+    (synopsis "Mapping R API to Python")
+    (description
+     "rchitect provides access to R functionality from Python.  Its
+main use is as the driver for radian, the R console.")
+    (license license:expat)))
+
+(define-public python-radian
+  (package
+    (name "python-radian")
+    (version "0.6.13")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/randy3k/radian")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0nnwgvifhsxdac7rr9d2zspc97xx0vyzxn1v9g4bnm9061rragc3"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (add-before 'check 'set-home
+                     (lambda _
+                       ;; During tests radian wants to write history files to
+                       ;; $HOME which causes tests to fail when that does not
+                       ;; exist. Test fails then look like
+                       ;; "Exception: value is " with the value being empty.
+                       (setenv "HOME" "/tmp"))))))
+    (propagated-inputs (list python-prompt-toolkit python-pygments
+                             python-rchitect))
+    (native-inputs (list python-coverage
+                         python-pexpect
+                         python-ptyprocess
+                         python-pyte
+                         python-pytest
+                         python-setuptools
+                         python-wheel
+                         ;; Needed afaict only for
+                         ;; `tests/test_reticulate.py::test_completion`.
+                         python-jedi
+                         ;; R dependencies needed only for testing.
+                         r-askpass
+                         r-minimal
+                         r-reticulate
+                         ;; Needed for sh tests.
+                         git-minimal))
+    (home-page "https://github.com/randy3k/radian")
+    (synopsis "R console")
+    (description
+     "Radian is an alternative console for the R program with multiline
+editing and rich syntax highlight.  One would consider Radian as a IPython
+clone for R, though its design is more aligned to Julia.")
+    (license license:expat)))
+
 (define-public java-jdistlib
   (package
     (name "java-jdistlib")
@@ -7191,121 +7279,118 @@ Java package that provides routines for various statistical distributions.")
     (license license:gpl2+)))
 
 (define-public emacs-ess
-  (let ((commit "ab2faeca1ba6c456333312c58f58ef9e5ef4aa8b")
-        (version "24.01.1")
-        (revision "1"))
-    (package
-      (name "emacs-ess")
-      (version (git-version version revision commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://github.com/emacs-ess/ESS")
-               (commit commit)))
-         (sha256
-          (base32 "0jfdfqpa3x1zm65cllkzhqir057xd3hxi4z2ddii1i26zy56iikf"))
-         (file-name (git-file-name name version))
-         (modules '((guix build utils)))
-         (snippet
-          #~(begin
-              ;; Stop ESS from trying to bundle an external julia-mode.el.
-              (substitute* "lisp/Makefile"
-                ((" \\$\\(JULIAS)") "")
-                (("\ttest.*julia-mode.*\\.el") ""))
-              ;; Only build docs in info format.
-              (substitute* "doc/Makefile"
-                (("all  : info text")
-                 "all  : info")
-                (("install: install-info install-other-docs")
-                 "install: install-info"))
-              ;; Stop install-info from trying to update the info directory.
-              (substitute* "doc/Makefile"
-                ((".*/dir.*") ""))
-              ;; Avoid generating ess-autoloads.el twice.
-              (substitute* "Makefile"
-                (("all: lisp doc etc autoloads")
-                 "all: lisp doc etc"))
-              ;; Install to correct directories.
-              (substitute* "Makefile"
-                (("mkdir -p \\$\\(ESSDESTDIR)")
-                 "$(MAKE) -C lisp install; $(MAKE) -C doc install")
-                (("\\$\\(INSTALL) -R \\./\\* \\$\\(ESSDESTDIR)/")
-                 "$(MAKE) -C etc install"))))))
-      (build-system gnu-build-system)
-      (arguments
-       (let ((base-directory "/share/emacs/site-lisp"))
-         (list
-          #:modules '((guix build gnu-build-system)
-                      (guix build utils)
-                      (guix build emacs-utils))
-          #:imported-modules `(,@%default-gnu-imported-modules
-                               (guix build emacs-build-system)
-                               (guix build emacs-utils))
-          #:make-flags
-          #~(list (string-append "PREFIX=" #$output)
-                  (string-append "ETCDIR=" #$output #$base-directory "/etc")
-                  (string-append "LISPDIR=" #$output #$base-directory)
-                  (string-append "INFODIR=" #$output "/share/info"))
-          #:phases
-          #~(modify-phases %standard-phases
-              (delete 'configure)
-              (add-before 'check 'skip-failing-tests
-                (lambda _
-                  (let-syntax
-                      ((disable-tests
-                        (syntax-rules ()
-                          ((_ ())
-                           (syntax-error "test names list must not be empty"))
-                          ((_ (test-name ...))
-                           (substitute* (find-files "test" "\\.el$")
-                             (((string-append "^\\(ert-deftest " test-name ".*")
-                               all)
-                              (string-append all "(skip-unless nil)\n"))
-                             ...))))
-                       (disable-etests  ;different test syntax
-                        (syntax-rules ()
-                          ((_ ())
-                           (syntax-error "test names list must not be empty"))
-                          ((_ (test-name ...))
-                           (for-each
-                            (lambda (file)
-                              (emacs-batch-edit-file file
-                                '(progn
-                                  (dolist (test (list test-name ...))
-                                          (goto-char (point-min))
-                                          (let ((s (format "etest-deftest %s "
-                                                           test)))
-                                            (when (search-forward s nil t)
-                                              (beginning-of-line)
-                                              (kill-sexp))))
-                                  (basic-save-buffer))))
-                            (find-files "test" "\\.el$"))))))
-                    (disable-tests ("ess--derive-connection-path"
-                                    "ess-eval-line-test"
-                                    "ess-eval-region-test"
-                                    "ess-mock-remote-process"
-                                    "ess-r-load-ESSR-github-fetch-no"
-                                    "ess-r-load-ESSR-github-fetch-yes"
-                                    "ess-set-working-directory-test"
-                                    "ess-test-r-startup-directory"))
-                    (disable-etests ("ess-r-eval-ns-env-roxy-tracebug-test"
-                                     "ess-r-eval-sink-freeze-test"
-                                     ;; Looks like an off-by-one error.
-                                     "ess--command-browser-unscoped-essr")))))
-              (replace 'check
-                (lambda* (#:key tests? #:allow-other-keys)
-                  (when tests? (invoke "make" "test"))))))))
-      (native-inputs (list perl r-roxygen2 texinfo))
-      (inputs (list emacs-minimal r-minimal))
-      (propagated-inputs (list emacs-julia-mode))
-      (home-page "https://ess.r-project.org/")
-      (synopsis "Emacs mode for statistical analysis programs")
-      (description
-       "Emacs Speaks Statistics (ESS) is an add-on package for GNU Emacs.  It
+  (package
+    (name "emacs-ess")
+    (version "25.01.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/emacs-ess/ESS")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32 "0v56b47qidpyxvyk0q487qxhj9si0jkm852frl832iraks02l5h5"))
+       (file-name (git-file-name name version))
+       (modules '((guix build utils)))
+       (snippet
+        #~(begin
+            ;; Stop ESS from trying to bundle an external julia-mode.el.
+            (substitute* "lisp/Makefile"
+              ((" \\$\\(JULIAS)") "")
+              (("\ttest.*julia-mode.*\\.el") ""))
+            ;; Only build docs in info format.
+            (substitute* "doc/Makefile"
+              (("all  : info text")
+               "all  : info")
+              (("install: install-info install-other-docs")
+               "install: install-info"))
+            ;; Stop install-info from trying to update the info directory.
+            (substitute* "doc/Makefile"
+              ((".*/dir.*") ""))
+            ;; Avoid generating ess-autoloads.el twice.
+            (substitute* "Makefile"
+              (("all: lisp doc etc autoloads")
+               "all: lisp doc etc"))
+            ;; Install to correct directories.
+            (substitute* "Makefile"
+              (("mkdir -p \\$\\(ESSDESTDIR)")
+               "$(MAKE) -C lisp install; $(MAKE) -C doc install")
+              (("\\$\\(INSTALL) -R \\./\\* \\$\\(ESSDESTDIR)/")
+               "$(MAKE) -C etc install"))))))
+    (build-system gnu-build-system)
+    (arguments
+     (let ((base-directory "/share/emacs/site-lisp"))
+       (list
+        #:modules '((guix build gnu-build-system)
+                    (guix build utils)
+                    (guix build emacs-utils))
+        #:imported-modules `(,@%default-gnu-imported-modules
+                             (guix build emacs-build-system)
+                             (guix build emacs-utils))
+        #:make-flags
+        #~(list (string-append "PREFIX=" #$output)
+                (string-append "ETCDIR=" #$output #$base-directory "/etc")
+                (string-append "LISPDIR=" #$output #$base-directory)
+                (string-append "INFODIR=" #$output "/share/info"))
+        #:phases
+        #~(modify-phases %standard-phases
+            (delete 'configure)
+            (add-before 'check 'skip-failing-tests
+              (lambda _
+                (let-syntax
+                    ((disable-tests
+                      (syntax-rules ()
+                        ((_ ())
+                         (syntax-error "test names list must not be empty"))
+                        ((_ (test-name ...))
+                         (substitute* (find-files "test" "\\.el$")
+                           (((string-append "^\\(ert-deftest " test-name ".*")
+                             all)
+                            (string-append all "(skip-unless nil)\n"))
+                           ...))))
+                     (disable-etests  ;different test syntax
+                      (syntax-rules ()
+                        ((_ ())
+                         (syntax-error "test names list must not be empty"))
+                        ((_ (test-name ...))
+                         (for-each
+                          (lambda (file)
+                            (emacs-batch-edit-file file
+                              '(progn
+                                (dolist (test (list test-name ...))
+                                        (goto-char (point-min))
+                                        (let ((s (format "etest-deftest %s "
+                                                         test)))
+                                          (when (search-forward s nil t)
+                                            (beginning-of-line)
+                                            (kill-sexp))))
+                                (basic-save-buffer))))
+                          (find-files "test" "\\.el$"))))))
+                  (disable-tests ("ess--derive-connection-path"
+                                  "ess-eval-line-test"
+                                  "ess-eval-region-test"
+                                  "ess-mock-remote-process"
+                                  "ess-r-load-ESSR-github-fetch-no"
+                                  "ess-r-load-ESSR-github-fetch-yes"
+                                  "ess-set-working-directory-test"
+                                  "ess-test-r-startup-directory"))
+                  (disable-etests ("ess-r-eval-ns-env-roxy-tracebug-test"
+                                   "ess-r-eval-sink-freeze-test"
+                                   ;; Looks like an off-by-one error.
+                                   "ess--command-browser-unscoped-essr")))))
+            (replace 'check
+              (lambda* (#:key tests? #:allow-other-keys)
+                (when tests? (invoke "make" "test"))))))))
+    (native-inputs (list perl r-roxygen2 texinfo))
+    (inputs (list emacs-minimal r-minimal))
+    (propagated-inputs (list emacs-julia-mode))
+    (home-page "https://ess.r-project.org/")
+    (synopsis "Emacs mode for statistical analysis programs")
+    (description
+     "Emacs Speaks Statistics (ESS) is an add-on package for GNU Emacs.  It
 is designed to support editing of scripts and interaction with various
 statistical analysis programs such as R, Julia, and JAGS.")
-      (license license:gpl3+))))
+    (license license:gpl3+)))
 
 (define-public emacs-poly-r
   (package
@@ -8079,7 +8164,7 @@ models, using simulation.  It was designed to work with models fit using the
         "Pilotdata based simulations for estimating power in linear mixed models")
       (description
        "Mixedpower uses pilotdata and a linear mixed model fitted with lme4 to
-simulate new data sets.  Power is computed seperate for every effect in the
+simulate new data sets.  Power is computed separate for every effect in the
 model output as the relation of significant simulations to all simulations.
 More conservative simulations as a protection against a bias in the pilotdata
 are available as well as methods for plotting the results.")

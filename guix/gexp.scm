@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2014-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2014-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2018 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2018 Jan Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2019, 2020 Mathieu Othacehe <m.othacehe@gmail.com>
@@ -733,21 +733,28 @@ x86_64-linux when COREUTILS is lowered."
   (lambda (parameterized system target)
     (match (parameterized-bindings parameterized)
       (((parameters values) ...)
-       (let ((fluids (map parameter-fluid parameters))
-             (thunk  (parameterized-thunk parameterized)))
-         ;; Install the PARAMETERS for the dynamic extent of THUNK.
-         (with-fluids* fluids
-           (map (lambda (thunk) (thunk)) values)
-           (lambda ()
-             ;; Special-case '%current-system' and '%current-target-system' to
-             ;; make sure we get the desired effect.
-             (let ((system (if (memq %current-system parameters)
-                               (%current-system)
-                               system))
-                   (target (if (memq %current-target-system parameters)
-                               (%current-target-system)
-                               target)))
-               (lower-object (thunk) system #:target target))))))))
+       (let ((thunk (parameterized-thunk parameterized))
+             (values (map (lambda (thunk) (thunk)) values)))
+         ;; Install the PARAMETERS for the store monad.
+         (state-with-parameters parameters values
+           ;; Install the PARAMETERS for the dynamic extent of THUNK.
+           ;; Special-case '%current-system' and '%current-target-system' to
+           ;; make sure we get the desired effect.
+           (with-fluids* (map parameter-fluid parameters)
+             values
+             (lambda ()
+               (let ((system (if (memq %current-system parameters)
+                                 (%current-system)
+                                 system))
+                     (target (if (memq %current-target-system parameters)
+                                 (%current-target-system)
+                                 target)))
+                 (match (thunk)
+                   ((? struct? obj)
+                    (lower-object obj system #:target target))
+                   (obj                             ;store item
+                    (with-monad %store-monad
+                      (return obj))))))))))))
 
   expander => (lambda (parameterized lowered output)
                 (match (parameterized-bindings parameterized)
@@ -758,10 +765,13 @@ x86_64-linux when COREUTILS is lowered."
                      (with-fluids* fluids
                        (map (lambda (thunk) (thunk)) values)
                        (lambda ()
-                         ;; Delegate to the expander of the wrapped object.
-                         (let* ((base   (thunk))
-                                (expand (lookup-expander base)))
-                           (expand base lowered output)))))))))
+                         (match (thunk)
+                           ((? struct? base)
+                            ;; Delegate to the expander of the wrapped object.
+                            (let ((expand (lookup-expander base)))
+                              (expand base lowered output)))
+                           (obj                   ;store item
+                            obj)))))))))
 
 
 ;;;

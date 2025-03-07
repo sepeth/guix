@@ -1,18 +1,18 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2013, 2014, 2015, 2016, 2019, 2020, 2023, 2024 Andreas Enge <andreas@enge.fr>
+;;; Copyright © 2013, 2014, 2015, 2016, 2019, 2020, 2023, 2024, 2025 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2013 Nikita Karetnikov <nikita@karetnikov.org>
 ;;; Copyright © 2014, 2016, 2017 John Darrington <jmd@gnu.org>
 ;;; Copyright © 2014-2022 Eric Bavier <bavier@posteo.net>
 ;;; Copyright © 2014 Federico Beffa <beffa@fbengineering.ch>
 ;;; Copyright © 2014 Mathieu Lirzin <mathieu.lirzin@openmailbox.org>
-;;; Copyright © 2015–2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015–2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Sou Bunnbu <iyzsong@gmail.com>
 ;;; Copyright © 2015, 2018 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2015-2024 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2015 Fabian Harfert <fhmgufs@web.de>
 ;;; Copyright © 2016 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2016, 2018, 2020, 2021 Kei Kebreau <kkebreau@posteo.net>
-;;; Copyright © 2016-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2016-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016 Leo Famulari <leo@famulari.name>
 ;;; Copyright © 2016, 2017 Thomas Danckaert <post@thomasdanckaert.be>
 ;;; Copyright © 2017, 2018, 2019, 2020, 2021 Paul Garlick <pgarlick@tourbillion-technology.com>
@@ -39,7 +39,7 @@
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
 ;;; Copyright © 2020 Nicolò Balzarotti <nicolo@nixo.xyz>
 ;;; Copyright © 2020 B. Wilson <elaexuotee@wilsonb.com>
-;;; Copyright © 2020, 2021 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2020, 2021, 2025 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2020 Simon Tournier <zimon.toutoune@gmail.com>
 ;;; Copyright © 2020 Martin Becze <mjbecze@riseup.net>
 ;;; Copyright © 2021 Gerd Heber <gerd.heber@gmail.com>
@@ -65,7 +65,7 @@
 ;;; Copyright © 2023 David Elsing <david.elsing@posteo.net>
 ;;; Copyright © 2024 Herman Rimm <herman@rimm.ee>
 ;;; Copyright © 2024 Foundation Devices, Inc. <hello@foundation.xyz>
-;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2024, 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
 ;;;
 ;;; This file is part of GNU Guix.
@@ -158,6 +158,7 @@
   #:use-module (gnu packages gl)
   #:use-module (gnu packages imagemagick)
   #:use-module (gnu packages m4)
+  #:use-module (gnu packages man)
   #:use-module (gnu packages mpi)
   #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages ncurses)
@@ -870,6 +871,43 @@ extremely fast @dfn{abstract data types} (ADT) such as hash tables b-trees,
 and much more.")
     (license license:lgpl3+)))
 
+(define-public gfan
+  (package
+    (name "gfan")
+    (version "0.7")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://users-math.au.dk/jensen/software"
+                           "/gfan/gfan" version ".tar.gz"))
+       (sha256
+        (base32 "17lqripnsdb5hn7nnhgn4siajgh1jh9nkaplca3akm74w5bkg0xb"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      #:make-flags #~(list (string-append "PREFIX=" #$output)
+                           (string-append "CC=" #$(cc-for-target))
+                           (string-append "CXX=" #$(cxx-for-target)))
+      #:phases #~(modify-phases %standard-phases
+                   (delete 'configure)
+                   ;; cddlib is distributed with the 'cddlib' header name,
+                   ;; but gfan expects it to be named 'cdd'.  Substitute
+                   ;; the include headers to make gfan find it.
+                   (add-after 'unpack 'fix-cdd-reference
+                     (lambda _
+                       (substitute* '("src/lp_cdd.cpp"
+                                      "src/gfanlib_zcone.cpp"
+                                      "src/app_librarytest.cpp")
+                         (("#include \"cdd") "#include \"cddlib")))))))
+    (inputs (list cddlib gmp))
+    (home-page "https://users-math.au.dk/jensen/software/gfan/gfan.html")
+    (synopsis "Compute Gröbner fans and tropical varieties")
+    (description "Gfan is a software package for computing Gröbner fans and
+tropical varieties.")
+    ;; homepage/gfan.html: "Gfan is distributed under the terms of the GPL
+    ;; license version 2 or 3 as desired"
+    (license license:gpl2)))
+
 (define-public 4ti2
   (package
     (name "4ti2")
@@ -897,6 +935,45 @@ combinatorial problems on linear spaces.  Among others, it solves systems
 of linear equations, computes extreme rays of polyhedral cones, solves
 integer programming problems and computes Markov bases for statistics.")
     (license license:gpl2+)))
+
+(define-public sympow
+  (package
+    (name "sympow")
+    (version "2.023.7")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+         (url "https://gitlab.com/rezozer/forks/sympow")
+         (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "0ilnxygkj4g5arjiyd16k00cvnjlqs0cpc8hk64kbqhl877mm5i9"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:tests? #f ; no tests
+           #:phases #~(modify-phases %standard-phases
+                        (replace 'configure
+                          (lambda* (#:key inputs #:allow-other-keys)
+                            (substitute* "Configure"
+                              (("/bin/sh") (search-input-file inputs "/bin/bash")))
+                            (setenv "PREFIX" #$output)
+                            (setenv "VARPREFIX" #$output)
+                            (invoke "bash" "./Configure"))))))
+    (native-inputs (list bash-minimal coreutils help2man pari-gp which))
+    (home-page "https://gitlab.com/rezozer/forks/sympow")
+    (synopsis "Symmetric power elliptic curve L-functions")
+    (description "SYMPOW is a mathematical program to compute special values
+of symmetric power elliptic curve L-functions; it can compute up to about 64
+digits of precision.")
+    ;; bsd-2 with extra stipulation that users be informed of sympow's
+    ;; "less restrictive license" if it's included in a program with a more
+    ;; restrictive license.  However, since sympow includes fpu.c which is
+    ;; gpl2+ the whole package can only be distributed via GPL anyway.
+    ;; See also <https://gitlab.com/rezozer/forks/sympow/-/issues/7>.
+    (license (license:non-copyleft "file:///COPYING"
+                                   "See COPYING in the distribution."))))
 
 (define-public cddlib
   (package
@@ -1091,19 +1168,20 @@ large scale eigenvalue problems.")
 (define-public lapack
   (package
     (name "lapack")
-    (version "3.9.0")
+    (version "3.12.1")
     (source
      (origin
-      (method url-fetch)
-      (uri (string-append "http://www.netlib.org/lapack/lapack-"
-                          version ".tgz"))
+      (method git-fetch)
+      (uri (git-reference
+            (url "https://github.com/Reference-LAPACK/lapack/")
+            (commit (string-append "v" version))))
+      (file-name (git-file-name name version))
       (sha256
        (base32
-        "1155qixp26c12yrxc76z9mlfw2h3xxymxxv5znpgzh5gaykpndgj"))))
+        "19387ifv5kplnggw5fgz4nzspmqi11wnwzap2knwxgrvknysrwj9"))))
     (build-system cmake-build-system)
     (home-page "https://www.netlib.org/lapack/")
-    (inputs `(("fortran" ,gfortran)
-              ("python" ,python-wrapper)))
+    (inputs (list gfortran python-wrapper))
     (arguments
      `(#:configure-flags (list
                           "-DBUILD_SHARED_LIBS:BOOL=YES"
@@ -1696,6 +1774,7 @@ extremely large and complex data collections.")
     (license (license:x11-style
               "https://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/COPYING"))))
 
+;; When updating this package, please also update hdf-java.
 (define-public hdf5-1.10
   (package
     (inherit hdf5-1.8)
@@ -1758,131 +1837,97 @@ extremely large and complex data collections.")
   ;; Default version of HDF5.
   hdf5-1.10)
 
+;; Keep this in sync with the current hdf5 package.
 (define-public hdf-java
   (package
     (name "hdf-java")
-    (version "3.3.2")
+    (version "1.10.9")
     (source
      (origin
-       (method url-fetch)
-       (uri (string-append
-             "https://www.hdfgroup.org/ftp/HDF5/releases/HDF-JAVA/hdfjni-"
-             version "/src/CMake-hdfjava-" version ".tar.gz"))
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/HDFGroup/hdf5")
+             (commit (string-append "hdf5-"
+                                    (string-map
+                                     (lambda (c) (if (char=? c #\.) #\_ c))
+                                     version)))))
+       (file-name (git-file-name name version))
        (sha256
-        (base32 "0m1gp2aspcblqzmpqbdpfp6giskws85ds6p5gz8sx7asyp7wznpr"))
+        (base32 "1sjdcnafvzsy99vqhybkps8rnwmxb6fsvmkw89wb2mrrp4vi5z9v"))
        (modules '((guix build utils)))
        (snippet     ; Make sure we don't use the bundled sources and binaries.
-        `(begin
-           (for-each delete-file
-                     (list "SZip.tar.gz" "ZLib.tar.gz" "JPEG8d.tar.gz"
-                           "HDF4.tar.gz" "HDF5.tar.gz"))
-           (delete-file-recursively ,(string-append "hdfjava-" version "/lib"))
-           #t))))
+        '(for-each delete-file
+                   (find-files "java/lib" "\\.jar$")))))
     (build-system gnu-build-system)
-    (native-inputs
-     `(("jdk" ,icedtea "jdk")
-       ("automake" ,automake) ; For up to date 'config.guess' and 'config.sub'.
-       ;; For tests:
-       ("hamcrest-core" ,java-hamcrest-core)
-       ("junit" ,java-junit)
-       ("slf4j-simple" ,java-slf4j-simple)))
-    (inputs
-     `(("hdf4" ,hdf4)
-       ("hdf5" ,hdf5-1.8)
-       ("zlib" ,zlib)
-       ("libjpeg" ,libjpeg-turbo)
-       ("slf4j-api" ,java-slf4j-api)))
     (arguments
-     `(#:configure-flags
-       (list (string-append "--target=" ,(or (%current-target-system) (%current-system)))
-             (string-append "--with-jdk=" (assoc-ref %build-inputs "jdk") "/include,"
-                            (assoc-ref %build-inputs "jdk") "/lib" )
-             (string-append "--with-hdf4=" (assoc-ref %build-inputs "hdf4") "/lib")
-             (string-append "--with-hdf5=" (assoc-ref %build-inputs "hdf5") "/lib"))
-
-       #:make-flags
-       (list (string-append "HDFLIB=" (assoc-ref %build-inputs "hdf4") "/lib")
-             (string-append "HDF5LIB=" (assoc-ref %build-inputs "hdf5") "/lib")
-             (string-append "ZLIB=" (search-input-file %build-inputs "/lib/libz.so"))
-             (string-append "JPEGLIB="
-                            (search-input-file %build-inputs "/lib/libjpeg.so"))
-             "LLEXT=so")
-
-       #:phases
-       (modify-phases %standard-phases
-         (add-before 'configure 'chdir-to-source
-           (lambda _ (chdir ,(string-append "hdfjava-" version)) #t))
-         (add-before 'configure 'patch-build
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (substitute* "configure"
-               (("COPT=\"") "COPT=\"-O2 ") ; CFLAGS is ignored in Makefiles
-               (("/bin/cat") (which "cat")))
-             ;; Set classpath for compilation
-             (substitute* '("hdf/hdf5lib/Makefile.in"
-                            "hdf/hdf5lib/exceptions/Makefile.in"
-                            "hdf/hdflib/Makefile.in")
-               (("\\$\\(TOP\\)/lib/slf4j-api-1\\.7\\.5\\.jar")
-                ;; 'slf4j-api-X.Y.Z.jar' is installed in a Maven-style
-                ;; directory, so use 'find-files' to find it.
-                (car (find-files (assoc-ref inputs "slf4j-api")
-                                 "^slf4j-api.*\\.jar$"))))
-             ;; Replace outdated config.sub and config.guess:
-             (with-directory-excursion "config"
-               (for-each (lambda (file)
-                           (install-file
-                            (search-input-file inputs
-                                               (string-append
-                                                "/share/automake-"
-                                                ,(version-major+minor (package-version automake))
-                                                "/" file))
-                            "."))
-                         '("config.sub" "config.guess")))
-
-             ;; Fix embedded version number
-             (let ((hdf5version (list ,@(string-split (package-version hdf5) #\.))))
-               (substitute* "hdf/hdf5lib/H5.java"
-                 (("1, 8, 19")
-                  (string-join hdf5version ", "))))
-
-             (mkdir-p (string-append (assoc-ref outputs "out")))
-             ;; Set classpath for tests
-             (let* ((build-dir (getcwd))
-                    (lib (string-append build-dir "/lib"))
-                    (jhdf (string-append lib "/jhdf.jar"))
-                    (jhdf5 (string-append lib "/jhdf5.jar"))
-                    (testjars
-                     (append
-                       (map (lambda (i)
-                              (car (find-files (assoc-ref inputs i)
-                                               (string-append "^" i
-                                                              ".*\\.jar$"))))
-                            '("slf4j-api" "slf4j-simple"))
-                       (list
-                         (car (find-files (assoc-ref inputs "junit") "jar$"))
-                         (car (find-files (assoc-ref inputs "hamcrest-core")
-                                          "jar$")))))
-                    (class-path
-                     (string-join `("." ,build-dir ,jhdf ,jhdf5 ,@testjars) ":")))
-
-               (substitute* '("test/hdf5lib/Makefile.in"
-                              "test/hdf5lib/junit.sh.in"
-                              "examples/runExample.sh.in")
-                 (("/usr/bin/test")
-                  (search-input-file inputs "/bin/test"))
-                 (("/usr/bin/uname")
-                  (search-input-file inputs "/bin/uname"))
-                 (("CLASSPATH=[^\n]*")
-                  (string-append "CLASSPATH=" class-path)))
-               (setenv "CLASSPATH" class-path))
-             #t))
-         (add-before 'check 'build-examples
-           (lambda _
-             (apply invoke `("javac"
-                             ,@(find-files "examples" ".*\\.java"))))))
-
-       #:parallel-build? #f
-
-       #:parallel-tests? #f ))
+     (list
+      #:configure-flags
+      #~(list "--enable-java"
+              "--disable-tools")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'unbundle
+            (lambda* (#:key inputs #:allow-other-keys)
+              (let ((simple
+                     (search-input-file
+                      inputs "/lib/m2/org/slf4j/slf4j-simple/1.7.25/slf4j-simple-1.7.25.jar"))
+                    (api
+                     (search-input-file
+                      inputs "/lib/m2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar"))
+                    (junit
+                     (search-input-file
+                      inputs "/lib/m2/junit/junit/4.12/junit-4.12.jar"))
+                    (hamcrest
+                     (search-input-file
+                      inputs "/lib/m2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar")))
+                (substitute* (append (find-files "java" "Makefile.am")
+                                     (find-files "java" "Makefile.in"))
+                  (("\\$\\(top_srcdir\\)/java/lib/ext/slf4j-simple-1.7.33.jar")
+                   simple)
+                  (("\\$\\(top_srcdir\\)/java/lib/slf4j-api-1.7.33.jar")
+                   api)
+                  (("\\$\\(top_srcdir\\)/java/lib/junit.jar")
+                   junit)
+                  (("\\$\\(top_srcdir\\)/java/lib/hamcrest-core.jar")
+                   hamcrest))
+                (substitute* '("java/test/junit.sh.in"
+                               "java/examples/datatypes/JavaDatatypeExample.sh.in"
+                               "java/examples/datasets/JavaDatasetExample.sh.in"
+                               "java/examples/intro/JavaIntroExample.sh.in"
+                               "java/examples/groups/JavaGroupExample.sh.in")
+                  (("^LIST_JAR_TESTFILES=\"" m)
+                   (string-append m hamcrest "\n"
+                                  junit "\n"
+                                  api "\n"
+                                  simple "\n"))
+                  (("^\\$HDFLIB_HOME/.*") "")
+                  (("\"\\$BLDLIBDIR\"/junit.jar")
+                   junit)
+                  (("\"\\$BLDLIBDIR\"/hamcrest-core.jar")
+                   hamcrest)
+                  (("\"\\$BLDLIBDIR\"/slf4j-api-1.7.33.jar")
+                   api)
+                  (("\"\\$BLDLIBDIR\"/slf4j-simple-1.7.33.jar")
+                   simple)
+                  (("/usr/bin/test")
+                   (search-input-file inputs "/bin/test"))
+                  (("/usr/bin/uname")
+                   (search-input-file inputs "/bin/uname")))
+                (substitute* (find-files "java/test/testfiles/" ".*\\.txt$")
+                  (("JUnit version 4.11")
+                   "JUnit version 4.12-SNAPSHOT"))))))))
+    (native-inputs
+     (list `(,icedtea "jdk")
+           ;; For tests:
+           java-hamcrest-core
+           java-junit
+           java-slf4j-simple))
+    (inputs
+     (list hdf4
+           hdf5
+           java-slf4j-api
+           libjpeg-turbo
+           zlib))
     (home-page "https://support.hdfgroup.org/products/java")
     (synopsis "Java interface for the HDF4 and HDF5 libraries")
     (description "Java HDF Interface (JHI) and Java HDF5 Interface (JHI5) use
@@ -2304,6 +2349,71 @@ sharing of scientific data.")
     (home-page (package-home-page netcdf))
     (license (package-license netcdf))))
 
+(define-public netcdf-cxx4
+  (package
+    (name "netcdf-cxx4")
+    (version "4.3.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/Unidata/netcdf-cxx4")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "05kydd5z9iil5iv4fp7l11cicda5n5lsg5sdmsmc55xpspnsg7hr"))))
+    (build-system cmake-build-system)
+    (arguments
+     `(#:phases (modify-phases %standard-phases
+                  (add-before 'configure 'patch-configure
+                    (lambda _
+                      (substitute* "libnetcdf-cxx.settings.in"
+                        ;; Don't record the build-time host, time and gcc path to make the
+                        ;; settings file reproducible.
+                        (("@CONFIG_DATE@")
+                         "Not set (Guix build)")
+                        (("@host_cpu@-@host_vendor@-@host_os@")
+                         "Linux")
+                        (("@CC_VERSION@")
+                         "gcc"))
+                      ;; The filter tests fail with 'Caught unexpected exception'.
+                      (substitute* "cxx4/CMakeLists.txt"
+                        (("add_bin_test\\(cxx4 test_filter\\)")
+                         ""))
+                      (substitute* "examples/CMakeLists.txt"
+                        (("add_sh_test\\(examples tst_filter\\)")
+                         ""))))
+                  (add-after 'install 'clear-reference-to-compiler
+                    (lambda* (#:key inputs outputs #:allow-other-keys)
+                      ;; Do not retain a reference to GCC and other build only inputs.
+                      (let ((out (assoc-ref outputs "out")))
+                        (substitute* (string-append out "/bin/ncxx4-config")
+                          (("cc=([[:graph:]]+)/bin/gcc")
+                           "cc=\"gcc")
+                          (("cxx=([[:graph:]]+)/bin/c\\+\\+")
+                           "cxx=\"c++"))))))
+       #:configure-flags (list (string-append "-DHDF5_C_LIBRARY_hdf5="
+                                              (search-input-file
+                                               %build-inputs
+                                               "/lib/libhdf5.so")))))
+    (inputs (list netcdf hdf5))
+    (home-page "https://github.com/Unidata/netcdf-cxx4")
+    (synopsis "NetCDF C++ interface")
+    (description
+     "This package provides a C++ interface to the NetCDF library for
+scientific data storage.")
+    (license license:bsd-3)))
+
+(define-public netcdf-cxx4-parallel-openmpi
+  (package
+    (inherit netcdf-cxx4)
+    (name "netcdf-cxx4-parallel-openmpi")
+    (synopsis "NetCDF C++ interface (with MPI support)")
+    (inputs (modify-inputs (package-inputs netcdf-cxx4)
+              (prepend openmpi)
+              (replace "hdf5" hdf5-parallel-openmpi)
+              (replace "netcdf" netcdf-parallel-openmpi)))))
+
 (define-public n2p2
   (package
     (name "n2p2")
@@ -2629,6 +2739,54 @@ linear and quadratic objectives.  There are limited facilities for nonlinear
 and quadratic objectives using the Simplex algorithm.")
     (license license:epl1.0)))
 
+(define-public python-cylp
+  (package
+    (name "python-cylp")
+    (version "0.92.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "cylp" version))
+       (sha256
+        (base32 "1mhvjrhvpgnpw4zwri92dj168qvyclcpsqvzbj5maxx5cilnhkww"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags #~(list "-k" (string-append
+                                 "not " (string-join
+                                         (list
+                                          "test_removeVar2" ; AssertionError
+                                          ;; Tests below segfault
+                                          "test_dantzig"
+                                          "test_lifo"
+                                          "test_mf"
+                                          "test_pe")
+                                         " and not ")))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'check 'pre-check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (if tests? ; rebuild extensions
+                  (invoke "python" "setup.py" "build_ext" "--inplace")))))))
+    (propagated-inputs (list python-numpy python-pytest python-scipy))
+    (inputs (list cbc))
+    (native-inputs (list pkg-config
+                         python-cython-3
+                         python-hypothesis
+                         python-numpy
+                         python-pytest
+                         python-setuptools
+                         python-wheel))
+    (home-page "https://github.com/coin-or/cylp")
+    (synopsis "Python interface for CLP, CBC, and CGL")
+    (description
+     "CyLP is a Python interface to COIN-OR’s Linear and mixed-integer program
+solvers (CLP, CBC, and CGL).  CyLP’s unique feature is that you can use it to
+alter the solution process of the solvers from within Python.  For example,
+you may define cut generators, branch-and-bound strategies, and primal/dual
+Simplex pivot rules completely in Python.")
+    (license license:epl2.0)))
+
 (define-public gecode
   (let* ((commit "f7f0d7c273d6844698f01cec8229ebe0b66a016a")
          (version (git-version "6.2.0" "1" commit)))
@@ -2741,6 +2899,45 @@ and applications.  It provides a modular and extensible solver.")
 fixed point (16.16) format.")
       (license license:expat))))
 
+(define-public glucose
+  (package
+    (name "glucose")
+    (version "4.2.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/audemard/glucose")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0zrn4hnkf8k95dc3s3acydl1bqkr8a0axw56g7n562lx7zj7sd62"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f ; there are no tests
+      #:configure-flags
+      #~(list "-DBUILD_SHARED_LIBS=ON"
+              (string-append "-DCMAKE_BUILD_RPATH=" #$output "/lib"))
+      #:phases #~(modify-phases %standard-phases
+                   (replace 'install
+                     (lambda _
+                       (for-each
+                        (lambda (bin)
+                          (install-file bin (string-append #$output "/bin")))
+                        '("glucose-simp" "glucose-syrup"))
+                       (for-each
+                        (lambda (lib)
+                          (install-file lib (string-append #$output "/lib")))
+                        '("libglucose.so" "libglucosep.so")))))))
+    (inputs (list zlib))
+    (home-page "https://www.labri.fr/perso/lsimon/research/glucose/")
+    (synopsis "SAT Solver")
+    (description "Glucose is a SAT solver based on a scoring scheme introduced
+in 2009 for the clause learning mechanism of so called “Modern” SAT solvers.
+It is designed to be parallel.")
+    (license license:expat)))
+
 (define-public libflame
   ;; The latest release (5.2.0) dates back to 2019.  Use a newer one, which
   ;; among other things provides extra LAPACK symbols, such as 'dgemlq_'
@@ -2817,6 +3014,32 @@ Computational Engineering and Sciences} at The University of Texas at Austin.
 @code{libflame} includes a compatibility layer, @code{lapack2flame}, which
 includes a complete LAPACK implementation.")
       (license license:bsd-3))))
+
+(define-public hpcombi
+  (package
+    (name "hpcombi")
+    (version "1.0.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/libsemigroups/hpcombi")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "00mbxw5x6m61n0x68dsiyq97i7b08h3hkbj9is2w6gcg571jy319"))))
+    (arguments
+     (list #:configure-flags #~(list "-DBUILD_TESTING=ON")))
+    (native-inputs
+     (list catch2-3))
+    (build-system cmake-build-system)
+    (home-page "https://libsemigroups.github.io/HPCombi/")
+    (synopsis "Fast combinatorics in C++ using SSE/AVX instruction sets")
+    (description "HPCombi is a C++17 header-only library using the SSE and AVX
+instruction sets, and some equivalents, for very fast manipulation of
+combinatorial objects such as transformations, permutations, and boolean
+matrices of small size.")
+    (license license:gpl3+)))
 
 (define-public scasp
   (package
@@ -2946,7 +3169,7 @@ can solve two kinds of problems:
 (define-public octave-cli
   (package
     (name "octave-cli")
-    (version "9.2.0")
+    (version "9.3.0")
     (source
      (origin
        (method url-fetch)
@@ -2954,7 +3177,7 @@ can solve two kinds of problems:
                            version ".tar.xz"))
        (sha256
         (base32
-         "01sqfqrglzkjp20sg45fjd43hbjj069a1gn0r8sv01ciazxplh91"))))
+         "1ws5h5q9vzm8lwkxnvc39iikyvvxpb6q4jwcy9v3pqdp7m8nh93i"))))
     (build-system gnu-build-system)
     (inputs
      (list alsa-lib
@@ -3206,7 +3429,7 @@ This is the certified version of the Open Cascade Technology (OCCT) library.")
                     `("PYTHONPATH" prefix (,dest))))))))))
     (inputs (list bash-minimal python))
     (home-page "https://www.fast-downward.org/")
-    (synopsis "Domain-independant classical planning system")
+    (synopsis "Domain-independent classical planning system")
     (description "Fast Downward is a portfolio-based planning system that
 supports the propositional fragment of PDDL2.2.")
     (license license:gpl3+)))
@@ -3214,7 +3437,7 @@ supports the propositional fragment of PDDL2.2.")
 (define-public gmsh
   (package
     (name "gmsh")
-    (version "4.11.1")
+    (version "4.13.1")
     (source
      (origin
        (method git-fetch)
@@ -3225,7 +3448,7 @@ supports the propositional fragment of PDDL2.2.")
                              (string-replace-substring version "." "_")))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1d6n7qqj9xpfgh7v5jif565waiqjhahkh21pi5s1vr84y61wxyx8"))
+        (base32 "16abxhadyyj7890lv6cdfxskg25w105pcpqvb5iwf6a59py8na8y"))
        (modules '((guix build utils)))
        (snippet
         '(delete-file-recursively "contrib/metis"))))
@@ -3616,7 +3839,7 @@ scientific applications modeled by partial differential equations.")
            #~(modify-phases %standard-phases
                (add-after 'build 'mpi-setup
                  #$%openmpi-setup))))
-    (inputs (list openmpi))
+    (inputs (list openmpi zlib))
     (native-inputs (list m4))
     (home-page "https://parallel-netcdf.github.io/")
     (synopsis "Parallel I/O Library for NetCDF File Access")
@@ -3865,7 +4088,7 @@ self-contained C-extension for Python.")
 (define-public python-cvxopt
   (package
     (name "python-cvxopt")
-    (version "1.2.7")
+    (version "1.3.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3874,7 +4097,7 @@ self-contained C-extension for Python.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "114z34wwx1bsv4q6xj9p5q99dffgnj9s4i4arx10g191xq9q8i5y"))))
+                "0vdfag3rr906w0gk7vxm2yxfy8y92i4wmqxi82cbykpfp5r82i36"))))
     (build-system python-build-system)
     (arguments
      `(#:phases
@@ -3902,6 +4125,46 @@ for convex optimization applications straightforward by building on Python’s
 extensive standard library and on the strengths of Python as a high-level
 programming language.")
     (license license:gpl3+)))
+
+(define-public python-ducc0
+  (package
+    (name "python-ducc0")
+    (version "0.36.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.mpcdf.mpg.de/mtr/ducc")
+             (commit (string-append
+                      "ducc0_" (string-replace-substring version "." "_")))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1pfj7k5s3d237r7diqrd7cgvf8p5zms6pp64nfdildx49kwggwab"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags #~(list "python/test")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'build 'set-env
+            (lambda _
+              (setenv "DUCC0_OPTIMIZATION" "portable-strip"))))))
+    (native-inputs
+     (list pybind11
+           python-pytest
+           python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-numpy))
+    (home-page "https://gitlab.mpcdf.mpg.de/mtr/ducc")
+    (synopsis "Distinctly Useful Code Collection")
+    (description
+     "This package provides a collection of basic programming tools for
+numerical computation, including Fast Fourier Transforms, Spherical Harmonic
+Transforms, non-equispaced Fourier transforms, as well as some concrete
+applications like 4pi convolution on the sphere and gridding/degridding of
+radio interferometry data.")
+    (license license:gpl2+)))
 
 (define-public python-kiwisolver
   (package
@@ -3943,18 +4206,6 @@ savings are consistently > 5x.")
        (sha256
         (base32 "0qxb0sn624jaxjxg2ayd65zaiq1p043w3kk55w8r6drkjiar70yj"))))
     (build-system pyproject-build-system)
-    (native-inputs (list ncurses
-                         python-mock
-                         python-mpi4py
-                         python-pytest
-                         python-pytest-cov
-                         python-pytest-timeout))
-    (propagated-inputs (list python-mpmath
-                             python-numpy
-                             python-psutil
-                             python-pydantic-2
-                             python-pyyaml
-                             python-tomli))
     (arguments
      (list
       #:phases
@@ -3982,6 +4233,20 @@ savings are consistently > 5x.")
                    "export UNIT_TEST_MPI_SUBDIR=''"))
                 ;; Run only unit tests, regression tests require MPI.
                 (invoke "bash" "libensemble/tests/run-tests.sh" "-u")))))))
+    (native-inputs (list ncurses
+                         python-mock
+                         python-mpi4py
+                         python-pytest
+                         python-pytest-cov
+                         python-pytest-timeout
+                         python-setuptools
+                         python-wheel))
+    (propagated-inputs (list python-mpmath
+                             python-numpy
+                             python-psutil
+                             python-pydantic-2
+                             python-pyyaml
+                             python-tomli))
     (home-page "https://github.com/Libensemble/libensemble")
     (synopsis "Toolkit for dynamic ensembles of calculations")
     (description "@code{libensemble} is a complete toolkit for dynamic
@@ -5246,10 +5511,45 @@ point numbers.")
     ;; GPLv2 only is therefore the smallest subset.
     (license license:gpl2)))
 
+(define-public maxima-ecl
+  (package/inherit maxima
+    (name "maxima-ecl")
+    (properties '((hidden? . #t)))
+    (inputs
+      (modify-inputs (package-inputs maxima)
+        (delete "sbcl")
+        (prepend ecl)))
+    (arguments
+     (substitute-keyword-arguments (package-arguments maxima)
+       ((#:configure-flags flags)
+         #~(list "--enable-ecl"))
+        ((#:phases phases)
+          #~(modify-phases #$phases
+            (add-after 'install 'install-lib
+             (lambda _
+               (let ((lib (string-append
+                            #$output "/lib/maxima/"
+                            #$(package-version this-package)
+                            "/binary-ecl")))
+                    (install-file "src/binary-ecl/maxima.fas" lib))))
+            (replace 'check
+              (lambda _
+                (invoke "sh" "-c"
+                        (string-append
+                          "./maxima-local "
+                          "--lisp=ecl "
+                          "--batch-string=\"run_testsuite();\" "
+                          "| grep -q \"No unexpected errors found\""))))))))
+    (description
+      (string-append
+        (package-description maxima)
+        "  This package variant uses ECL as the underlying Lisp
+implementation."))))
+
 (define-public wxmaxima
   (package
     (name "wxmaxima")
-    (version "24.02.2")
+    (version "24.11.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -5258,7 +5558,7 @@ point numbers.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1k2fbhyg7xrbk6ivfns6sq68rrbcl5dn84s64viv6iavk3ws033v"))))
+                "1q66qv7m7dky9h7m6dzvlw6pkzixna4bhrdkz11sg7bv3a9qrlfy"))))
     (build-system cmake-build-system)
     (native-inputs (list gettext-minimal))
     (inputs (list bash-minimal
@@ -5473,6 +5773,22 @@ from the GotoBLAS2-1.13 BSD version.")
     (synopsis "Optimized BLAS library based on GotoBLAS (ILP64 version)")
     (license license:bsd-3)))
 
+(define-public openblas-0.3.29
+  (package
+    (inherit openblas)
+    (name "openblas")
+    (version "0.3.29")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/xianyi/OpenBLAS")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "1wm00hn0vzb45nqg0q3ka15wjqjzma5lh1x6227di73icqdcbzcz"))))))
+
 (define-public libblastrampoline
   (package
     (name "libblastrampoline")
@@ -5502,6 +5818,37 @@ from the GotoBLAS2-1.13 BSD version.")
      "This package uses PLT trampolines to provide a BLAS and LAPACK demuxing
 library.")
     (license license:expat)))
+
+(define-public palp
+  (package
+    (name "palp")
+    (version "2.21")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "http://hep.itp.tuwien.ac.at/~kreuzer/CY/palp/palp-"
+                    version ".tar.gz"))
+              (sha256
+               (base32
+                "1myxjv0jxgr9acchwnjh9g5l61wxwiva3q6c1d6892lr37r7njky"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:make-flags #~(list (string-append "CC=" #$(cc-for-target)))
+           #:tests? #f ; no tests
+           #:phases #~(modify-phases %standard-phases
+                        (delete 'configure)
+                        (replace 'install
+                          (lambda _
+                            (for-each
+                             (lambda (name)
+                               (install-file name (string-append #$output "/bin")))
+                             '("class.x" "cws.x" "mori.x" "nef.x" "poly.x")))))))
+    (home-page "http://hep.itp.tuwien.ac.at/~kreuzer/CY/CYpalp.html")
+    (synopsis "Package for Analyzing Lattice Polytopes")
+    (description
+     "PALP is a set of programs for calculations with lattice polytopes and
+applications to toric geometry.")
+    (license license:gpl3)))
 
 (define-public blis
   (package
@@ -6080,7 +6427,7 @@ target_link_libraries(CHOLMOD_static PRIVATE ${METIS_LIBRARY} ${GKLIB_LIBRARY})"
     (home-page "https://people.engr.tamu.edu/davis/suitesparse.html")
     (synopsis "Library for solving sparse symmetric positive definite linear
 equations")
-    (description "CHOLMOD is a set of routins for factorizing sparse symmetrix
+    (description "CHOLMOD is a set of routines for factorizing sparse symmetrix
 positive definite matrices, updating/downdating sparse Cholesky factorizations
 and other related operations.")
     (license (list license:gpl2+ license:lgpl2.1+))))
@@ -7282,7 +7629,7 @@ evaluates expressions using the standard order of operations.")
 (define-public xaos
   (package
     (name "xaos")
-    (version "4.3.2")
+    (version "4.3.3")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -7291,7 +7638,7 @@ evaluates expressions using the standard order of operations.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0a5n3g1xcsd8k65q5skm4xsdllr3mmkahh4vi59db1l0jv81v06q"))))
+                "0imq6rvvjwjgmrfr25yr5lmhmqr4s6a5174jhah90mhf7pb62j0i"))))
     (build-system gnu-build-system)
     (native-inputs `(("gettext" ,gettext-minimal)
                      ("qtbase" ,qtbase)
@@ -10513,19 +10860,39 @@ architecture.")
 (define-public python-mathics-scanner
   (package
     (name "python-mathics-scanner")
-    (version "1.3.1")
+    (version "1.4.1")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/Mathics3/mathics-scanner.git")
-             (commit "1.3.1")))
+             (commit version)))
+       (file-name (git-file-name name version))
        (sha256
         (base32
-         "1i632v3f64q3v1i0p0x850mjhgad49fl24dl6r20r4wa1mhalmp0"))))
+         "0y34kzqha5wp6n8cyvhhz47mq33x9kwi8ibj67q6pf08qslg154n"))))
     (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'prepare
+            (lambda _
+              ;; They forgot to update the version number.
+              (substitute* "mathics_scanner/version.py"
+               (("__version__=\"[^\"]*\"")
+                (string-append "__version__=\"" #$version "\"")))
+              (invoke "bash" "./admin-tools/make-JSON-tables.sh")
+              ;; Missing installation of "operators.yml".
+              (substitute* "pyproject.toml"
+               (("\"data/named-characters.yml\",")
+                "\"data/named-characters.yml\", \"data/operators.yml\","))
+              ;; Would cause a crash at runtime every time you select
+              ;; anything when running build_tables.py .
+              (substitute* "mathics_scanner/generate/build_tables.py"
+               (("\"operator-to-amslatex\",") "")))))))
     (propagated-inputs (list python-chardet python-click python-pyyaml))
-    (native-inputs (list python-pytest))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://mathics.org/")
     (synopsis
      "Character tables and tokenizer for Mathics and the Wolfram language")
@@ -10537,15 +10904,16 @@ the Wolfram language.")
 (define-public python-mathics-pygments
   (package
     (name "python-mathics-pygments")
-    (version "1.0.3")
+    (version "1.0.4")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "mathics_pygments" version))
        (sha256
-        (base32 "1q54c8mb9pgw8ncbs9hln183nxvvxq0d8495c8zakccsfswvznx2"))))
+        (base32 "1iagdic8f0yjx01kdds40jfcxcpdbrd3i0ywydl01dhyyvd2yjk9"))))
     (build-system pyproject-build-system)
     (propagated-inputs (list python-mathics-scanner python-pygments))
+    (native-inputs (list python-setuptools python-wheel))
     (home-page "http://github.com/Mathics3/mathics-pygments/")
     (synopsis "Wolfram language lexer for Pygments")
     (description "This package provides a Wolfram language lexer for Pygments.")
@@ -10554,7 +10922,7 @@ the Wolfram language.")
 (define-public python-mathics-core
   (package
     (name "python-mathics-core")
-    (version "7.0.0")
+    (version "8.0.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -10563,7 +10931,7 @@ the Wolfram language.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0hhk2qq6swnprf9hliazwi3858sv3b3015g0mnm4ycdk5fsc7y57"))))
+                "1ymxwbjj51kplw94q17ha2cjs9vhv4b1cqd131mw1b5sxdrlig59"))))
     (arguments
      `(;; <https://github.com/pytest-dev/pytest/pull/10173> is missing .closed
        #:test-flags '("-s")
@@ -10572,24 +10940,36 @@ the Wolfram language.")
          (add-after 'unpack 'patch-bugs
            (lambda _
              (substitute* "pyproject.toml"
+              (("\"data/*.json\",")
+              "\"data/*.json\", \"data/operator-tables.json\",")
               (("\"autoload/\\*.m\",")
                ;; They forgot to install autoload/rules/*.m
                "\"autoload/*.m\", \"autoload/rules/*.m\","))
              ;; Prevent internet access by tests.
              (substitute* "mathics/builtin/files_io/files.py"
               (("https://raw.githubusercontent.com/Mathics3/mathics-core/master/README.rst")
-               (string-append (getcwd) "/README.rst")))))
+               (string-append (getcwd) "/README.rst")))
+             ;; setup.py has some weird acrobatics that cannot work right.
+             (invoke "mathics3-generate-operator-json-table" "-o"
+                     "mathics/data/operator-tables.json")))
+         (add-before 'check 'prepare-check
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             ;(copy-file "operator-tables.json" "mathics/data/operator-tables.json")
+             ; Doesn't work: (add-installed-pythonpath inputs outputs)
+             (setenv "PYTHONPATH" (getcwd))))
          (add-before 'check 'prepare-locales
            (lambda _
              ;; Otherwise 210 tests fail because the real output would use
              ;; unicode arrow characters.  With this, only 18 (symbolic) tests fail.
              (setenv "MATHICS_CHARACTER_ENCODING" "ASCII"))))))
     (build-system pyproject-build-system)
-    (native-inputs (list python-pytest))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (inputs (list llvm))
     (propagated-inputs (list python-mpmath
                              python-pint
                              python-palettable
+                             python-pympler
+                             python-stopit
                              python-sympy
                              python-numpy
                              python-mathics-scanner
@@ -10607,13 +10987,13 @@ to Wolfram.")
 (define-public python-mathicsscript
   (package
     (name "python-mathicsscript")
-    (version "7.0.0")
+    (version "8.0.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "mathicsscript" version))
        (sha256
-        (base32 "15ppg8sj03j63664npdqiv1lfk2mqnrqjb5817zjyy04z9s0kp7l"))))
+        (base32 "12si397b9ap5ibvbap72bvkmssh8hdap8jbmdmhsj1qdb1axrac4"))))
     (build-system pyproject-build-system)
     (arguments
      `(#:phases
@@ -10631,7 +11011,7 @@ to Wolfram.")
                              python-prompt-toolkit
                              python-pygments
                              python-term-background))
-    (native-inputs (list python-pytest))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://mathics.org/")
     (synopsis "Command-line interface to Mathics3")
     (description "This package provides a command-line interface to
@@ -10641,13 +11021,13 @@ Mathics3.")
 (define-public python-mathics-django
   (package
     (name "python-mathics-django")
-    (version "7.0.0")
+    (version "8.0.0")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "Mathics-Django" version))
+       (uri (pypi-uri "mathics_django" version))
        (sha256
-        (base32 "02ccq0kx9i9b339p48j6xixr5wqj58dp8rhcik07b7vrfvznnxdi"))))
+        (base32 "02rwmbzb6dgsz5brwanyv3lahlc2zyhyv0xshmii652mhrgkv9gg"))))
     (build-system pyproject-build-system)
     (arguments
      `(#:phases
@@ -10658,14 +11038,85 @@ Mathics3.")
              (setenv "PYTHONPATH" (getcwd))
              (setenv "DJANGO_SETTINGS_MODULE" "mathics_django.settings")
              (invoke "django-admin" "test"))))))
-    (native-inputs (list python-pytest))
     (propagated-inputs (list python-django-4.2
                              python-mathics-scanner
                              python-mathics-core
                              python-networkx-next
                              python-pygments
                              python-requests))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://mathics.org/")
     (synopsis "A Django front end for Mathics3.")
     (description "This package provides a Django front end for Mathics3.")
     (license license:gpl3)))
+
+(define-public lie
+  (package
+    (name "lie")
+    (version "2.2.2")
+    ;; Original: <http://www-math.univ-poitiers.fr/~maavl/LiE/conLiE.tar.gz>
+    ;; This source has the license file added as allowed on
+    ;; <http://www-math.univ-poitiers.fr/~maavl/LiE/>.
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/daym/LiE")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0qb9y08mdl2wr77lf61wv4xks429sw99xacb9gh91w242z0nbcqn"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:parallel-build? #f
+       ;; There are test input files under progs/--but no expected results.
+       #:tests? #f
+       #:phases
+       (modify-phases %standard-phases
+         (replace 'configure
+           (lambda* (#:key outputs #:allow-other-keys)
+             (substitute* "make_lie"
+              (("`/bin/pwd`")
+               (string-append (assoc-ref outputs "out")
+                              "/bin")))))
+         (add-after 'install 'install-lie-program
+           (lambda* (#:key outputs #:allow-other-keys)
+             (for-each
+               (lambda (name)
+                 (install-file name
+                               (string-append (assoc-ref outputs "out")
+                                              "/bin")))
+                  '("lie" "Lie.exe")))))))
+    (native-inputs
+     (list bison))
+    (inputs
+     (list readline))
+    (synopsis "Lie group computer algebra module")
+    (description "This package provides a computer algebra module for Lie
+groups.  Documentation is available on
+@url{http://www-math.univ-poitiers.fr/~maavl/pdf/LiE-manual.pdf}.")
+    (home-page "http://www-math.univ-poitiers.fr/~maavl/LiE/")
+    ;; <http://www-math.univ-poitiers.fr/~maavl/LiE/> says LGPL.
+    (license license:lgpl3+)))
+
+(define-public exprtk
+  (package
+    (name "exprtk")
+    (version "0.0.3")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/ArashPartow/exprtk")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0pszh11w29nc256qhil51g3635n06ncf0ihg7g4h86jrhqsk7183"))))
+    (build-system copy-build-system)
+    (arguments
+     '(#:install-plan '(("exprtk.hpp" "include/"))))
+    (synopsis "C++ Mathematical Expression Parsing And Evaluation Library")
+    (description "ExprTk is a C++ headers only library for mathematical
+expression parsing and evaluation.")
+    (home-page "https://www.partow.net/programming/exprtk/index.html")
+    (license license:expat)))

@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2012-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2012-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2014 Cyril Roelandt <tipecaml@gmail.com>
 ;;; Copyright © 2014, 2016, 2018 David Thompson <davet@gnu.org>
 ;;; Copyright © 2014, 2017, 2018 Mark H Weaver <mhw@netris.org>
@@ -480,9 +480,9 @@ without requiring the source code to be rewritten.")
                                                 ;  when heavily loaded)
 
 (define-public guile-next
-  (let ((version "3.0.9")
-        (revision "0")
-        (commit "3b76a30e3ca1f0b7ee7944836c2fc5660596b3bd"))
+  (let ((version "3.0.10")
+        (revision "1")
+        (commit "402e0dfa33f442ad238a0f82a332efa438538840"))
     (package
       (inherit guile-3.0)
       (name "guile-next")
@@ -496,7 +496,7 @@ without requiring the source code to be rewritten.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1cgyjz1x8zpfhsw8gsqkak1lnmi780gps6874ks0bi8dwk0lwx6f"))))
+                  "1l3xzv7kygdb7ca6nzayg9ingn7d5d9xsjlv1r7y7819axx3457f"))))
       (arguments
        (substitute-keyword-arguments (package-arguments guile-3.0)
          ((#:phases phases '%standard-phases)
@@ -511,9 +511,6 @@ without requiring the source code to be rewritten.")
                   (call-with-output-file ".tarball-version"
                     (lambda (port)
                       (display #$version port)))))
-              (add-before 'check 'skip-failing-tests
-                (lambda _
-                  (delete-file "test-suite/tests/version.test")))
               #$@(if (target-hurd?)
                      #~((delete 'patch-posix-spawn-usage))
                      #~())))))
@@ -628,7 +625,14 @@ GNU@tie{}Guile.  Use the @code{(ice-9 readline)} module and call its
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0fgkcv29581kqkxqq6y48xly72970qs7016qhs6c4ilygg0gyfqb")))))))
+                  "0fgkcv29581kqkxqq6y48xly72970qs7016qhs6c4ilygg0gyfqb"))))
+      (arguments
+       (substitute-keyword-arguments (package-arguments guile-next)
+         ((#:phases phases '%standard-phases)
+          #~(modify-phases #$phases
+              (add-before 'check 'skip-failing-tests
+                (lambda _
+                  (delete-file "test-suite/tests/version.test"))))))))))
 
 
 ;;;
@@ -888,7 +892,7 @@ manipulate repositories of the Git version control system.")
 (define-public guile-zlib
   (package
     (name "guile-zlib")
-    (version "0.2.1")
+    (version "0.2.2")
     (source
      (origin
        ;; XXX: Do not use "git-fetch" method here that would create and
@@ -900,9 +904,9 @@ manipulate repositories of the Git version control system.")
                        version ".tar.gz"))
        (file-name (string-append name "-" version ".tar.gz"))
        (sha256
-        ;; content hash: 09zfka3js7dp39fnplxbp90x98s5nj0pc93p1l9cmgrbj8nyn2sv
+        ;; content nar-sha256: 0rwjlqr1hl2vczs16xsihw8pyj6s70p1yv9ky0sawhm6g30639k9
         (base32
-         "0wqva23zrxcsj9cp3xqmqpxqyd7a4nnja3dc7v7g0i9yfixi7xd5"))))
+         "1h9q7rw8bh5mwa8qjik0pqwcr8v9hnk7xnvwcbsg6yfa695wlv3g"))))
     (build-system gnu-build-system)
     (native-inputs (list autoconf automake pkg-config guile-3.0))
     (inputs (list guile-3.0 zlib))

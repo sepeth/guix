@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2013-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2013-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2016, 2018, 2020 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 John Darrington <jmd@gnu.org>
@@ -23,6 +23,7 @@
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 muradm <mail@muradm.net>
 ;;; Copyright © 2024 Nigko Yerden <nigko.yerden@gmail.com>
+;;; Copyright © 2025 45mg <45mg.writes@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -389,18 +390,18 @@
                                  '()))
 
                            (false-if-exception (delete-file #$pid-file))
-                           (let ((pid (fork+exec-command
-                                       ;; By default dhclient uses a
-                                       ;; pre-standardization implementation of
-                                       ;; DDNS, which is incompatable with
-                                       ;; non-ISC DHCP servers; thus, pass '-I'.
-                                       ;; <https://kb.isc.org/docs/aa-01091>.
-                                       `(,dhclient "-nw" "-I"
-                                                   #$(string-append "-" version)
-                                                   "-pf" ,#$pid-file
-                                                   ,@config-file-args
-                                                   ,@ifaces))))
-                             (and (zero? (cdr (waitpid pid)))
+                           (let ((status (spawn-command
+                                          ;; By default dhclient uses a
+                                          ;; pre-standardization implementation of
+                                          ;; DDNS, which is incompatable with
+                                          ;; non-ISC DHCP servers; thus, pass '-I'.
+                                          ;; <https://kb.isc.org/docs/aa-01091>.
+                                          `(,dhclient "-nw" "-I"
+                                                      #$(string-append "-" version)
+                                                      "-pf" ,#$pid-file
+                                                      ,@config-file-args
+                                                      ,@ifaces))))
+                             (and (zero? status)
                                   (read-pid-file #$pid-file)))))
                 (stop #~(make-kill-destructor)))))))
     (package
@@ -495,11 +496,6 @@ daemon is responsible for allocating IP addresses to its client.")))
 ;;;
 ;;; NTP.
 ;;;
-
-
-(define %ntp-log-rotation
-  (list (log-rotation
-         (files '("/var/log/ntpd.log")))))
 
 (define ntp-server-types (make-enumeration
                           '(pool
@@ -634,9 +630,7 @@ restrict source notrap nomodify noquery\n"))
                        (service-extension account-service-type
                                           (const %ntp-accounts))
                        (service-extension activation-service-type
-                                          ntp-service-activation)
-                       (service-extension rottlog-service-type
-                                          (const %ntp-log-rotation))))
+                                          ntp-service-activation)))
                 (description
                  "Run the @command{ntpd}, the Network Time Protocol (NTP)
 daemon of the @uref{http://www.ntp.org, Network Time Foundation}.  The daemon
@@ -745,9 +739,7 @@ will keep the system clock synchronized with that of the given servers.")
                        (service-extension profile-service-type
                                           (compose list openntpd-configuration-openntpd))
                        (service-extension activation-service-type
-                                          openntpd-service-activation)
-                       (service-extension rottlog-service-type
-                                          (const %ntp-log-rotation))))
+                                          openntpd-service-activation)))
                 (default-value (openntpd-configuration))
                 (description
                  "Run the @command{ntpd}, the Network Time Protocol (NTP)
@@ -944,7 +936,7 @@ CONFIG, an <opendht-configuration> object."
   (shepherd-service
    (documentation "Run an OpenDHT node.")
    (provision '(opendht dhtnode dhtproxy))
-   (requirement '(networking syslogd))
+   (requirement '(user-processes networking syslogd))
    (start #~(make-forkexec-constructor
              (list #$@(opendht-configuration->command-line-arguments config))
              #:user "opendht"
@@ -1262,18 +1254,27 @@ project's documentation} for more information."
                (default '()))
   (iwd? network-manager-configuration-iwd?  ; TODO: deprecated field, remove.
         (default #f)
-        (sanitize warn-iwd?-field-deprecation)))
+        (sanitize warn-iwd?-field-deprecation))
+  (extra-configuration-files
+   network-manager-configuration-extra-configuration-files
+   (default '())))                 ;'((file-name-string file-like-object) ...)
 
 (define (network-manager-activation config)
   ;; Activation gexp for NetworkManager
   (match-record config <network-manager-configuration>
-    (network-manager dns vpn-plugins)
+                (network-manager dns vpn-plugins extra-configuration-files)
     #~(begin
         (use-modules (guix build utils))
         (mkdir-p "/etc/NetworkManager/system-connections")
         #$@(if (equal? dns "dnsmasq")
                ;; create directory to store dnsmasq lease file
                '((mkdir-p "/var/lib/misc"))
+               '())
+        #$@(if (pair? extra-configuration-files)  ;if non-empty
+               `((symlink
+                  ,(file-union "network-manager-configuration-directory"
+                               extra-configuration-files)
+                  "/etc/NetworkManager/conf.d"))
                '()))))
 
 (define (vpn-plugin-directory plugins)
@@ -1699,10 +1700,6 @@ set @file{/dev/null}.")
                        #:log-file "/var/log/connman.log"))
              (stop #~(make-kill-destructor)))))))
 
-(define %connman-log-rotation
-  (list (log-rotation
-         (files '("/var/log/connman.log")))))
-
 (define connman-service-type
   (let ((connman-package (compose list connman-configuration-connman)))
     (service-type (name 'connman)
@@ -1717,9 +1714,7 @@ set @file{/dev/null}.")
                                             connman-activation)
                          ;; Add connman to the system profile.
                          (service-extension profile-service-type
-                                            connman-package)
-                         (service-extension rottlog-service-type
-                                            (const %connman-log-rotation))))
+                                            connman-package)))
                   (default-value (connman-configuration))
                   (description
                    "Run @url{https://01.org/connman,Connman},
@@ -1960,18 +1955,12 @@ extra-settings "\n"))))
                    #:log-file "/var/log/hostapd.log"))
          (stop #~(make-kill-destructor)))))
 
-(define %hostapd-log-rotation
-  (list (log-rotation
-         (files '("/var/log/hostapd.log")))))
-
 (define hostapd-service-type
   (service-type
    (name 'hostapd)
    (extensions
     (list (service-extension shepherd-root-service-type
-                             hostapd-shepherd-services)
-          (service-extension rottlog-service-type
-                             (const %hostapd-log-rotation))))
+                             hostapd-shepherd-services)))
    (description
     "Run the @uref{https://w1.fi/hostapd/, hostapd} daemon for Wi-Fi access
 points and authentication servers.")))
@@ -2047,7 +2036,7 @@ simulation."
            (stop #~(make-kill-destructor)))
           (shepherd-service
            (provision '(vswitchd))
-           (requirement '(ovsdb))
+           (requirement '(user-processes ovsdb))
            (documentation "Run the Open vSwitch daemon.")
            (start #~(make-forkexec-constructor
                      (list #$ovs-vswitchd "--pidfile")
@@ -2259,7 +2248,7 @@ table inet filter {
       (shepherd-service
        (documentation "Run the PageKite service.")
        (provision '(pagekite))
-       (requirement '(networking))
+       (requirement '(user-processes networking))
        (actions (list (shepherd-configuration-action config-file)))
        (start #~(make-forkexec-constructor
                  (list #$pagekite
@@ -2271,10 +2260,6 @@ table inet filter {
                  #:log-file "/var/log/pagekite.log"))
        ;; SIGTERM doesn't always work for some reason.
        (stop #~(make-kill-destructor SIGINT))))))
-
-(define %pagekite-log-rotation
-  (list (log-rotation
-         (files '("/var/log/pagekite.log")))))
 
 (define %pagekite-accounts
   (list (user-group (name "pagekite") (system? #t))
@@ -2294,9 +2279,7 @@ table inet filter {
     (list (service-extension shepherd-root-service-type
                              (compose list pagekite-shepherd-service))
           (service-extension account-service-type
-                             (const %pagekite-accounts))
-          (service-extension rottlog-service-type
-                             (const %pagekite-log-rotation))))
+                             (const %pagekite-accounts))))
    (description
     "Run @url{https://pagekite.net/,PageKite}, a tunneling solution to make
 local servers publicly accessible on the web, even behind NATs and firewalls.")))
@@ -2387,10 +2370,6 @@ local servers publicly accessible on the web, even behind NATs and firewalls."))
                    #:group "yggdrasil"))
          (stop #~(make-kill-destructor)))))
 
-(define %yggdrasil-log-rotation
-  (list (log-rotation
-         (files '("/var/log/yggdrasil.log")))))
-
 (define %yggdrasil-accounts
   (list (user-group (name "yggdrasil") (system? #t))))
 
@@ -2406,9 +2385,7 @@ See @command{yggdrasil -genconf} for config options.")
           (service-extension account-service-type
                              (const %yggdrasil-accounts))
           (service-extension profile-service-type
-                             (compose list yggdrasil-configuration-package))
-          (service-extension rottlog-service-type
-                             (const %yggdrasil-log-rotation))))))
+                             (compose list yggdrasil-configuration-package))))))
 
 
 ;;;
@@ -2469,7 +2446,7 @@ See @command{yggdrasil -genconf} for config options.")
          ;; While IPFS is most useful when the machine is connected
          ;; to the network, only loopback is required for starting
          ;; the service.
-         (requirement '(loopback))
+         (requirement '(user-processes loopback))
          (documentation "Connect to the IPFS network")
          (start #~(make-forkexec-constructor
                    #$ipfs-daemon-command
@@ -2477,10 +2454,6 @@ See @command{yggdrasil -genconf} for config options.")
                    #:user "ipfs" #:group "ipfs"
                    #:environment-variables #$%ipfs-environment))
          (stop #~(make-kill-destructor)))))
-
-(define %ipfs-log-rotation
-  (list (log-rotation
-         (files '("/var/log/ipfs.log")))))
 
 (define (%ipfs-activation config)
   "Return an activation gexp for IPFS with CONFIG"
@@ -2537,9 +2510,7 @@ See @command{yggdrasil -genconf} for config options.")
           (service-extension activation-service-type
                              %ipfs-activation)
           (service-extension shepherd-root-service-type
-                             ipfs-shepherd-service)
-          (service-extension rottlog-service-type
-                             (const %ipfs-log-rotation))))
+                             ipfs-shepherd-service)))
    (default-value (ipfs-configuration))
    (description
     "Run @command{ipfs daemon}, the reference implementation
@@ -2575,16 +2546,10 @@ of the IPFS peer-to-peer storage network.")))
            (respawn? #f)
            (stop #~(make-kill-destructor))))))
 
-(define %keepalived-log-rotation
-  (list (log-rotation
-         (files '("/var/log/keepalived.log")))))
-
 (define keepalived-service-type
   (service-type (name 'keepalived)
                 (extensions (list (service-extension shepherd-root-service-type
-                                                     keepalived-shepherd-service)
-                                  (service-extension rottlog-service-type
-                                                     (const %keepalived-log-rotation))))
+                                                     keepalived-shepherd-service)))
                 (description
                  "Run @uref{https://www.keepalived.org/, Keepalived}
 routing software.")))

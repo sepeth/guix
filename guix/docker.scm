@@ -1,9 +1,10 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2017 Ricardo Wurmus <rekado@elephly.net>
-;;; Copyright © 2017, 2018, 2019, 2021 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2017-2019, 2021, 2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2018 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2021 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2023 Oleg Pykhalov <go.wigust@gmail.com>
+;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -135,6 +136,11 @@ Return a version of TAG that follows these rules."
                        `((entrypoint . ,(list->vector entry-point)))
                        '())))
     (container_config . #nil)
+    ;; Some container engines such as <https://github.com/cea-hpc/pcocc> require
+    ;; these fields.
+    (history . ,(list->vector `(((created . ,time)
+                                 (created_by . "guix pack -f docker")
+                                 (comment . "guix pack")))))
     (os . "linux")
     (rootfs . ((type . "layers")
                (diff_ids . ,(list->vector layers-diff-ids))))))
@@ -165,8 +171,15 @@ Return a version of TAG that follows these rules."
                     (1- items-length)))))
     (list head tail)))
 
+(define (tar . arguments)
+  "Invoke 'tar' with the given ARGUMENTS together with options to build
+tarballs in a reproducible fashion."
+  (apply invoke "tar" "--mtime=@1"
+         "--owner=0" "--group=0" "--numeric-owner"
+         "--sort=name" "--mode=go+u,go-w" arguments))
+
 (define (create-empty-tar file)
-  (invoke "tar" "-cf" file "--files-from" "/dev/null"))
+  (tar "-cf" file "--files-from" "/dev/null"))
 
 (define* (build-docker-image image paths prefix
                              #:key
@@ -209,7 +222,7 @@ command such as '(\"gzip\" \"-9n\"), to compress IMAGE.  Use CREATION-TIME, a
 SRFI-19 time-utc object, as the creation time in metadata.
 
 When MAX-LAYERS is not false build layered image, providing a Docker
-image with store paths splitted in their own layers to improve sharing
+image with store paths split in their own layers to improve sharing
 between images.
 
 ROOT-SYSTEM is a directory with a provisioned root file system, which will be
@@ -250,7 +263,7 @@ added to image as a layer."
            (file-name (string-append file-hash "/layer.tar")))
       (mkdir file-hash)
       (rename-file "layer.tar" file-name)
-      (invoke "tar" "-rf" "image.tar" file-name)
+      (tar "-rf" "image.tar" file-name)
       (delete-file file-name)
       file-hash))
   (define layers-hashes
@@ -263,20 +276,20 @@ added to image as a layer."
        (let* ((head-layers
                (map
                 (lambda (file)
-                  (invoke "tar" "cf" "layer.tar" file)
+                  (tar "-cf" "layer.tar" file)
                   (seal-layer))
                 head))
               (tail-layer
                (begin
                  (create-empty-tar "layer.tar")
                  (for-each (lambda (file)
-                             (invoke "tar" "-rf" "layer.tar" file))
+                             (tar "-rf" "layer.tar" file))
                            tail)
                  (let* ((file-hash (layer-diff-id "layer.tar"))
                         (file-name (string-append file-hash "/layer.tar")))
                    (mkdir file-hash)
                    (rename-file "layer.tar" file-name)
-                   (invoke "tar" "-rf" "image.tar" file-name)
+                   (tar "-rf" "image.tar" file-name)
                    (delete-file file-name)
                    file-hash)))
               (customization-layer
@@ -285,7 +298,7 @@ added to image as a layer."
                       (file-name (string-append file-hash "/layer.tar")))
                  (mkdir file-hash)
                  (rename-file file-id file-name)
-                 (invoke "tar" "-rf" "image.tar" file-name)
+                 (tar "-rf" "image.tar" file-name)
                  file-hash))
               (all-layers
                (append head-layers (list tail-layer customization-layer))))
@@ -295,7 +308,7 @@ added to image as a layer."
                                   (map (cut string-append <> "/layer.tar")
                                        all-layers)
                                   repository))))
-         (invoke "tar" "-rf" "image.tar" "manifest.json")
+         (tar "-rf" "image.tar" "manifest.json")
          all-layers))))
   (let* ((directory "/tmp/docker-image") ;temporary working directory
          (id (docker-id prefix))
@@ -312,7 +325,8 @@ added to image as a layer."
                         ("i686"    "386")
                         ("arm"     "arm")
                         ("aarch64" "arm64")
-                        ("mips64"  "mips64le")))))
+                        ("mips64"  "mips64le")
+                        ("riscv64" "riscv64")))))
     ;; Make sure we start with a fresh, empty working directory.
     (mkdir directory)
     (with-directory-excursion directory
@@ -383,7 +397,7 @@ added to image as a layer."
                    #:entry-point entry-point))))
       (if max-layers
           (begin
-            (invoke "tar" "-rf" "image.tar" "config.json")
+            (tar "-rf" "image.tar" "config.json")
             (if compressor
                 (begin
                   (apply invoke `(,@compressor "image.tar"))

@@ -7,7 +7,7 @@
 ;;; Copyright © 2016 Hartmut Goebel <h.goebel@crazy-compilers.com>
 ;;; Copyright © 2017 Alex Kost <alezost@gmail.com>
 ;;; Copyright © 2017, 2021 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2017, 2018, 2020, 2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2017, 2018, 2020, 2024, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2018, 2019 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2020 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2020 Timothy Sample <samplet@ngyro.com>
@@ -15,6 +15,7 @@
 ;;; Copyright © 2021-2023 Maxime Devos <maximedevos@telenet.be>
 ;;; Copyright © 2021 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2024 Gabriel Wicki <gabriel@erlikon.ch>
+;;; Copyright © 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -513,10 +514,16 @@ by two spaces; possible infraction~p at ~{~a~^, ~}")
          (check-not-empty description)
          (check-quotes description)
          (check-trademarks description)
-         (check-description-typo description '(("This packages" . "This package")
+         (check-description-typo description '(("Infrastucture" . "Infrastructure")
+                                               ("This packages" . "This package")
                                                ("This modules" . "This module")
                                                ("allows to " . #f)
-                                               ("permits to " . #f)))
+                                               ("dependant" . "dependent")
+                                               ("dissapears" . "disappears")
+                                               ("invokation" . "invocation")
+                                               ("permits to " . #f)
+                                               ("provices" . "provides")
+                                               ("useable" . "usable")))
          ;; Use raw description for this because Texinfo rendering
          ;; automatically fixes end of sentence space.
          (check-end-of-sentence-space description)
@@ -610,8 +617,7 @@ of a package, and INPUT-NAMES, a list of package specifications such as
 (define (check-inputs-should-not-be-an-input-at-all package)
   ;; Emit a warning if some inputs of PACKAGE are likely to should not be
   ;; an input at all.
-  (let ((input-names '("python-setuptools"
-                       "python-pip"
+  (let ((input-names '("python-pip"
                        "python-pre-commit")))
     (map (lambda (input)
            (make-warning

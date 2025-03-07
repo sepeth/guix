@@ -8,7 +8,7 @@
 ;;; Copyright © 2015 Paul van der Walt <paul@denknerd.org>
 ;;; Copyright © 2015, 2016, 2018 Eric Bavier <bavier@member.fsf.org>
 ;;; Copyright © 2015 Andreas Enge <andreas@enge.fr>
-;;; Copyright © 2015-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Christine Lemmer-Webber <cwebber@dustycloud.org>
 ;;; Copyright © 2016 Al McElrath <hello@yrns.org>
 ;;; Copyright © 2016, 2017, 2018, 2019, 2020, 2021 Leo Famulari <leo@famulari.name>
@@ -17,7 +17,7 @@
 ;;; Copyright © 2016, 2017 Troy Sankey <sankeytms@gmail.com>
 ;;; Copyright © 2016, 2017, 2018 Nikita <nikita@n0.is>
 ;;; Copyright © 2016 Clément Lassieur <clement@lassieur.org>
-;;; Copyright © 2016–2024 Arun Isaac <arunisaac@systemreboot.net>
+;;; Copyright © 2016–2025 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2016 John Darrington <jmd@gnu.org>
 ;;; Copyright © 2016, 2018 Marius Bakke <mbakke@fastmail.com>
 ;;; Copyright © 2017 Thomas Danckaert <post@thomasdanckaert.be>
@@ -57,7 +57,10 @@
 ;;; Copyright © 2023 Wilko Meyer <w@wmeyer.eu>
 ;;; Copyright © 2024 Benjamin Slade <slade@lambda-y.net>
 ;;; Copyright © 2024 Jean Simard <woshilapin@tuziwo.info>
-;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024, 2025 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
+;;; Copyright © 2025 Tanguy Le Carrour <tanguy@bioneland.org>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -287,14 +290,14 @@ example, modify the message headers or body, or encrypt or sign the message.")
 (define-public mailutils
   (package
     (name "mailutils")
-    (version "3.17")
+    (version "3.18")
     (source (origin
              (method url-fetch)
              (uri (string-append "mirror://gnu/mailutils/mailutils-"
                                  version ".tar.xz"))
              (sha256
               (base32
-               "1sc45gpvnrcf7b627n8cxsp379kk2s3x68c2z19gwrkmqg7bljgs"))
+               "0xqm2cd263zym1zn3rfp0lfjz9mpkffi6v4hi9942q2iv344k42m"))
              (patches
               (search-patches "mailutils-variable-lookup.patch"))))
     (build-system gnu-build-system)
@@ -503,33 +506,45 @@ with a @code{ncurses} user interface similar to @code{alpine} and
 @code{pine}.")
     (license license:expat)))
 
-(define-public go-gitlab.com-shackra-goimapnotify
+(define-public goimapnotify
   (package
-    (name "go-gitlab.com-shackra-goimapnotify")
-    (version "2.3.7")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://gitlab.com/shackra/goimapnotify")
-                    (commit version)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "06jhxvhdvdv049qpvp8ahnhvswvbpakpw7aq2lw790f3x89px2ss"))))
+    (name "goimapnotify")
+    (version "2.4")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.com/shackra/goimapnotify")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "06gmhrmfl31icr2lld9g2bnqjs0y2fq7kjfzm8zjg8d3n3vs7rl9"))))
     (build-system go-build-system)
     (arguments
-     `(#:import-path "gitlab.com/shackra/goimapnotify"))
-    (propagated-inputs
+     (list
+      #:install-source? #f
+      #:import-path "gitlab.com/shackra/goimapnotify"))
+    (native-inputs
      (list go-github-com-emersion-go-imap
+           go-github-com-emersion-go-imap-id
            go-github-com-emersion-go-imap-idle
-           go-github-com-emersion-go-sasl go-github-com-sirupsen-logrus
-           go-golang-org-x-text))
+           go-github-com-emersion-go-sasl
+           go-github-com-fatih-color
+           go-github-com-sirupsen-logrus
+           go-github-com-spf13-viper))
+    (home-page "https://gitlab.com/shackra/goimapnotify")
     (synopsis "Execute scripts on IMAP mailbox changes")
     (description
-     "Script to execute scripts on IMAP mailbox changes (new/deleted/updated
-messages) using IDLE.  Implemented in Go.")
-    (home-page "https://gitlab.com/shackra/goimapnotify")
+     "This package provides a CLI application to execute scripts on IMAP
+mailbox changes (new/deleted/updated messages) using
+@url{https://en.wikipedia.org/wiki/IMAP_IDLE, IDLE} and it is mostly
+compatible with the configuration of
+@url{https://github.com/a-sk/python-imapnotify, imapnotify made with
+Python}.")
     (license license:gpl3+)))
+
+(define-public go-gitlab.com-shackra-goimapnotify
+  (deprecated-package "go-gitlab.com-shackra-goimapnotify" goimapnotify))
 
 (define-public guile2.2-mailutils
   (package
@@ -1276,7 +1291,7 @@ security functionality including PGP, S/MIME, SSH, and SSL.")
 (define-public mu
   (package
     (name "mu")
-    (version "1.12.7")
+    (version "1.12.9")
     (source
      (origin
        (method git-fetch)
@@ -1285,7 +1300,7 @@ security functionality including PGP, S/MIME, SSH, and SSL.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0qncxr76m0yl1c9yv546d1hxv3v9744dx40jamd0vwq3w8bv268n"))))
+        (base32 "1jgphx4yd899zg8g0w065ml962jwj848hlc4svpzqxpsgg2bb8m3"))))
     (build-system meson-build-system)
     (native-inputs
      (list pkg-config
@@ -2141,7 +2156,8 @@ facilities for checking incoming mail.")
      `(#:configure-flags '("--sysconfdir=/etc"
                            "--localstatedir=/var"
                            "--with-sqlite"  ; not auto-detected
-                           "--with-lucene") ; not auto-detected
+                           "--with-lucene"
+                           "--with-moduledir=/usr/lib/dovecot") ; not auto-detected
        ;; The -rdynamic linker flag is needed for the backtrace() function to
        ;; have symbol names rather than just addresses.  Dovecot's tests rely
        ;; on this, see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=962630.
@@ -2161,9 +2177,12 @@ facilities for checking incoming mail.")
                                 "src/lib-smtp/test-bin/sendmail-success.sh")
                (("cat") (which "cat")))))
          (replace 'install
-           (lambda* (#:key make-flags #:allow-other-keys)
+           (lambda* (#:key outputs make-flags #:allow-other-keys)
+             ;; The .la files don't like having the moduledir moved.
+             (for-each delete-file (find-files "." "\\.la"))
              ;; Simple hack to avoid installing a trivial README in /etc.
              (apply invoke "make" "install" "sysconfdir=/tmp/bogus"
+                    (string-append "moduledir=" (assoc-ref outputs "out") "/lib/dovecot")
                     make-flags))))))
     (home-page "https://www.dovecot.org")
     (synopsis "Secure POP3/IMAP server")
@@ -3287,14 +3306,14 @@ from the Cyrus IMAP project.")
 (define-public opensmtpd
   (package
     (name "opensmtpd")
-    (version "7.5.0p0")
+    (version "7.6.0p1")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://www.opensmtpd.org/archives/"
                            "opensmtpd-" version ".tar.gz"))
        (sha256
-        (base32 "1763w26zvvc3kf8giqg4lwn5n1ypmgh73agf5k3yq6qc7hww3xc4"))))
+        (base32 "15sa1vzh6rbl0c8fwl4kz5zrlarp8mxaw47q6wk3lrd6h9lq0z5j"))))
     (build-system gnu-build-system)
     (inputs
      ;; OpenSMTPd bundled (a subset of) libasr and libtls, which we use.  See
@@ -3310,13 +3329,17 @@ from the Cyrus IMAP project.")
            libxcrypt
            zlib))
     (native-inputs
-     (list bison
+     (list autoconf
+           automake
+           bison
            groff                        ;for man pages
            pkg-config))
     (arguments
      (list
       #:configure-flags
       #~(list "--localstatedir=/var"
+              ;; Allow work with /etc/mailname.
+              "--sysconfdir=/etc"
               "--with-libbsd"
               ;; This is the default only if it exists at build time—it doesn't.
               "--with-path-socket=/var/run"
@@ -3331,32 +3354,43 @@ from the Cyrus IMAP project.")
               (string-append "ac_cv_path_ZCAT="
                              #$(this-package-input "gzip") "/bin/zcat"))
       #:phases
-      `(modify-phases %standard-phases
-         ;; Fix some incorrectly hard-coded external tool file names.
-         (add-after 'unpack 'patch-FHS-file-names
-           (lambda* (#:key inputs #:allow-other-keys)
-             ;; avoids warning smtpd: couldn't enqueue offline message
-             ;; smtpctl exited abnormally
-             (substitute* "usr.sbin/smtpd/smtpd.h"
-               (("/usr/bin/smtpctl") "/run/privileged/bin/smtpctl"))
-             (substitute* "usr.sbin/smtpd/smtpctl.c"
-               ;; ‘gzcat’ is auto-detected at compile time, but ‘cat’ isn't.
-               (("/bin/cat" file) (search-input-file inputs file)))
-             (substitute* "usr.sbin/smtpd/mda_unpriv.c"
-               (("/bin/sh" file) (search-input-file inputs file)))))
-         ;; OpenSMTPD provides a single smtpctl utility to control both the
-         ;; daemon and the local submission subsystem.  To accomodate systems
-         ;; that require historical interfaces such as sendmail, newaliases or
-         ;; makemap, smtpctl operates in compatibility mode if called with the
-         ;; historical name.
-         (add-after 'install 'install-compability-links
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out  (assoc-ref outputs "out"))
-                    (sbin (string-append out "/sbin/")))
-               (for-each (lambda (command)
-                           (symlink "smtpctl" (string-append sbin command)))
-                         (list "mailq" "makemap" "newaliases"
-                               "send-mail" "sendmail"))))))))
+      #~(modify-phases %standard-phases
+          ;; Fix some incorrectly hard-coded external tool file names.
+          (add-after 'unpack 'patch-FHS-file-names
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "mk/pathnames"
+                ;; avoids warning smtpd: couldn't enqueue offline message
+                ;; smtpctl exited abnormally
+                (("(-DPATH_SMTPCTL=).*\\\\" all def)
+                 (string-append def "\\\"/run/privileged/bin/smtpctl\\\" \\"))
+                (("(-DPATH_MAKEMAP=).*\\\\" all def)
+                 (string-append def "\\\"/run/privileged/bin/makemap\\\" \\")))
+              (substitute* "usr.sbin/smtpd/smtpctl.c"
+                ;; ‘gzcat’ is auto-detected at compile time, but ‘cat’ isn't.
+                (("/bin/cat" file) (search-input-file inputs file)))
+              (substitute* "usr.sbin/smtpd/mda_unpriv.c"
+                (("/bin/sh" file) (search-input-file inputs file)))))
+          ;; Avoid install smtpd.conf to /etc.
+          (add-after 'unpack 'fix-smtpd.conf-install-path
+            (lambda _
+              (let ((etc (string-append #$output "/etc")))
+                (mkdir-p etc)
+                (substitute* "mk/smtpd/Makefile.am"
+                  (("\\$\\(DESTDIR\\)\\$\\(sysconfdir\\)/smtpd\\.conf")
+                   (string-append etc "/smtpd.conf"))))))
+          ;; OpenSMTPD provides a single smtpctl utility to control both the
+          ;; daemon and the local submission subsystem.  To accomodate systems
+          ;; that require historical interfaces such as sendmail, newaliases or
+          ;; makemap, smtpctl operates in compatibility mode if called with the
+          ;; historical name.
+          (add-after 'install 'install-compability-links
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out  (assoc-ref outputs "out"))
+                     (sbin (string-append out "/sbin/")))
+                (for-each (lambda (command)
+                            (symlink "smtpctl" (string-append sbin command)))
+                          (list "mailq" "makemap" "newaliases"
+                                "send-mail" "sendmail"))))))))
     (synopsis "Lightweight SMTP daemon")
     (description
      "OpenSMTPD is an implementation of server-side @acronym{SMTP, Simple Mail
@@ -3687,34 +3721,34 @@ installation on systems where resources are limited.  Its features include:
 (define-public python-django-mailman3
   (package
     (name "python-django-mailman3")
-    (version "1.3.7")
+    (version "1.3.15")
     (source
       (origin
         (method url-fetch)
-        (uri (pypi-uri "django-mailman3" version))
+        (uri (pypi-uri "django_mailman3" version))
         (sha256
          (base32
-          "1dzycnwdr1gavs1dgmcv1lz24x0fkp8y864fy52fgbz72d6c5a3f"))))
-    (build-system python-build-system)
+          "06yiqsqyvngq7ls24xlh6kwpq0x0y55mrgypc6xdbidrkhk6p4gr"))))
+    (build-system pyproject-build-system)
     (arguments
-     '(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda _
-             (setenv "DJANGO_SETTINGS_MODULE"
-                     "django_mailman3.tests.settings_test")
-             (invoke "django-admin" "test"
-                     "--pythonpath=."))))))
-    (propagated-inputs
-     (list python-django python-django-allauth python-django-gravatar2
-           python-mailmanclient python-pytz))
+     (list
+      ;; AttributeError: 'SocialLogin' object has no attribute 'account'
+      #:test-flags #~(list "-k" "not test_social_account_added")))
     (native-inputs
-     (list python-mock))
+     (list python-pdm-backend
+           python-pytest
+           python-pytest-django
+           python-tzdata))
+    (propagated-inputs
+     (list python-django
+           python-django-allauth
+           python-django-gravatar2
+           python-mailmanclient))
     (home-page "https://gitlab.com/mailman/django-mailman3")
     (synopsis "Django library to help interaction with Mailman")
     (description
-     "This package contains libraries and templates for Django-based interfaces
-interacting with Mailman.")
+     "This package contains libraries and templates for Django-based
+interfaces interacting with Mailman.")
     (license license:gpl3+)))
 
 (define-public python-mailman-hyperkitty
@@ -3747,45 +3781,50 @@ which sends emails to HyperKitty, the official Mailman3 web archiver.")
 (define-public python-hyperkitty
   (package
     (name "python-hyperkitty")
-    (version "1.3.5")
+    (version "1.3.12")
     (source
       (origin
         (method url-fetch)
-        (uri (pypi-uri "HyperKitty" version))
+        (uri (pypi-uri "hyperkitty" version))
         (sha256
          (base32
-          "11lz1s2p8n43h1cdr9l5dppsigg8qdppckdwdndzn7a8r8mj4sc2"))))
-    (build-system python-build-system)
+          "078nrxkwdrv4d7ysdzp1c2dl5nm4fvxnpn6mq6lrxg65gs9q5dfy"))))
+    (build-system pyproject-build-system)
     (arguments
-     '(#:phases
-       (modify-phases %standard-phases
+     (list
+      #:phases
+      '(modify-phases %standard-phases
          (replace 'check
-           (lambda _
-             (invoke "example_project/manage.py" "test"
-                     "--settings=hyperkitty.tests.settings_test"
-                     "--pythonpath=."))))))
+           (lambda* (#:key tests? #:allow-other-keys)
+             (when tests?
+               (invoke "example_project/manage.py" "test"
+                       "--settings=hyperkitty.tests.settings_test"
+                       "--pythonpath=.")))))))
     (propagated-inputs
      (list python-dateutil
            python-django
            python-django-compressor
+           python-django-debug-toolbar
            python-django-extensions
            python-django-gravatar2
            python-django-haystack
            python-django-mailman3
-           python-django-q
+           python-django-q2
            python-django-rest-framework
+           python-elasticsearch
            python-flufl-lock
+           python-isort
+           python-lxml
            python-mailmanclient
            python-mistune
            python-networkx
-           python-pytz
-           python-robot-detection))
+           python-robot-detection
+           python-tzdata
+           python-whoosh))
     (native-inputs
-     (list python-beautifulsoup4
-           python-elasticsearch
-           python-isort
-           python-lxml
-           python-mock
+     (list tzdata-for-tests
+           python-beautifulsoup4
+           python-pdm-backend
            python-whoosh))
     (home-page "https://gitlab.com/mailman/hyperkitty")
     (synopsis "Web interface to access GNU Mailman v3 archives")
@@ -3798,15 +3837,15 @@ some configuration.")
 (define-public postorius
   (package
     (name "postorius")
-    (version "1.3.6")
+    (version "1.3.13")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "postorius" version))
        (sha256
         (base32
-         "0s0sv97nmszl5pl9rnnyzp3sxpmdhpxqrdwv7nc0ww8zs99w831b"))))
-    (build-system python-build-system)
+         "08hs2g2yfya869chi74xwhqkrq9l4dm1k5ddx14hv42j91ffybb0"))))
+    (build-system pyproject-build-system)
     (arguments
      '(#:phases
        (modify-phases %standard-phases
@@ -3819,10 +3858,17 @@ some configuration.")
                  #t))))
        #:tests? #f)) ; Tests try to run a mailman instance to test against.
     (inputs
-     (list python-readme-renderer python-mailmanclient
-           python-django python-django-mailman3))
+     (list python-readme-renderer
+           python-mailmanclient
+           python-django
+           python-django-mailman3))
     (native-inputs
-     (list python-beautifulsoup4 python-isort python-mock python-vcrpy))
+     (list python-beautifulsoup4
+           python-isort
+           python-mock
+           python-pdm-backend
+           python-pytest
+           python-vcrpy))
     (home-page "https://gitlab.com/mailman/postorius")
     (synopsis "Web user interface for GNU Mailman")
     (description
@@ -4166,13 +4212,13 @@ servers.  The 4rev1 and 4 versions of IMAP are supported.")
 (define-public urlscan
   (package
     (name "urlscan")
-    (version "1.0.1")
+    (version "1.0.6")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "urlscan" version))
         (sha256
-         (base32 "0zrh2c8p70fq9y7afmpbsirz22nq2qhnks5c5zfmgnm2b9p9iv70"))))
+         (base32 "10a5rgvzy6baqmr0x4lmzsr73a4jpbm04xyjmqlkr493vq08kgrv"))))
     (build-system pyproject-build-system)
     (arguments
      (list #:tests? #f))        ; No tests.
@@ -4219,7 +4265,7 @@ It is a replacement for the @command{urlview} program.")
 (define-public mumi
   (package
     (name "mumi")
-    (version "0.3.0")
+    (version "0.5.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4228,7 +4274,7 @@ It is a replacement for the @command{urlview} program.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0b93hd6jjay70rj3520cmwzji00prn2fyjbxgys6ihw962nj3hpg"))))
+                "0r9kbxn97si74swppfyznn3s17ng9x1clq6w9fi9m1ml2blmi5dv"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -4262,11 +4308,11 @@ It is a replacement for the @command{urlview} program.")
                     (,go ,(getenv "GUILE_LOAD_COMPILED_PATH"))))))))))
     (inputs
      (list bash-minimal
+           guile-avatar
            guile-email
            guile-fibers
            guile-gcrypt
            guile-gnutls
-           guile-json-4
            guile-kolam
            guile-redis
            guile-syntax-highlight
@@ -5012,16 +5058,18 @@ feeds, converts them into emails, and sends them.")
                    "sendgmail-remove-domain-restriction.patch"
                    "sendgmail-accept-ignored-gsuite-flag.patch"))
          (sha256
-          (base32
-           "1cxpkiaajhq1gjsg47r2b5xgck0r63pvkyrkm7af8c8dw7fyn64f"))))
-      (inputs
-       (list go-golang-org-x-oauth2 go-cloud-google-com-go-compute-metadata))
+          (base32 "1cxpkiaajhq1gjsg47r2b5xgck0r63pvkyrkm7af8c8dw7fyn64f"))))
       (build-system go-build-system)
       (arguments
-       '(#:unpack-path "github.com/google/gmail-oauth2-tools"
-         #:import-path "github.com/google/gmail-oauth2-tools/go/sendgmail"))
-      (home-page
-       "https://github.com/google/gmail-oauth2-tools/tree/master/go/sendgmail")
+       (list
+        #:install-source? #f
+        #:tests? #f ; no tests
+        #:unpack-path "github.com/google/gmail-oauth2-tools"
+        #:import-path "github.com/google/gmail-oauth2-tools/go/sendgmail"))
+      (inputs
+       (list go-golang-org-x-oauth2
+             go-cloud-google-com-go-compute-metadata))
+      (home-page "https://github.com/google/gmail-oauth2-tools")
       (synopsis
        "Sendmail-compatible tool for using Gmail with @code{git send-email}")
       (description
@@ -5058,7 +5106,7 @@ remote SMTP server.")
 (define-public aerc
   (package
     (name "aerc")
-    (version "0.18.2")
+    (version "0.20.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -5067,26 +5115,14 @@ remote SMTP server.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0y34cv2vcwhr0vbd1ax2hv9rmv79dp9i02y2xqyr23krfb5bp197"))
-              (patches
-                (list
-                  ;; patch from upstream to fix encoding problem with sending
-                  ;; gpg-signed messages
-                  ;; see https://todo.sr.ht/~rjarry/aerc/79
-                  (origin
-                    (method url-fetch)
-                    (uri "https://git.sr.ht/~rjarry/aerc/commit/7346d20.patch")
-                    (file-name "aerc-fix-gpg-signed-message-encoding.patch")
-                    (sha256 (base32
-                              "14avr323sr9qipf9d7npqwrzq37i9946z9m6jdkzi8n9rs6zwzq9")))))))
+                "04412inhzj8vwybafqz6nw8wrsyf51zjv0881aacr6zc9bfcq510"))))
     (build-system go-build-system)
     (arguments
      (list #:import-path "git.sr.ht/~rjarry/aerc"
            ;; Installing the source is only necessary for Go libraries.
            #:install-source? #f
            #:build-flags
-           #~(list "-tags=notmuch"
-                   (string-append
+           #~(list (string-append
                     "-ldflags=-X main.Version=" #$version
                     " -X git.sr.ht/~rjarry/aerc/config.libexecDir="
                     #$output "/libexec/aerc"
@@ -5101,44 +5137,48 @@ remote SMTP server.")
                        ;; Patch all occurrences to "sh" with absolute path to
                        ;; the shell available in Guix.
                        (("\"sh\"")
-                        (string-append
-                         "\"" (search-input-file inputs "bin/sh")
-                         "\"")))
-                     (let ((zoxide (search-input-file inputs "bin/zoxide")))
+                        (format #f "~s" (which "sh"))))
+                     (let ((zoxide #$(this-package-input "zoxide")))
                        (when zoxide
                          (substitute* "commands/z.go"
                            (("\"zoxide\"")
-                            (string-append "\"" zoxide "\"")))))
+                            (format #f "~s"
+                                    (string-append zoxide "/bin/zoxide"))))))
                      (substitute* (list "lib/crypto/gpg/gpg.go"
                                         "lib/crypto/gpg/gpg_test.go"
                                         "lib/crypto/gpg/gpgbin/keys.go"
                                         "lib/crypto/gpg/gpgbin/gpgbin.go")
                        (("\"gpg\"")
-                        (string-append
-                         "\"" (search-input-file inputs "bin/gpg")
-                         "\""))
+                        (format #f "~s"
+                                (string-append #$(this-package-input "gnupg")
+                                               "/bin/gpg")))
                        (("strings\\.Contains\\(stderr\\.String\\(\\), .*\\)")
                         "strings.Contains(stderr.String(), \"gpg\")")))))
                (add-after 'build 'doc
                  (lambda* (#:key import-path build-flags #:allow-other-keys)
                    (invoke "make" "doc" "-C"
                            (string-append "src/" import-path))))
+               ;; XXX: This phase does the build and overwrites
+               ;; go-build-system's build one.
                (replace 'install
                  (lambda* (#:key import-path build-flags #:allow-other-keys)
-                   (invoke "make" "CC=gcc" "install" "-C"
-                           (string-append "src/" import-path)
-                           (string-append "PREFIX=" #$output)))))))
+                   (invoke "make"
+                           (string-append "CC=" #$(cc-for-target))
+                           (string-append "GOFLAGS=-tags=notmuch " (getenv "GOFLAGS"))
+                           (string-append "PREFIX=" #$output)
+                           "install" "-C"
+                           (string-append "src/" import-path)))))))
     (inputs
      (append
       (list gnupg
-            notmuch ; Failing to build without it.
+            notmuch
             python
             python-vobject)
       (if (supported-package? zoxide)
           (list zoxide)
           '())))
     (native-inputs
-     (list go-git-sr-ht-rjarry-go-opt
+     (list go-git-sr-ht-rjarry-go-opt-v2
            go-git-sr-ht-rockorager-go-jmap
            go-git-sr-ht-rockorager-vaxis
            go-github-com-protonmail-go-crypto

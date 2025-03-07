@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2014-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2014-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2015 David Thompson <davet@gnu.org>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2017 Mathieu Othacehe <m.othacehe@gmail.com>
@@ -9,6 +9,7 @@
 ;;; Copyright © 2021 Chris Marusich <cmmarusich@gmail.com>
 ;;; Copyright © 2021 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2022 Oleg Pykhalov <go.wigust@gmail.com>
+;;; Copyright © 2024 Noah Evans <noahevans256@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -145,6 +146,12 @@
             CLONE_NEWNET
             clone
             setns
+
+            kexec-load-file
+            KEXEC_FILE_UNLOAD
+            KEXEC_FILE_ON_CRASH
+            KEXEC_FILE_NO_INITRAMFS
+            KEXEC_FILE_DEBUG
 
             PF_PACKET
             AF_PACKET
@@ -765,6 +772,58 @@ current process."
                  (list (strerror err))
                  (list err)))))))
 
+(define (string->utf-8/nul-terminated str)
+  "Serialize STR to UTF-8; return the resulting bytevector, including
+terminating nul character."
+  (let* ((source (string->utf8 str))
+         (bv     (make-bytevector (+ (bytevector-length source) 1) 0)))
+    (bytevector-copy! source 0 bv 0 (bytevector-length source))
+    bv))
+
+;; Constants from <linux/kexec.h>.
+(define KEXEC_FILE_UNLOAD	#x00000001)
+(define KEXEC_FILE_ON_CRASH	#x00000002)
+(define KEXEC_FILE_NO_INITRAMFS	#x00000004)
+(define KEXEC_FILE_DEBUG	#x00000008)       ;missing from Linux 6.6
+
+(define kexec-load-file
+  (let* ((proc (syscall->procedure int "syscall"
+                                   (list long             ;sysno
+                                         int              ;kernel fd
+                                         int              ;initrd fd
+                                         unsigned-long    ;cmdline length
+                                         '*               ;cmdline
+                                         unsigned-long))) ;flags
+         (syscall-id (match (utsname:machine (uname))
+                       ("x86_64"  320)
+                       ;; unsupported on i686
+                       ("armv7l"  401)
+                       ("aarch64" 294)
+                       ("ppc64le" 382)
+                       ("riscv64" 294)
+                       (_ #f))))
+    (lambda* (kernel-fd initrd-fd command-line #:optional (flags 0))
+      "Load for eventual use of kexec(8) the Linux kernel from
+@var{kernel-fd}, its initial RAM disk from @var{initrd-fd}, with the given
+@var{command-line} (a string).  Optionally, @var{flags} can be a bitwise or of
+the KEXEC_FILE_* constants."
+      (unless syscall-id
+        (throw 'system-error "kexec-load-file" "~A"
+               (list (strerror ENOSYS))
+               (list ENOSYS)))
+
+      (let*-values (((command-line)
+                     (string->utf-8/nul-terminated command-line))
+                    ((ret err)
+                     (proc syscall-id kernel-fd initrd-fd
+                           (bytevector-length command-line)
+                           (bytevector->pointer command-line)
+                           flags)))
+        (when (= ret -1)
+          (throw 'system-error "kexec-load-file" "~A"
+                 (list (strerror err))
+                 (list err)))))))
+
 (define (linux-process-flags pid)                 ;copied from the Shepherd
   "Return the process flags of @var{pid} (or'd @code{PF_} constants), assuming
 the Linux /proc file system is mounted; raise a @code{system-error} exception
@@ -930,18 +989,27 @@ fdatasync(2) on the underlying file descriptor."
   (spare            (array fsword 4)))
 
 (define statfs
-  (let ((proc (syscall->procedure int (if musl-libc? "statfs" "statfs64") '(* *))))
-    (lambda (file)
-      "Return a <file-system> data structure describing the file system
+  ;; Check whether we are using the statically-linked Guile, which provides
+  ;; 'statfs-raw' from libguile via a patch.
+  (if (module-defined? the-scm-module 'statfs-raw)
+      (lambda (file)
+        "Return a <file-system> data structure describing the file system
 mounted at FILE."
-      (let*-values (((stat)    (make-bytevector sizeof-statfs))
-                    ((ret err) (proc (string->pointer file)
-                                     (bytevector->pointer stat))))
-        (if (zero? ret)
-            (read-statfs stat)
-            (throw 'system-error "statfs" "~A: ~A"
-                   (list file (strerror err))
-                   (list err)))))))
+        (read-statfs ((module-ref the-scm-module 'statfs-raw) file)))
+      (let ((proc (syscall->procedure int
+                                      (if musl-libc? "statfs" "statfs64")
+                                      '(* *))))
+        (lambda (file)
+          "Return a <file-system> data structure describing the file system
+mounted at FILE."
+          (let*-values (((stat)    (make-bytevector sizeof-statfs))
+                        ((ret err) (proc (string->pointer file)
+                                         (bytevector->pointer stat))))
+            (if (zero? ret)
+                (read-statfs stat)
+                (throw 'system-error "statfs" "~A: ~A"
+                       (list file (strerror err))
+                       (list err))))))))
 
 (define (free-disk-space file)
   "Return the free disk space, in bytes, on the file system that hosts FILE."

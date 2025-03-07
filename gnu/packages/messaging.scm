@@ -44,7 +44,7 @@
 ;;; Copyright © 2024 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;;; Copyright © 2024 Wilko Meyer <w@wmeyer.eu>
 ;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
-;;; Copyright © 2024 Igor Goryachev <igor@goryachev.org>
+;;; Copyright © 2024, 2025 Igor Goryachev <igor@goryachev.org>
 ;;; Copyright © 2024 Nguyễn Gia Phong <mcsinyx@disroot.org>
 ;;;
 ;;; This file is part of GNU Guix.
@@ -217,7 +217,7 @@
    (home-page "https://biboumi.louiz.org")
    (synopsis "XMPP gateway that connects to IRC")
    (description "Biboumi is a Free, Libre and Open Source XMPP gateway that connects to IRC
-servers and translates between the two protocols. Its goal is to let XMPP
+servers and translates between the two protocols.  Its goal is to let XMPP
 users take part in IRC discussions, using their favourite XMPP client.")
    (license license:zlib)))
 
@@ -2524,6 +2524,7 @@ for the Matrix protocol.  It is built on to of @code{Boost.Asio}.")
            qtgraphicaleffects
            qtkeychain-qt6
            qtmultimedia
+           qtwayland
            qtsvg
            re2
            spdlog
@@ -2568,6 +2569,7 @@ notification, emojis, E2E encryption, and voip calls.")
            qtquickcontrols2-5
            qtsvg-5
            qttools-5
+           qtwayland-5
            xdg-utils))
     (arguments
      `(#:tests? #f))                    ; no tests
@@ -2714,11 +2716,11 @@ replacement.")
     (license license:gpl2+)))
 
 (define-public tdlib
-  (let ((commit "056963e48fa8d3f89556239c22d6ac843d3c8a5b")
+  (let ((commit "8e29c4d7d21db3ab2c7a88c384626e95ef789f61")
         (revision "0"))
     (package
       (name "tdlib")
-      (version (git-version "1.8.39" revision commit))
+      (version (git-version "1.8.45" revision commit))
       (source
        (origin
          (method git-fetch)
@@ -2726,7 +2728,7 @@ replacement.")
                (url "https://github.com/tdlib/td")
                (commit commit)))
          (sha256
-          (base32 "1prgq4v4l29g8zrldj0z7zgwl7mp5nh35dqmx45pwk41giiaw3x5"))
+          (base32 "16mjw052clfyknn3n3srl35dq3xmyyxwkvz42kml0g5r7qma9ws7"))
          (file-name (git-file-name name version))))
       (build-system cmake-build-system)
       (arguments
@@ -3698,38 +3700,40 @@ a text snippet), using @code{libphonenumber}.")
         (base32 "0l43qfjr0ggpv1hkyyfxp3j6acrbbrl8n6qxlh91gyb2jan03683"))))
     (build-system go-build-system)
     (arguments
-      (list #:import-path "git.sr.ht/~taiite/senpai/cmd/senpai"
-            #:unpack-path "git.sr.ht/~taiite/senpai"
-            #:install-source? #f
-            #:phases
-            #~(modify-phases %standard-phases
-                (add-after 'build 'build-doc
-                  (lambda* (#:key unpack-path #:allow-other-keys)
-                    (invoke "make" "doc"
-                            "-C" (string-append "src/" unpack-path))))
-                (add-after 'install 'install-doc
-                  (lambda* (#:key unpack-path #:allow-other-keys)
-                    (let ((man1 (string-append #$output "/share/man/man1"))
-                          (man5 (string-append #$output "/share/man/man5")))
-                      (mkdir-p man1)
-                      (mkdir-p man5)
-                      (install-file
-                        (string-append "src/" unpack-path "/doc/senpai.1")
-                        man1)
-                      (install-file
-                        (string-append "src/" unpack-path "/doc/senpai.5")
-                        man5)))))))
-    (native-inputs (list go-git-sr-ht-emersion-go-scfg
-                         go-github-com-delthas-go-libnp
-                         go-github-com-delthas-go-localeinfo
-                         go-github-com-delthas-tcell-v2
-                         go-github-com-mattn-go-runewidth
-                         go-golang-org-x-net
-                         go-golang-org-x-term
-                         go-golang-org-x-time
-                         go-mvdan-cc-xurls-v2
-                         which
-                         scdoc))
+     (list #:import-path "git.sr.ht/~taiite/senpai/cmd/senpai"
+           #:unpack-path "git.sr.ht/~taiite/senpai"
+           #:install-source? #f
+           ;; Step away from cmd/senpai to test the whole project.
+           #:test-subdirs #~(list "../../...")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'build 'build-doc
+                 (lambda* (#:key unpack-path #:allow-other-keys)
+                   (invoke "make" "doc"
+                           "-C" (string-append "src/" unpack-path))))
+               (add-after 'install 'install-doc
+                 (lambda* (#:key unpack-path #:allow-other-keys)
+                   (let ((man1 (string-append #$output "/share/man/man1"))
+                         (man5 (string-append #$output "/share/man/man5")))
+                     (mkdir-p man1)
+                     (mkdir-p man5)
+                     (install-file
+                      (string-append "src/" unpack-path "/doc/senpai.1")
+                      man1)
+                     (install-file
+                      (string-append "src/" unpack-path "/doc/senpai.5")
+                      man5)))))))
+    (native-inputs
+     (list go-git-sr-ht-emersion-go-scfg
+           go-github-com-delthas-go-libnp
+           go-github-com-delthas-go-localeinfo
+           go-github-com-delthas-tcell-v2 ; remove in the next release
+           go-github-com-mattn-go-runewidth
+           go-golang-org-x-net
+           go-golang-org-x-time
+           go-mvdan-cc-xurls-v2
+           scdoc
+           which))
     (home-page "https://sr.ht/~delthas/senpai")
     (synopsis "Modern terminal IRC client")
     (description
@@ -3739,7 +3743,7 @@ a text snippet), using @code{libphonenumber}.")
 (define-public ejabberd
   (package
     (name "ejabberd")
-    (version "24.07")
+    (version "24.12")
     (source
      (origin
        (method git-fetch)
@@ -3748,7 +3752,7 @@ a text snippet), using @code{libphonenumber}.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0d5i9skgfjzs2100k0g99sigc2w61480ysz3va6pmb4nx43100g3"))))
+        (base32 "1l82d8l4ck60vijzirl4xkyc2wv28jnq6amwi8dralm7r218hg7m"))))
     (build-system rebar-build-system)
     (inputs (list bash-minimal coreutils procps sed))
     (native-inputs

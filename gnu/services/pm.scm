@@ -443,12 +443,22 @@ already excluded by the driver or via @code{usb-blacklist-wwan?}.")
   (restore-device-state-on-startup?
    (boolean #f)
    "Restore radio device state (bluetooth, wifi, wwan) from previous
-shutdown on system startup."))
+shutdown on system startup.")
+
+  (cpu-energy-perf-policy-on-ac
+   maybe-string
+   "Set CPU energy/performance policy when on AC mode.  Possible values are
+performance, balance_performance, default, balance_power and power.")
+
+  (cpu-energy-perf-policy-on-bat
+   maybe-string
+   "Set CPU energy/performance policy when on BAT mode.  Possible values are
+performance, balance_performance, default, balance_power and power."))
 
 
 (define (tlp-shepherd-service config)
   (let* ((tlp-bin (file-append
-                   (tlp-configuration-tlp config) "/bin/tlp"))
+                   (tlp-configuration-tlp config) "/sbin/tlp"))
          (tlp-action (lambda args
                        #~(lambda _
                            (zero? (system* #$tlp-bin #$@args))))))
@@ -511,6 +521,7 @@ shutdown on system startup."))
   (list
    (shepherd-service
     (provision '(thermald))
+    (requirement '(user-processes))
     (documentation "Run thermald cpu frequency scaling.")
     (start #~(make-forkexec-constructor
               '(#$(file-append (thermald-thermald config) "/sbin/thermald")

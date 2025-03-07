@@ -47,16 +47,14 @@
 (define-public connman
   (package
     (name "connman")
-    (version "1.42")
+    (version "1.43")
     (source
       (origin
         (method url-fetch)
         (uri (string-append "mirror://kernel.org/linux/network/connman/"
                             "connman-" version ".tar.xz"))
         (sha256
-         (base32 "1an24caah35chc1c48p67ln8kpj9fr7slg5fklpfz0f0dzjbmrm3"))
-        (patches
-         (search-patches "connman-add-missing-libppp-compat.h.patch"))))
+         (base32 "1g735gnhhhqzjhpwv62q8mg8345a62rhyk5qwavh0yby6azcwmqj"))))
     (build-system gnu-build-system)
     (arguments
      (list #:configure-flags
@@ -107,7 +105,7 @@
     (synopsis "Connection management daemon")
     (description "Connman provides a daemon for managing Internet connections.
 The Connection Manager is designed to be slim and to use as few resources as
-possible. It is fully modular system that can be extended through plug-ins.
+possible.  It is fully modular system that can be extended through plug-ins.
 The plug-in approach allows for easy adaption and modification for various use
 cases.  Connman implements DNS resolving and caching, DHCP clients for both
 IPv4 and IPv6, link-local IPv4 address handling and tethering (IP connection

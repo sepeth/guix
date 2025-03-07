@@ -91,6 +91,7 @@
             %current-system
             %current-target-system
             package-name->name+version
+            downstream-package-name
             target-linux?
             target-hurd?
             system-hurd?
@@ -112,6 +113,7 @@
             target-ppc64le?
             target-powerpc?
             target-riscv64?
+            target-loongarch64?
             target-mips64el?
             target-64bit?
             target-little-endian?
@@ -706,6 +708,14 @@ a character other than '@'."
     (idx (values (substring spec 0 idx)
                  (substring spec (1+ idx))))))
 
+(define (downstream-package-name prefix name)
+  "Return the Guix package name for a given package NAME."
+  (string-append prefix (string-map (match-lambda
+                                      (#\_ #\-)
+                                      (#\. #\-)
+                                      (chr (char-downcase chr)))
+                                    name)))
+
 (define* (target-linux? #:optional (target (or (%current-target-system)
                                                (%current-system))))
   "Does the operating system of TARGET use the Linux kernel?"
@@ -801,6 +811,10 @@ architecture (x86_64) using 32-bit data types?"
   "Is the architecture of TARGET a variant of Microchip's AVR architecture?"
   (or (string=? target "avr") (string-prefix? "avr-" target)))
 
+(define* (target-loongarch64? #:optional (target (or (%current-target-system)
+                                                     (%current-system))))
+  (string-prefix? "loongarch64-" target))
+
 (define* (target-ppc32? #:optional (target (or (%current-target-system)
                                                (%current-system))))
   (string-prefix? "powerpc-" target))
@@ -825,7 +839,7 @@ architecture (x86_64) using 32-bit data types?"
 (define* (target-64bit? #:optional (system (or (%current-target-system)
                                                (%current-system))))
   (any (cut string-prefix? <> system) '("x86_64" "aarch64" "mips64"
-                                        "powerpc64" "riscv64")))
+                                        "powerpc64" "riscv64" "loongarch64")))
 
 (define* (target-little-endian? #:optional (target (or (%current-target-system)
                                                        (%current-system))))
@@ -1186,7 +1200,7 @@ be determined."
 
 (define (string-distance s1 s2)
   "Compute the Levenshtein distance between two strings."
-  ;; Naive implemenation
+  ;; Naive implementation
   (define loop
     (mlambda (as bt)
       (match as

@@ -298,7 +298,7 @@ will name the threaded machine type unless THREADS? is provided as #f."
     (name "chez-scheme-for-racket")
     ;; The version should match `(scheme-version #t)`.
     ;; See s/cmacros.ss c. line 360.
-    (version "10.1.0-pre-release.1")
+    (version "10.1.0-pre-release.3")
     (source #f)
     (build-system gnu-build-system)
     (inputs `(,@(if (nix-system->native-chez-machine-type)
@@ -482,7 +482,7 @@ will name the threaded machine type unless THREADS? is provided as #f."
                                  "release_notes.pdf")
                         (match (find-files
                                 "csug"
-                                "csug.*\\.pdf$" ;; embeded version number
+                                "csug.*\\.pdf$" ;; embedded version number
                                 #:fail-on-error? #t)
                           ((pth)
                            (symlink pth
@@ -679,15 +679,15 @@ long as using an existing Chez Scheme, but @code{cs-bootstrap} supports Racket
     (home-page "https://cisco.github.io/ChezScheme/")
     (synopsis "Bootstrapped Chez Scheme boot files")
     (description
-     "Chez Scheme is a self-hosting compiler: building it requires
-``boot files'' containing the Scheme-implemented portions compiled for the
-current platform.  (Chez can then cross-compile bootfiles for all other
-supported platforms.)
+     "Chez Scheme is a self-hosting compiler: building it requires ``boot
+files'' containing the Scheme-implemented portions compiled for the current
+platform.  (Chez can then cross-compile bootfiles for all other supported
+platforms.)
 
 This package provides boot files for the released version of Chez Scheme
-bootstrapped by @code{chez-scheme-for-racket}. Chez Scheme 9.5.4 or any later
-version can be used for bootstrapping. Guix ultimately uses the Racket package
-@code{cs-bootstrap} to bootstrap its initial version of Chez Scheme.")
+bootstrapped by @code{chez-scheme-for-racket}.  Chez Scheme 9.5.4 or any later
+version can be used for bootstrapping.  Guix ultimately uses the Racket
+package @code{cs-bootstrap} to bootstrap its initial version of Chez Scheme.")
     (license asl2.0)))
 
 ;;
@@ -732,7 +732,7 @@ version can be used for bootstrapping. Guix ultimately uses the Racket package
               ghostscript
               netpbm))
        ;; Debian uses a versionless path for STEXLIB,
-       ;; which is much more convienient.
+       ;; which is much more convenient.
        (arguments
         (list
          #:install-plan #~`(("inputs" "lib/stex/")

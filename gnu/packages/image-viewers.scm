@@ -27,6 +27,7 @@
 ;;; Copyright © 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2022 Tomasz Jeneralczyk <tj@schwi.pl>
 ;;; Copyright © 2022 Cairn <cairn@pm.me>
+;;; Copyright © 2023 Florian Pelz <pelzflorian@pelzflorian.de>
 ;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
@@ -56,6 +57,7 @@
   #:use-module (guix build-system go)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
   #:use-module (guix build-system qt)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages algebra)
@@ -65,20 +67,23 @@
   #:use-module (gnu packages bash)
   #:use-module (gnu packages boost)
   #:use-module (gnu packages check)
+  #:use-module (gnu packages cmake)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages cpp)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages djvu)
   #:use-module (gnu packages fontutils)
   #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages gawk)
+  #:use-module (gnu packages gcc)
   #:use-module (gnu packages gettext)
   #:use-module (gnu packages ghostscript)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
-  #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages graphics)
   #:use-module (gnu packages image)
@@ -92,7 +97,9 @@
   #:use-module (gnu packages perl-check)
   #:use-module (gnu packages photo)
   #:use-module (gnu packages pkg-config)
+  #:use-module (gnu packages profiling)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-check)
   #:use-module (gnu packages python-compression)
   #:use-module (gnu packages python-crypto)
@@ -100,6 +107,7 @@
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages suckless)
+  #:use-module (gnu packages stb)
   #:use-module (gnu packages terminals)
   #:use-module (gnu packages upnp)
   #:use-module (gnu packages version-control)
@@ -110,6 +118,55 @@
   #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
   #:use-module (gnu packages))
+
+(define-public swayimg
+  (package
+    (name "swayimg")
+    (version "3.6")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/artemsen/swayimg")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32 "15nqb1igikkvrzx3dhyj9msynfpvrnqvql6plqm8fhg10fbimfhd"))))
+    (build-system meson-build-system)
+    (arguments
+     `(#:configure-flags '(,(string-append "-Dversion=" version))))
+    (native-inputs (list pkg-config))
+    (inputs (list bash-completion
+                  fontconfig
+                  freetype
+                  giflib
+                  ijg-libjpeg
+                  imath
+                  json-c
+                  libavif
+                  libexif
+                  libheif
+                  libjxl
+                  libpng
+                  librsvg
+                  libtiff
+                  libwebp
+                  libxkbcommon
+                  openexr
+                  wayland
+                  wayland-protocols))
+    (home-page "https://github.com/artemsen/swayimg")
+    (synopsis "Customizable and lightweight image viewer for Wayland")
+    (description
+     "Swayimg is a fully customizable and lightweight image viewer for Wayland
+based display servers.  It supports the most popular image formats (JPEG, JPEG
+XL, PNG, GIF, SVG, WebP, HEIF/AVIF, AV1F/AVIFS, TIFF, EXR, BMP, PNM, TGA, QOI,
+DICOM, Farbfeld).  It has fully customizable keyboard bindings, colors, and
+many other parameters.  It also supports loading images from files and pipes,
+and provides gallery and viewer modes with slideshow and animation support.
+It also includes a Sway integration mode: the application creates an overlay
+above the currently active window, which gives the illusion that you are
+opening the image directly in a terminal window.")
+    (license license:expat)))
 
 (define-public ytfzf
   (package
@@ -301,6 +358,36 @@ It is the default image viewer on LXDE desktop environment.")
     (home-page "https://lxde.sourceforge.net/gpicview/")
     (license license:gpl2+)))
 
+(define-public qimgv
+  (package
+    (name "qimgv")
+    (version "1.0.3-alpha")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/easymodo/qimgv")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "05mk3vdqk4vzg8phqfkxy167iqycahlw1n69nx5myfp5rjii4wvw"))))
+    (build-system cmake-build-system)
+    (arguments (list #:tests? #f))          ;no tests
+    (native-inputs
+     (list exiv2
+           mpv
+           opencv
+           pkg-config
+           qtbase
+           qtsvg
+           qttools))
+    (home-page "https://github.com/easymodo/qimgv")
+    (synopsis "Qt image viewer with optional video support")
+    (description
+     "Qimgv is a configurable Qt image viewer, with optional video support.")
+    (license license:gpl3+)))
+
 (define-public sxiv
   (package
     (name "sxiv")
@@ -427,13 +514,24 @@ needs.")
         (base32 "14qvx1wajncd5ab0207274cwk32f4ipfnlaci6phmah0cwra2did"))))
     (build-system meson-build-system)
     (arguments
-     '(#:phases (modify-phases %standard-phases
-                  (add-after 'unpack 'patch-source
-                    (lambda _
-                      ;; Don't create 'icon-theme.cache'
-                      (substitute* "meson.build"
-                        (("meson.add_install_script*") "")))))
-       #:tests? #f))                    ;no tests
+     (list #:glib-or-gtk? #t
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch-source
+                 (lambda _
+                   ;; Don't create 'icon-theme.cache'
+                   (substitute* "meson.build"
+                     (("meson.add_install_script*") ""))))
+               (add-after 'glib-or-gtk-wrap 'wrap-pixbuf
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   (let ((viewnior (string-append #$output "/bin/viewnior")))
+                     (wrap-program viewnior
+                       ;; Wrap GDK_PIXBUF_MODULE_FILE so viewnior can be used
+                       ;; to view JPG, PNG and SVG, without the user needing
+                       ;; to install gdk-pixbuf or librsvg.
+                       `("GDK_PIXBUF_MODULE_FILE" =
+                         (,(getenv "GDK_PIXBUF_MODULE_FILE"))))))))
+           #:tests? #f))                    ;no tests
     (native-inputs
      (list gettext-minimal
            `(,glib "bin")               ;glib-genmarshal
@@ -442,7 +540,8 @@ needs.")
     (inputs
      (list exiv2
            gdk-pixbuf
-           gtk+-2))
+           gtk+-2
+           webp-pixbuf-loader))
     (home-page "https://siyanpanayotov.com/project/viewnior")
     (synopsis "Simple, fast and elegant image viewer")
     (description "Viewnior is an image viewer program.  Created to be simple,
@@ -509,7 +608,7 @@ It supports JPEG, PNG and GIF formats.")
 (define-public pixterm
   (package
     (name "pixterm")
-    (version "1.3.1")
+    (version "1.3.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -518,14 +617,14 @@ It supports JPEG, PNG and GIF formats.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0fm6c0mjz6zillqjirnjjf7mkrax1gyfcv6777i07ms3bnv0pcii"))))
+                "08x0pwnl3cyq5f29fxj379p9klzxl85p8jq2595xdz3mhb3pkgsg"))))
     (build-system go-build-system)
     (arguments
-     '(#:import-path "github.com/eliukblau/pixterm/cmd/pixterm"
+     '(#:install-source? #f
+       #:import-path "github.com/eliukblau/pixterm/cmd/pixterm"
        #:unpack-path "github.com/eliukblau/pixterm"))
     (inputs (list go-github-com-disintegration-imaging
                   go-github-com-lucasb-eyer-go-colorful
-                  go-golang-org-x-crypto
                   go-golang-org-x-image
                   go-golang-org-x-term))
     (home-page "https://github.com/eliukblau/pixterm")
@@ -606,7 +705,7 @@ imaging.  It supports several HDR and LDR image formats, and it can:
 (define-public mcomix
   (package
     (name "mcomix")
-    (version "2.0.2")
+    (version "3.1.0")
     (source
      (origin
        (method url-fetch)
@@ -614,17 +713,19 @@ imaging.  It supports several HDR and LDR image formats, and it can:
                            "mcomix-" version ".tar.gz"))
        (sha256
         (base32
-         "0n0akk3njsm0paqxfbxqycwhwy6smjg0rhlcz5r7r82n7rqx0f7g"))))
-    (build-system python-build-system)
+         "09y4nhlcqvvhz0wscx4zpqxmyhiwh8wrjnhk52awxhzvgyx6wa7r"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-wheel))
     (inputs
      (list p7zip python python-pillow python-pygobject python-pycairo gtk+))
     (arguments
      (list
-      #:imported-modules `(,@%python-build-system-modules
+      #:imported-modules `(,@%pyproject-build-system-modules
                            (guix build glib-or-gtk-build-system))
-      #:modules '((guix build python-build-system)
+      #:modules '((guix build pyproject-build-system)
                   ((guix build glib-or-gtk-build-system) #:prefix glib-or-gtk:)
                   (guix build utils))
+      #:tests? #f                       ;no tests
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'patch-source
@@ -1163,3 +1264,65 @@ Advanced users can share tags and files anonymously through custom servers that
 any user may run.  Everything is free and privacy is the first concern.")
     (home-page "https://hydrusnetwork.github.io/hydrus/")
     (license license:wtfpl2)))
+
+(define-public vv
+  (package
+    (name "vv")
+    (version "3.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/wolfpld/vv.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0swx5pnv8f58p7721a02jnrvi0w84cbp6p484vvqd3yryrc1k05v"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #f ; no tests.
+           #:cmake cmake-3.30
+           #:configure-flags
+           #~ (list "-DMARCH_NATIVE=OFF"
+                    "-DCMAKE_BUILD_TYPE=Release"
+                    "-DCPM_USE_LOCAL_PACKAGES=ON"
+                    "-DCPM_LOCAL_PACKAGES_ONLY=ON"
+                    (string-append "-DCPM_stb_SOURCE="
+                                   #$stb-image-resize2
+                                   "/include")
+                    (string-append "-DCPM_tracy_SOURCE="
+                                   #$(package-source tracy-wayland))
+                    "-DCMAKE_CXX_STANDARD=20"
+                    "-DCMAKE_CXX_STANDARD_REQUIRED=ON")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch-dependencies
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute* "src/image/vector/PdfImage.cpp"
+                     (("\"libpoppler-glib.so\"")
+                      (string-append "\""
+                                     (assoc-ref inputs "poppler")
+                                     "/lib/libpoppler-glib.so"
+                                     "\"")))))
+               (replace 'install
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   ;; The provided installer doesn't have:
+                   ;; install(TARGETS vv DESTINATION bin)
+                   ;; So nothing would have been installed.
+                   (install-file "vv"
+                                 (string-append (assoc-ref outputs "out")
+                                                "/bin")))))))
+    (native-inputs
+     (list pkg-config gcc-14))
+    (inputs
+     (list cairo openexr libheif libjpeg-turbo libjxl-0.10 lcms libpng libraw
+           librsvg libsixel libtiff libwebp zlib
+           aklomp-base64 stb-image poppler))
+    (synopsis "Image viewer for the terminal")
+    (description "This package provides a color-correct image viewer for the
+terminal.  Your terminal should support the Kitty Graphics protocol.  If it
+doesn't, it should support the Sixel protocol.")
+    (properties `((tunable? . #t)))
+    (home-page "https://wolf.nereid.pl/posts/image-viewer/")
+    ;; Author tried to make it BSD-3--but it uses a GPL library (poppler)
+    (license license:gpl2+)))

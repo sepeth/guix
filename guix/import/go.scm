@@ -6,7 +6,7 @@
 ;;; Copyright © 2021-2022 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2021 Xinglu Chen <public@yoctocell.xyz>
 ;;; Copyright © 2021 Sarah Morgensen <iskarian@mgsn.dev>
-;;; Copyright © 2021 Simon Tournier <zimon.toutoune@gmail.com>
+;;; Copyright © 2021, 2024 Simon Tournier <zimon.toutoune@gmail.com>
 ;;; Copyright © 2023 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2024 Christina O'Donnell <cdo@mutix.org>
 ;;;
@@ -38,7 +38,8 @@
   #:use-module (guix http-client)
   #:use-module (guix memoization)
   #:autoload   (htmlprag) (html->sxml)            ;from Guile-Lib
-  #:autoload   (guix base32) (bytevector->nix-base32-string)
+  #:autoload   (guix base32) (bytevector->nix-base32-string
+                              nix-base32-string->bytevector)
   #:autoload   (guix build utils) (mkdir-p)
   #:autoload   (guix ui) (warning)
   #:autoload   (gcrypt hash) (hash-algorithm sha256)
@@ -90,7 +91,7 @@
 ;;;   + or recognizing .vcs suffix
 ;;;   + or parsing meta tag in HTML served at the URL
 ;;;   + or (TODO) if nothing else works by using zip file served by GOPROXY
-;;; - get go.mod from GOPROXY (which is able to synthetize one if needed)
+;;; - get go.mod from GOPROXY (which is able to synthesize one if needed)
 ;;; - extract list of dependencies from this go.mod
 ;;;
 ;;; The Go module paths are translated to a Guix package name under the
@@ -130,7 +131,7 @@ https://godoc.org/golang.org/x/mod/module#hdr-Escaped_Paths)."
   (http-fetch* (string-append "https://pkg.go.dev/" name)))
 
 (define* (go-module-version-info goproxy name #:key version)
-  "Fetch a JSON object encoding about the lastest version for NAME from the given
+  "Fetch a JSON object encoding about the latest version for NAME from the given
 GOPROXY server, or for VERSION when specified."
   (let ((file (if version
                   (string-append "@v/" version ".info")
@@ -149,7 +150,7 @@ styles for the same package."
         (begin
           (warning (G_ "Empty list of versions on proxy ~a for package '~a'. Using latest.~%")
                    goproxy name)
-          ;; If we haven't recieved any versions, look in the version-info json
+          ;; If we haven't received any versions, look in the version-info json
           ;; object and return a one-element list if found.
           (or (and=> (assoc-ref (go-module-version-info goproxy name) "Version")
                      list)
@@ -563,10 +564,19 @@ tag."
   (chmod cache #o700)
   (let-values (((checkout commit _)
                 (parameterize ((%repository-cache-directory cache))
-                  (update-cached-checkout url
-                                          #:ref
-                                          `(tag-or-commit . ,reference)))))
-    (file-hash* checkout #:algorithm algorithm #:recursive? #true)))
+                  (catch 'git-error
+                    (lambda ()
+                      (update-cached-checkout url
+                                              #:ref
+                                              `(tag-or-commit . ,reference)))
+                    (lambda (key err)
+                      (warning (G_ "failed to check out ~s from Git repository at '~a': ~a~%")
+                               reference url (git-error-message err))
+                      (values #f #f #f))))))
+        (if (and checkout commit)
+            (file-hash* checkout #:algorithm algorithm #:recursive? #true)
+            (nix-base32-string->bytevector
+             "0000000000000000000000000000000000000000000000000000"))))
 
 (define (vcs->origin vcs-type vcs-repo-url version subdir)
   "Generate the `origin' block of a package depending on what type of source
@@ -704,7 +714,9 @@ When VERSION is unspecified, the latest version available is used."
         (build-system go-build-system)
         (arguments
          (list ,@(if (version>? min-go-version (package-version (go-package)))
-                     `(#:go ,(string->number min-go-version))
+                     `(#:go ,(string->symbol
+                              (format #f "go-~a"
+                                      (string->number min-go-version))))
                      '())
                #:import-path ,module-path
                ,@(if (string=? module-path root-module-path)

@@ -62,12 +62,14 @@
 ;;; Copyright © 2023 Paul A. Patience <paul@apatience.com>
 ;;; Copyright © 2022 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 David Thompson <dthompson2@worcester.edu>
+;;; Copyright © 2023 VÖRÖSKŐI András <voroskoi@gmail.com>
 ;;; Copyright © 2023 Christopher Howard <christopher@librehacker.com>
 ;;; Copyright © 2023 Felix Lechner <felix.lechner@lease-up.com>
 ;;; Copyright © 2023 Evgeny Pisemsky <mail@pisemsky.site>
 ;;; Copyright © 2024 Tomas Volf <~@wolfsden.cz>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
-;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2024, 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2025 Raven Hallsby <karl@hallsby.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -105,6 +107,7 @@
   #:use-module (guix build-system perl)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system qt)
   #:use-module (guix build-system scons)
   #:use-module (guix build-system trivial)
   #:use-module (gnu packages)
@@ -118,6 +121,7 @@
   #:use-module (gnu packages bittorrent)
   #:use-module (gnu packages boost)
   #:use-module (gnu packages build-tools)
+  #:use-module (gnu packages certs)
   #:use-module (gnu packages check)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cpp)
@@ -344,10 +348,40 @@ and its related documentation.")
                 (base32
                  "1jgmfbazc2n9dnl7axhahwppyq25bvbvwx0lqplq76by97fgf9q1")))))))
 
+(define-public leafnode
+  (package
+    (name "leafnode")
+    (version "1.12.0")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "mirror://sourceforge/leafnode/leafnode/"
+                                  version "/leafnode-" version ".tar.gz"))
+              (sha256
+               (base32
+                "1pkryzndqaxs1ym7gs77r6x8mmzpnm5x7n2ph8ga45zn45rwwrxl"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'fix-tests
+                 (lambda _
+                   (substitute* "Makefile.am"
+                     (("/bin/sh") (which "sh"))))))))
+    (native-inputs (list autoconf automake))
+    (inputs (list pcre2))
+    (home-page "https://sourceforge.net/projects/leafnode/")
+    (synopsis "NNTP news proxy")
+    (description
+     "Leafnode is a caching Usenet news proxy that enables online newsreaders
+to read news off-line and aggregates news from various NNTP servers into
+one.")
+    ;; Most of the code is under Expat license, with some GPL, LGPL exceptions.
+    (license license:gpl2+)))
+
 (define-public miniflux
   (package
     (name "miniflux")
-    (version "2.2.3")
+    (version "2.2.5")
     (source
      (origin
        (method git-fetch)
@@ -356,7 +390,7 @@ and its related documentation.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0bllgjv7cdqrk3dm98dmp7mx0wmcbh410jcdcvid7z5qkr0fiy07"))))
+        (base32 "0yx0q47ah7ikri6s9zy9d55gaidmpzd1v5rlkvcyjzwxn6wa88cg"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -369,12 +403,6 @@ and its related documentation.")
                #$version))
       #:phases
       #~(modify-phases %standard-phases
-          ;; XXX: Replace when go-build-system supports nested path.
-          (replace 'check
-            (lambda* (#:key import-path tests? #:allow-other-keys)
-              (when tests?
-                (with-directory-excursion (string-append "src/" import-path)
-                  (invoke "go" "test" "-v" "./...")))))
           (add-after 'install 'install-manpage
             (lambda* (#:key import-path #:allow-other-keys)
               (let ((man1 (string-append #$output "/share/man/man1/"))
@@ -397,11 +425,11 @@ and its related documentation.")
            go-github-com-tdewolff-minify-v2
            go-github-com-yuin-goldmark
            go-golang-org-x-crypto
+           go-golang-org-x-image
            go-golang-org-x-net
            go-golang-org-x-oauth2
            go-golang-org-x-term
-           go-golang-org-x-text
-           go-mvdan-cc-xurls-v2))
+           go-golang-org-x-text))
     (home-page "https://miniflux.app/")
     (synopsis "Minimalist and opinionated feed reader")
     (description
@@ -476,7 +504,7 @@ replacing them with data URIs.")
 (define-public monolith
   (package
     (name "monolith")
-    (version "2.8.1")
+    (version "2.8.3")
     (source
      (origin
        (method git-fetch)
@@ -485,24 +513,33 @@ replacing them with data URIs.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0xr63302yb5k9c2sihd1iy97j5c44d4jrzfaiwm81d9li577ih58"))))
+        (base32 "082xh0zmmy9abz7y3zjybbwffq7d0j1jl78ggzbwwanvam65v0dp"))))
     (build-system cargo-build-system)
     (arguments
-     `(#:cargo-inputs
+     `(#:install-source? #f
+       #:cargo-inputs
        (("rust-atty" ,rust-atty-0.2)
-        ("rust-base64" ,rust-base64-0.21)
+        ("rust-base64" ,rust-base64-0.22)
         ("rust-chrono" ,rust-chrono-0.4)
         ("rust-clap" ,rust-clap-3)
-        ("rust-cssparser" ,rust-cssparser-0.33)
+        ("rust-cssparser" ,rust-cssparser-0.34)
         ("rust-encoding-rs" ,rust-encoding-rs-0.8)
-        ("rust-html5ever" ,rust-html5ever-0.24)
+        ("rust-html5ever" ,rust-html5ever-0.27)
+        ("rust-markup5ever-rcdom" ,rust-markup5ever-rcdom-0.3)
+        ("rust-openssl" ,rust-openssl-0.10)
         ("rust-percent-encoding" ,rust-percent-encoding-2)
         ("rust-regex" ,rust-regex-1)
-        ("rust-reqwest" ,rust-reqwest-0.11)
+        ("rust-reqwest" ,rust-reqwest-0.12)
         ("rust-sha2" ,rust-sha2-0.10)
         ("rust-url" ,rust-url-2))
        #:cargo-development-inputs
-       (("rust-assert-cmd" ,rust-assert-cmd-2))))
+       (("rust-assert-cmd" ,rust-assert-cmd-2))
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'dont-default-to-vendored-openssl
+           (lambda _
+             (substitute* "Cargo.toml"
+               ((".*\"vendored-openssl\".*") "")))))))
     (native-inputs
      (list pkg-config))
     (inputs
@@ -528,14 +565,14 @@ the same, being completely separated from the Internet.")
     ;; Track the ‘mainline’ branch.  Upstream considers it more reliable than
     ;; ’stable’ and recommends that “in general you deploy the NGINX mainline
     ;; branch at all times” (https://www.nginx.com/blog/nginx-1-6-1-7-released/)
-    (version "1.27.1")
+    (version "1.27.3")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://nginx.org/download/nginx-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "1z5x0i0k1hmnxm7mb3dfn6qrz9am96my5ivinxl3gsp1dj5acyxx"))))
+                "00vrkdx0a6fpy8n0n7m9xws0dfa7dbb9pqnh3jv3c824ixbaj8xs"))))
     (build-system gnu-build-system)
     (inputs (list libxcrypt libxml2 libxslt openssl pcre zlib))
     (arguments
@@ -626,9 +663,9 @@ and as a proxy to reduce the load on back-end HTTP or mail servers.")
 
 (define-public nginx-documentation
   ;; This documentation should be relevant for the current nginx package.
-  (let ((version "1.27.1")
-        (revision 3114)
-        (changeset "051789a80bcb"))
+  (let ((version "1.27.3")
+        (revision 3156)
+        (changeset "5c6ef6def8bc"))
     (package
       (name "nginx-documentation")
       (version (simple-format #f "~A-~A-~A" version revision changeset))
@@ -640,7 +677,7 @@ and as a proxy to reduce the load on back-end HTTP or mail servers.")
                (file-name (string-append name "-" version))
                (sha256
                 (base32
-                 "0p198cjnhypssmj4mrj6wx2lbrfgw84i2fa4ydzdbjgkdzp803mv"))))
+                 "09wdvgvsr7ayjz3ypq8qsm12idb9z626j5ibmknc8phm10gh8cgk"))))
       (build-system gnu-build-system)
       (arguments
        '(#:tests? #f                    ; no test suite
@@ -981,6 +1018,67 @@ on-demand streaming from a file on disk and pulling from an upstream RTMP
 stream.  Remote control of the module is possible over HTTP.")
     (license license:bsd-2)))
 
+(define-public nginx-headers-more-module
+  (package
+    (inherit nginx)
+    (name "nginx-headers-more-module")
+    (version "0.38")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/openresty/headers-more-nginx-module")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1dbgwzkpni616nawjkrq0xid60wdgab3vciy7nr966ac6rjyiliy"))))
+    (build-system gnu-build-system)
+    (inputs
+     `(("nginx-sources" ,(package-source nginx))
+       ,@(package-inputs nginx)))
+    (arguments
+     (substitute-keyword-arguments
+         `(#:make-flags '("modules") ;Only build this module not all of nginx.
+           ,@(package-arguments nginx))
+       ((#:configure-flags flags)
+        #~(cons "--add-dynamic-module=." #$flags))
+       ((#:phases phases)
+        #~(modify-phases #$phases
+            (add-after 'unpack 'unpack-nginx-sources
+              (lambda _
+                (begin
+                  ;; The nginx source code is needed to compile the module.
+                  (format #t "decompressing nginx source code~%")
+                  (invoke "tar" "xvf" #$(this-package-input "nginx-sources")
+                          ;; This package's LICENSE file would be
+                          ;; overwritten with the one from nginx when
+                          ;; unpacking the nginx source, so rename the nginx
+                          ;; one when unpacking.
+                          "--transform=s,/LICENSE$,/LICENSE.nginx,"
+                          "--strip-components=1"))))
+            (replace 'install
+              (lambda _
+                (let ((modules-dir (string-append #$output
+                                                  "/etc/nginx/modules")))
+                  (install-file "objs/ngx_http_headers_more_filter_module.so"
+                                modules-dir))))
+            (delete 'fix-root-dirs)
+            (delete 'install-man-page)))))
+    (home-page "https://github.com/openresty/headers-more-nginx-module")
+    (synopsis "Set, add, and clear input and output headers in NGINX http servers")
+    (description "This NGINX module allows adding, setting, or clearing any
+output or input header specified.
+
+This is an enhanced version of the standard headers module because it provides
+more utilities like resetting or clearing \"builtin headers\" like @code{Content-Type},
+@code{Content-Length}, and @code{Server}.
+
+It also allows you to specify an optional HTTP status code criteria using the
+@code{-s} option and an optional content type criteria using the @code{-t}
+option while modifying the output headers with the more_set_headers and
+more_clear_headers directives.")
+    (license license:bsd-2)))
+
 (define-public nginx-module-vts
   (package
     (inherit nginx)
@@ -1035,7 +1133,7 @@ similar to live activity monitoring provided with NGINX plus.")
 (define-public lighttpd
   (package
     (name "lighttpd")
-    (version "1.4.76")
+    (version "1.4.77")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://download.lighttpd.net/lighttpd/"
@@ -1043,7 +1141,7 @@ similar to live activity monitoring provided with NGINX plus.")
                                   "lighttpd-" version ".tar.xz"))
               (sha256
                (base32
-                "04ahiyn622mgpkib8j20vj7wa1av1dv7ing9vz7d1kvkwfb45gwc"))))
+                "1kk22mzh2p34nrwnm8q57xgm4riavmgxh0rd8nvdhrr2zbdspbxc"))))
     (build-system gnu-build-system)
     (arguments
      (list #:configure-flags
@@ -1950,7 +2048,7 @@ UTS#46.")
 (define-public esbuild
   (package
     (name "esbuild")
-    (version "0.14.0")
+    (version "0.24.0")
     (source
      (origin
        (method git-fetch)
@@ -1959,43 +2057,31 @@ UTS#46.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "09r1xy0kk6c9cpz6q0mxr4why373pwxbm439z2ihq3k1d5kk7x4w"))
+        (base32 "1j99m7rdql6iq3llrr8bm85hq34ssc8bmb6vhwr1ibgspjl0jd3k"))
        (modules '((guix build utils)))
        (snippet
-        '(begin
-           ;; Remove prebuilt binaries
-           (delete-file-recursively "npm")
-           #t))))
+        #~(begin
+            ;; Remove prebuilt binaries
+            (delete-file-recursively "npm")))))
     (build-system go-build-system)
     (arguments
-     `(#:import-path "github.com/evanw/esbuild/cmd/esbuild"
-       #:unpack-path "github.com/evanw/esbuild"
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key tests? unpack-path #:allow-other-keys)
-             (when tests?
-               ;; The "Go Race Detector" is only supported on 64-bit
-               ;; platforms, this variable disables it.
-               ;; TODO: Causes too many rebuilds, rewrite to limit to x86_64,
-               ;; aarch64 and ppc64le.
-               ,(if (target-riscv64?)
-                  `(setenv "ESBUILD_RACE" "")
-                  `(unless ,(target-64bit?)
-                     (setenv "ESBUILD_RACE" "")))
-               (with-directory-excursion (string-append "src/" unpack-path)
-                 (invoke "make" "test-go")))
-             #t)))))
+     (list
+      #:import-path "github.com/evanw/esbuild/cmd/esbuild"
+      #:unpack-path "github.com/evanw/esbuild"
+      #:test-flags #~(list #$(if (and (target-64bit?)
+                                      ;; The -race option is not supported on riscv64
+                                      (not (target-riscv64?)))
+                                 "-race" "-short"))
+      ;; Test subdirectories are compiled from #:import-path.
+      #:test-subdirs #~(list "../../internal/..." "../../pkg/..." )))
     (inputs
-     `(("golang.org/x/sys" ,go-golang-org-x-sys)))
-    (native-inputs
-     `(("github.com/kylelemons/godebug" ,go-github-com-kylelemons-godebug)))
+     (list go-golang-org-x-sys-for-esbuild))
     (home-page "https://esbuild.github.io/")
     (synopsis "Bundler and minifier tool for JavaScript and TypeScript")
     (description
-     "The esbuild tool provides a unified bundler, transpiler and
-minifier.  It packages up JavaScript and TypeScript code, along with JSON
-and other data, for distribution on the web.")
+     "The esbuild tool provides a unified bundler, transpiler and minifier.
+It packages up JavaScript and TypeScript code, along with JSON and other data,
+for distribution on the web.")
     (license license:expat)))
 
 (define-public tinyproxy
@@ -3545,14 +3631,14 @@ which can be used to parse directory listings.")
 (define-public perl-finance-quote
   (package
    (name "perl-finance-quote")
-   (version "1.59")
+   (version "1.64")
    (source
     (origin
       (method url-fetch)
       (uri (string-append "https://cpan.metacpan.org/authors/id/B/BP/BPSCHUCK/"
                           "Finance-Quote-" version ".tar.gz"))
       (sha256
-       (base32 "0a19y5bj2pvdlfi747ihgz5khjlfkhjakv712r0gz0n6miwjiscs"))))
+       (base32 "06swiq3c8cdv73nq53wshdvcxzwf2cbiay12dvjjr4as86a7r005"))))
    (build-system perl-build-system)
    (native-inputs
      (list perl-test-harness
@@ -5284,8 +5370,8 @@ Cloud.")
     (license license:expat)))
 
 (define-public guix-data-service
-  (let ((commit "62d6b5901331ad5f78ac65a8a9cb5410b60942cb")
-        (revision "56"))
+  (let ((commit "5684add77edd120ed640368d9795fbea7ea5a9ea")
+        (revision "64"))
     (package
       (name "guix-data-service")
       (version (string-append "0.0.1-" revision "." (string-take commit 7)))
@@ -5297,7 +5383,7 @@ Cloud.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0nfh13sgp9f66bpm476866lpwgfzhxg0k04rxbxnxq2qqij3s9g4"))))
+                  "1rv2gxjnzf6yyvv04h5z9rhnq5zfv7nsihalbjs7k5m79yjjmq5s"))))
       (build-system gnu-build-system)
       (arguments
        (list
@@ -5363,7 +5449,7 @@ Cloud.")
              bash-minimal))
       (propagated-inputs
        (list guix
-             guile-fibers
+             guile-fibers-next
              guile-knots
              guile-json-4
              guile-email
@@ -5539,13 +5625,17 @@ you'd expect.")
                 "0s7c8r6y5jv6wda2v3k47hawfdr9j3rwk717l6byvh5qsbbml0vd"))))
     (build-system go-build-system)
     (arguments
-     (list #:import-path "github.com/mikefarah/yq/v4"
-           #:phases
-           #~(modify-phases %standard-phases
-               (add-after 'install 'remove-binary
-                 (lambda _
-                   (delete-file-recursively
-                    (string-append #$output "/bin")))))))
+     (list
+      #:skip-build? #t
+      #:import-path "github.com/mikefarah/yq/v4"
+      #:phases
+      #~(modify-phases %standard-phases
+          ;; Tests need this.
+          (add-after 'unpack 'fix-access-to-doc
+            (lambda* (#:key import-path #:allow-other-keys)
+              (with-directory-excursion (string-append "src/" import-path)
+                (for-each make-file-writable
+                          (find-files "./pkg/yqlib/doc" "\\.md"))))))))
     (propagated-inputs
      (list go-github-com-a8m-envsubst
            go-github-com-alecthomas-participle-v2
@@ -5580,21 +5670,19 @@ JSON, XML, properties, CSV and TSV.")
     (inherit go-github-com-mikefarah-yq-v4)
     (name "yq")
     (arguments
-     (list #:install-source? #f
-           #:import-path "github.com/mikefarah/yq/v4"
-           #:phases
-           #~(modify-phases %standard-phases
-               (add-after 'install 'rename-binary
-                 (lambda _
-                   (rename-file (string-append #$output "/bin/v4")
-                                (string-append #$output "/bin/yq")))))))
+     (substitute-keyword-arguments
+         (package-arguments go-github-com-mikefarah-yq-v4)
+       ((#:install-source? _ #t) #f)
+       ((#:skip-build? _ #t) #f)
+       ((#:tests? _ #t) #f)
+       ((#:import-path _) "github.com/mikefarah/yq")))
     (propagated-inputs '())
     (inputs (package-propagated-inputs go-github-com-mikefarah-yq-v4))))
 
 (define-public go-github-com-itchyny-gojq
   (package
     (name "go-github-com-itchyny-gojq")
-    (version "0.12.16")
+    (version "0.12.17")
     (source
      (origin
        (method git-fetch)
@@ -5603,7 +5691,7 @@ JSON, XML, properties, CSV and TSV.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0favs281iaq98cmqwf47amk12xpksznpwgfid24z8migkp8628wl"))))
+        (base32 "0raipf3k392bihjk6kddzl3xsnap8wlvhplngmzx2vkp2f11x6fc"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -5701,6 +5789,39 @@ fast and flexible way of exploring HTML from the terminal.")
 (define-public uhttpmock
   (package
     (name "uhttpmock")
+    (version "0.11.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://tecnocode.co.uk/downloads/uhttpmock/"
+                           "uhttpmock-" version ".tar.xz"))
+       (sha256
+        (base32 "1gw4g3m99j00rjd3flbxigv3qgbkafnkhf77c76hv7yy58dc1vgy"))))
+    (build-system meson-build-system)
+    (native-inputs
+     (list gobject-introspection
+           ;; For check phase.
+           glib-networking gsettings-desktop-schemas pkg-config))
+    (inputs (list libsoup))
+    (arguments
+     (list #:glib-or-gtk? #t
+           #:configure-flags #~(list "-Dgtk_doc=false")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'set-home-for-tests
+                 (lambda _
+                   (setenv "HOME" "/tmp"))))))
+    (home-page "https://gitlab.com/groups/uhttpmock")
+    (synopsis "Library for mocking web service APIs which use HTTP or HTTPS")
+    (description
+     "Uhttpmock is a project for mocking web service APIs which use HTTP or
+HTTPS.  It provides a library, libuhttpmock, which implements recording and
+playback of HTTP request/response traces.")
+    (license license:lgpl2.1+)))
+
+(define-public uhttpmock-with-libsoup2
+  (package
+    (inherit uhttpmock)
     (version "0.5.3")
     (source
      (origin
@@ -5710,25 +5831,13 @@ fast and flexible way of exploring HTML from the terminal.")
        (sha256
         (base32 "0bqizz69hxk8rn4z57asz1d45vizl1rj6i5k3rzxn2x3qcik514h"))))
     (build-system glib-or-gtk-build-system)
-    (native-inputs
-     (list gobject-introspection
-           ;; For check phase.
-           glib-networking gsettings-desktop-schemas pkg-config))
-    (inputs
-     `(("libsoup" ,libsoup-minimal-2)))
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-before 'check 'set-home-for-tests
-           (lambda _
-             (setenv "HOME" "/tmp"))))))
-    (home-page "https://gitlab.com/groups/uhttpmock")
-    (synopsis "Library for mocking web service APIs which use HTTP or HTTPS")
-    (description
-     "Uhttpmock is a project for mocking web service APIs which use HTTP or
-HTTPS.  It provides a library, libuhttpmock, which implements recording and
-playback of HTTP request/response traces.")
-    (license license:lgpl2.1+)))
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'set-home-for-tests
+                 (lambda _
+                   (setenv "HOME" "/tmp"))))))
+    (inputs (list libsoup-minimal-2))))
 
 (define-public woof
   (package
@@ -6333,7 +6442,7 @@ w3c webidl files and a binding configuration file.")
                   (ice-9 match)
                   (srfi srfi-1)
                   (sxml simple)
-                  ,@%glib-or-gtk-build-system-modules)
+                  ,@%glib-or-gtk-build-system-default-modules)
        #:phases
        (modify-phases %standard-phases
          (delete 'configure)
@@ -6419,44 +6528,46 @@ handling many of the web standards in use today.")
     (license license:gpl2+)))
 
 (define-public surfraw
-  (package
-    (name "surfraw")
-    (version "2.3.0")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append "https://gitlab.com/surfraw/Surfraw/uploads/"
-                           "2de827b2786ef2fe43b6f07913ca7b7f/"
-                           "surfraw-" version ".tar.gz"))
-       (sha256
-        (base32 "099nbif0x5cbcf18snc58nx1a3q7z0v9br9p2jiq9pcc7ic2015d"))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-before 'configure 'patch-perl
-           (lambda* (#:key inputs #:allow-other-keys)
-             (let ((perl (assoc-ref inputs "perl")))
-               (substitute* "surfraw.IN"
-                 (("perl -e")
-                  (string-append perl "/bin/perl -e")))
-               #t)))
-         (add-after 'install 'compress-elvi.1sr
-           (lambda* (#:key outputs #:allow-other-keys)
-             ;; The manpages of the elvis are symlinks to elvi.1sr.gz
-             ;; but elvi.1sr does not get compressed by our manpage phase.
-             (let* ((out (assoc-ref %outputs "out"))
-                    (man (string-append out "/share/man/man1")))
-               (with-directory-excursion man
-                 (invoke "gzip" "elvi.1sr"))))))))
-    (inputs
-     (list perl perl-www-opensearch perl-html-parser perl-libwww))
-    (synopsis "Unix command line interface to the www")
-    (description "Surfraw (Shell Users' Revolutionary Front Rage Against the Web)
+  (let ((commit "ebb8131c7c623ef90d3345cd9d64203693861013")
+        (revision "0"))
+    (package
+      (name "surfraw")
+      (version (git-version "2.3.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://gitlab.com/surfraw/Surfraw/")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1y3qybbyv8fnfpaw76xkh1b53pd7dvx1zr9pj71df649g4kbbibs"))))
+      (build-system gnu-build-system)
+      (arguments
+       `(#:phases (modify-phases %standard-phases
+                    (add-before 'configure 'patch-perl
+                      (lambda* (#:key inputs #:allow-other-keys)
+                        (let ((perl (assoc-ref inputs "perl")))
+                          (substitute* "surfraw.IN"
+                            (("perl -e")
+                             (string-append perl "/bin/perl -e"))) #t)))
+                    (add-after 'install 'compress-elvi.1sr
+                      (lambda* (#:key outputs #:allow-other-keys)
+                        ;; The manpages of the elvis are symlinks to elvi.1sr.gz
+                        ;; but elvi.1sr does not get compressed by our manpage phase.
+                        (let* ((out (assoc-ref %outputs "out"))
+                               (man (string-append out "/share/man/man1")))
+                          (with-directory-excursion man
+                            (invoke "gzip" "elvi.1sr"))))))))
+      (native-inputs (list autoconf automake))
+      (inputs (list perl perl-www-opensearch perl-html-parser perl-libwww))
+      (synopsis "Unix command line interface to the www")
+      (description
+       "Surfraw (Shell Users' Revolutionary Front Rage Against the Web)
 provides a unix command line interface to a variety of popular www search engines
 and similar services.")
-    (home-page "https://surfraw.alioth.debian.org/")
-    (license license:public-domain)))
+      (home-page "http://surfraw.org/")
+      (license license:public-domain))))
 
 (define-public darkhttpd
   (package
@@ -6493,14 +6604,14 @@ config files---you only have to specify the www root.")
 (define-public goaccess
   (package
     (name "goaccess")
-    (version "1.7.2")
+    (version "1.9.3")
     (source (origin
               (method url-fetch)
               (uri (string-append "http://tar.goaccess.io/goaccess-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "0sqjkla4fjw5h49x675qibp860bk0haajc3i31m1q782kjiap6hf"))
+                "0dvqxk9rbsp24fp1r5xdz7rcnvvl0q26p07nfmgmzaf4wd4yxw29"))
               (modules '((guix build utils)))
               (snippet '(substitute* '("src/error.h"
                                        "src/parser.c")
@@ -7100,17 +7211,22 @@ efficient where possible.")
         (base32 "0s1vjdaf3pk2xd0hvi5f7p3jm2rgwpbc734jdp9r50m1smfhxpi0"))))
     (build-system python-build-system)
     (arguments
-     `(#:tests? #f  ; Tests require network access.
-       #:phases
-       (modify-phases %standard-phases
+     (list
+      #:phases
+      '(modify-phases %standard-phases
          (replace 'check
            (lambda* (#:key tests? #:allow-other-keys)
              (when tests?
-               (invoke "nosetests")))))))
+               (setenv "EVENTLET_NO_GREENDNS" "YES")
+               (invoke "nosetests" "--exclude=(passthrough|streaming|httpretty_should_handle)")))))))
     (native-inputs
-     (list python-coverage
+     (list nss-certs-for-test
+           python-coverage
            python-eventlet
+           python-freezegun
+           python-httplib2
            python-nose
+           python-pyparsing
            python-rednose
            python-requests
            python-sure
@@ -7144,7 +7260,7 @@ command-line arguments or read from stdin.")
 (define-public python-internetarchive
   (package
     (name "python-internetarchive")
-    (version "1.8.5")
+    (version "5.1.0")
     (source
      (origin
        (method git-fetch)
@@ -7154,47 +7270,34 @@ command-line arguments or read from stdin.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0ih7hplv92wbv6cmgc1gs0v35qkajwicalwcq8vcljw30plr24fp"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           ;; Python 3.7 removed `_pattern_type'.
-           (for-each (lambda (file)
-                       (chmod file #o644)
-                       (substitute* file
-                         (("^import re\n" line)
-                          (string-append line "re._pattern_type = re.Pattern\n"))))
-                     (find-files "." "\\.py$"))
-           ;; Mapping got moved to collections.abc
-           (substitute* "internetarchive/utils.py"
-             (("from collections import Mapping")
-              "from collections.abc import Mapping"))))))
-    (build-system python-build-system)
+         "186nx0dj0lgqrqkg9kzng5h0scbz3m6bk44vj83wzckr8yh3q08z"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (delete 'check)
-         (add-after 'install 'check
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (add-installed-pythonpath inputs outputs)
-             (setenv "PATH" (string-append (assoc-ref outputs "out") "/bin"
-                                           ":" (getenv "PATH")))
-             (invoke "py.test" "-v" "-k"
-                     (string-append
-                      ;; These tests attempt to make a connection to
-                      ;; an external web service.
-                      "not test_get_item_with_kwargs"
-                      " and not test_ia")))))))
+     (list
+      #:test-flags
+      '(list "-k"
+             (string-append
+              ;; These tests need Internet access.
+              "not test_get_item_with_kwargs"
+              " and not test_upload"
+              " and not test_ia"))))
     (propagated-inputs
-     (list python-requests
-           python-jsonpatch-0.4
-           python-docopt
+     (list python-backports-csv
            python-clint
+           python-docopt
+           python-importlib-metadata
+           python-jsonpatch
+           python-requests
            python-six
-           python-schema-0.5
-           python-backports-csv))
+           python-schema
+           python-tqdm))
     (native-inputs
-     (list python-pytest python-pytest-capturelog python-responses))
+     (list nss-certs-for-test
+           python-pytest
+           python-pytest-capturelog
+           python-responses
+           python-setuptools
+           python-wheel))
     (home-page "https://github.com/jjjake/internetarchive")
     (synopsis "Command-line interface to archive.org")
     (description "@code{ia} is a command-line tool for using
@@ -7318,7 +7421,7 @@ Instagram and YouTube.")
 (define-public linkchecker
   (package
     (name "linkchecker")
-    (version "10.0.1")
+    (version "10.5.0")
     (source
      (origin
        (method git-fetch)
@@ -7327,24 +7430,31 @@ Instagram and YouTube.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "1j97dc9a4yhpscwadhv5dxp7036pnrxiaky18l8ddr3pvxdjvkxs"))))
-    (build-system python-build-system)
-    (inputs
-     (list python-beautifulsoup4 python-dnspython python-pyxdg
-           python-requests))
-    (native-inputs
-     `(("gettext" ,gettext-minimal)
-       ("python-pytest" ,python-pytest)
-       ("python-miniboa" ,python-miniboa)
-       ("python-parameterized" ,python-parameterized)))
+        (base32 "19giahk5bs2r2ay54cc6b2ba5hr3lszn5a89m7zmwb0bk9655z56"))))
+    (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'check
-           (lambda* (#:key tests? #:allow-other-keys)
-             (when tests?
-               (invoke "py.test" "tests")))))))
+     (list
+      #:test-flags
+      #~(list
+        ;; OSError: Command ... '-m', 'linkcheck', '-V']' returned non-zero
+        ;; exit status 2.
+         "--deselect=tests/test_linkchecker.py::TestLinkchecker::test_linkchecker"
+         ;; FileNotFoundError: [Errno 2] No such file or directory: 'msgfmt'
+         "--deselect=tests/test_po.py::TestPo::test_pos")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'set-version
+            (lambda _
+              (setenv "SETUPTOOLS_SCM_PRETEND_VERSION" #$version))))))
+    (native-inputs
+     (list python-hatch-vcs
+           python-hatchling
+           python-pytest
+           python-setuptools-scm))
+    (inputs
+     (list python-beautifulsoup4
+           python-dnspython
+           python-requests))
     (home-page "https://linkchecker.github.io/linkchecker/")
     (synopsis "Check websites for broken links")
     (description "LinkChecker is a website validator.  It checks for broken
@@ -7378,7 +7488,13 @@ file links.")
       #~(modify-phases %standard-phases
           (add-after 'unpack 'relax-cargo-requirements
             (lambda _
-              (substitute* "Cargo.toml" (("~") "")))))
+              (substitute* "Cargo.toml" (("~") ""))))
+          (add-after 'install 'install-data
+            (lambda _
+              (invoke "make" (string-append "PREFIX=" #$output)
+                      "copy-data"))))
+      #:parallel-tests? #f  ; As per the Makefile
+      #:install-source? #f
       #:cargo-inputs
       `(("rust-ansi-parser" ,rust-ansi-parser-0.6)
         ("rust-dirs" ,rust-dirs-3)
@@ -8616,7 +8732,7 @@ compressed JSON header blocks.
 (define-public nghttp3
   (package
     (name "nghttp3")
-    (version "1.6.0")
+    (version "1.8.0")
     (source
      (origin
        (method url-fetch)
@@ -8625,7 +8741,7 @@ compressed JSON header blocks.
                            "nghttp3-" version ".tar.gz"))
        (sha256
         (base32
-         "186bjczm7hqs3icp5ss66pi78dinpsbyn15h2hhcmyhh7h8jzyd1"))))
+         "0gpnqibb1ndqq7yacl2f9d7iznfbzws71rza12kaf72shqvyn1zv"))))
     (build-system gnu-build-system)
     (native-inputs
      (list pkg-config))
@@ -8649,7 +8765,7 @@ It does not support server push.")
 (define-public hpcguix-web
   (package
     (name "hpcguix-web")
-    (version "0.4.1")
+    (version "0.4.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -8658,7 +8774,7 @@ It does not support server push.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "13a4cwqdhpr7gc1z4cxs36qa50mzcdwwlj9qqzv818sx9d7r6vsw"))))
+                "09xfyyz3004qcfjjlg903gnsb9wsrrdk7gw7xawsvw58l6vrialb"))))
     (build-system gnu-build-system)
     (arguments
      `(#:modules ((guix build gnu-build-system)
@@ -8995,7 +9111,7 @@ Anonip can also be uses as a Python module in your own Python application.")
          "0kckcwvqklavd855np9aq5js6mg84isrlwchr504yigwma0sm7hm"))))
     (build-system go-build-system)
     (propagated-inputs
-     (list go-github-com-robfig-cron go-golang-org-x-time))
+     (list go-github-com-robfig-cron-v3 go-golang-org-x-time))
     (arguments
      `(#:import-path "github.com/tsileo/poussetaches"))
     (home-page "https://github.com/tsileo/poussetaches")
@@ -9398,9 +9514,10 @@ It contains the code shared by all Kiwix ports.")
                (base32
                 "0hlk05gcb3fmnxhwj6gan51v98rdq3iv2lklwbpmm1bazmz8i7br"))
               (patches (search-patches "kiwix-desktop-newer-libkiwix.patch"))))
-    (build-system gnu-build-system)
+    (build-system qt-build-system)
     (arguments
-     `(#:phases
+     `(#:test-target "check"
+       #:phases
        (modify-phases %standard-phases
          (replace 'configure
            (lambda* (#:key outputs #:allow-other-keys)
@@ -9427,6 +9544,7 @@ It contains the code shared by all Kiwix ports.")
            qtdeclarative-5
            qtwebchannel-5
            qtwebengine-5
+           qtwayland-5
            xapian
            zlib
            `(,zstd "lib")))

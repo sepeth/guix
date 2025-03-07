@@ -37,6 +37,7 @@
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cmake)
   #:use-module (gnu packages crates-io)
+  #:use-module (gnu packages crates-database)
   #:use-module (gnu packages crates-tls)
   #:use-module (gnu packages dbm)
   #:use-module (gnu packages docbook)
@@ -107,10 +108,8 @@
                            (guix build cmake-build-system)
                            (guix build qt-build-system)
                            (guix build qt-utils))
-      #:modules '((guix build glib-or-gtk-build-system)
-                  ((guix build qt-build-system)
-                   #:prefix qt:)
-                  (guix build utils))
+      #:modules `(((guix build qt-build-system) #:prefix qt:)
+                  ,@%glib-or-gtk-build-system-default-modules)
       #:configure-flags
       #~(list "--with-im-config-data"
               "--with-imsettings-data"
@@ -228,10 +227,8 @@ focuses especially on Korean input (Hangul, Hanja, ...).")
         (guix build qt-build-system)
         (guix build qt-utils))
        #:modules
-       ((guix build glib-or-gtk-build-system)
-        ((guix build qt-build-system)
-         #:prefix qt:)
-        (guix build utils))
+       (((guix build qt-build-system) #:prefix qt:)
+        ,@%glib-or-gtk-build-system-default-modules)
        #:configure-flags
        (list
         ;; FIXME
@@ -272,7 +269,7 @@ Random Cage Fighting Birds, Cool Music etc.")
 (define-public libchewing
   (package
     (name "libchewing")
-    (version "0.9.0")
+    (version "0.9.1")
     (source
      (origin
        (method git-fetch)
@@ -281,7 +278,7 @@ Random Cage Fighting Birds, Cool Music etc.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1n0w9niff46w7vncs699gj4y2xghn1sbl0f4mg5x33dcapqd14sg"))))
+        (base32 "0gh64wvrk5pn0fhmpvj1j99d5g7f7697rk96zbkc8l72yjr819z5"))))
     (build-system cargo-build-system)
     (arguments
      `(#:modules ((guix build cargo-build-system)
@@ -305,10 +302,6 @@ Random Cage Fighting Birds, Cool Music etc.")
        (("rust-tempfile" ,rust-tempfile-3))
        #:phases
        (modify-phases %standard-phases
-         (add-after 'unpack 'allow-older-version-of-clap-mangen
-           (lambda _
-             (substitute* "tools/Cargo.toml"
-               (("0.2.12") "0.2.11"))))
          (add-after 'configure 'cmake-configure
            (lambda args
              (apply (assoc-ref cmake:%standard-phases 'configure)
@@ -1138,7 +1131,7 @@ fi")))))))
     (inputs (list libiconv))
     (home-page "https://taku910.github.io/mecab")
     (synopsis "Morphological analysis engine for texts")
-    (description "Mecab is a morphological analysis engine developped as a
+    (description "Mecab is a morphological analysis engine developed as a
 collaboration between the Kyoto university and Nippon Telegraph and Telephone
 Corporation.  The engine is independent of any language, dictionary or corpus.")
     (license (list license:gpl2+ license:lgpl2.1+ license:bsd-3))))

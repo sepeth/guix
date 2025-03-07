@@ -30,6 +30,7 @@
   #:use-module (gnu packages gstreamer)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages image)
+  #:use-module (gnu packages libcanberra)
   #:use-module (gnu packages package-management)
   #:use-module (gnu packages pcre)
   #:use-module (gnu packages photo)
@@ -194,6 +195,34 @@ desktop.")
     (synopsis "Desktop calendar")
     (description "This package provides a desktop calendar app designed for
 elementary OS.")
+    (license license:gpl3+)))
+
+(define-public pantheon-icons
+  (package
+    (name "pantheon-icons")
+    (version "8.1.0")
+    (source
+      (origin
+        (method git-fetch)
+        (uri (git-reference
+               (url "https://github.com/elementary/icons")
+               (commit version)))
+        (file-name (git-file-name name version))
+        (sha256
+          (base32 "1yvjisvcjdpgibnc5l5cm16rw53zffinp1pvknlllz8wcdylqnss"))))
+    (build-system meson-build-system)
+    (arguments
+      (list #:configure-flags #~(list "-Dvolume_icons=false"
+                                      "-Dpalettes=false")))
+    (native-inputs (list gettext-minimal ;for msgfmt
+                         librsvg
+                         xcursorgen))
+    (propagated-inputs (list hicolor-icon-theme))
+    (synopsis "Named, vector icons for the pantheon desktop")
+    (description
+     "pantheon-icons is an original set of vector icons designed
+for elementary OS and its desktop environment: Pantheon.")
+    (home-page "https://elementary.io/open-source")
     (license license:gpl3)))
 
 (define-public pantheon-photos
@@ -258,6 +287,52 @@ also be used on others.")
     (home-page "https://elementary.io/open-source")
     (license license:lgpl2.1+)))
 
+(define-public pantheon-screenshot
+  (package
+    (name "pantheon-screenshot")
+    (version "8.0.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/elementary/screenshot")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1h3xv0pckkkgvqkk6fxssydq9gmncapaf1hx4n7j19jcvhwx65da"))))
+    (build-system meson-build-system)
+    (arguments
+      (list
+        #:glib-or-gtk? #t
+        #:phases
+          #~(modify-phases %standard-phases
+               (add-after 'unpack 'disable-schema-cache-generation
+                 (lambda _ (setenv "DESTDIR" "/")))
+               (add-after 'install 'install-symlinks
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   (let* ((bin (string-append #$output
+                                              "/bin/io.elementary.screenshot"))
+                          (link (string-append #$output
+                                               "/bin/pantheon-screenshot")))
+                     (symlink bin link)))))))
+    (native-inputs (list desktop-file-utils
+                         gettext-minimal ;for msgfmt
+                         `(,glib "bin")
+                         pkg-config
+                         vala))
+    (inputs (list granite
+                  gtk
+                  libcanberra
+                  libgee
+                  libportal
+                  libhandy))
+    (propagated-inputs (list glib))
+    (synopsis "Screenshot tool")
+    (description "pantheon-screenshot is a screenshot tool designed for
+the Pantheon desktop environment.")
+    (home-page "https://elementary.io/open-source")
+    (license license:lgpl3)))
+
 (define-public pantheon-stylesheet
   (package
     (name "pantheon-stylesheet")
@@ -283,7 +358,7 @@ desktop environment (originally from elementary OS).")
 (define-public pantheon-terminal
   (package
     (name "pantheon-terminal")
-    (version "6.1.2")
+    (version "6.3.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -292,11 +367,11 @@ desktop environment (originally from elementary OS).")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0x3gzghnfx4a1q2zhra4dysc0pm1zvlfdxj96qhfb627pz16iv4k"))))
+                "142nwx2jc7ks529dk8dqhgs39gdqh6bc7gv9b10qdfm81bwqjkjv"))))
     (build-system meson-build-system)
     (arguments
      (list
-      #:tests? #f      ; Tests invole launching the terminal.
+      #:tests? #f      ; Tests involve launching the terminal.
       #:glib-or-gtk? #t
       #:phases
       #~(modify-phases %standard-phases
@@ -323,7 +398,7 @@ desktop environment (originally from elementary OS).")
                   libgee
                   libhandy
                   pcre2
-                  vte))
+                  vte/gtk+-3))
     (synopsis "Terminal emulator from elementaryOS")
     (description "pantheon-terminal is a lightweight, beautiful and simple
 terminal.  It comes with sane defaults, browser-class tabs, sudo paste

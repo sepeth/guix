@@ -53,7 +53,7 @@ instance."
     (map (lambda (test)
            (system-test
             (inherit test)
-            (value (mparameterize %store-monad ((current-guix-package guix))
+            (value (store-parameterize ((current-guix-package guix))
                      (system-test-value test)))))
          (match (getenv "TESTS")
            (#f
@@ -74,7 +74,7 @@ instance."
   "Return a manifest containing all the system tests, or all those selected by
 the 'TESTS' environment variable."
   (define source
-    (string-append (current-source-directory) "/.."))
+    (string-append (current-source-directory) "/../.."))
 
   (define commit
     ;; Fetch the current commit ID so we can potentially build the same

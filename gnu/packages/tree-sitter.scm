@@ -168,7 +168,7 @@ This package includes the @code{libtree-sitter} runtime library.")
     (arguments
      (list
       #:cargo-test-flags
-      ''("--release" "--"
+      ''("--"
          ;; Skip tests which rely on downloading grammar fixtures.  It is
          ;; difficult to support such tests given upstream does not encode
          ;; which version of the grammars are expected.
@@ -283,7 +283,7 @@ This package includes the @command{tree-sitter} command-line tool.")
 tree-sitter- prefix to generate package name and also for generating
 REPOSITORY-URL value if it's not specified explicitly, TEXT is a string which
 will be used in description and synopsis. GET-CLEANUP-SNIPPET is a function,
-it recieves GRAMMAR-DIRECTORIES as an argument and should return a G-exp,
+it receives GRAMMAR-DIRECTORIES as an argument and should return a G-exp,
 which will be used as a snippet in origin."
   (let* ((multiple? (> (length grammar-directories) 1))
          (grammar-names (string-append text " grammar" (if multiple? "s" "")))
@@ -596,9 +596,21 @@ which will be used as a snippet in origin."
 (define-public tree-sitter-clojure
   (tree-sitter-grammar
    "clojure" "Clojure"
-   "0bgd9g1j4ww45g0l0aa1jac49421z95cc2rhcgqmgx7nzn94rszp"
-   "0.0.11"
-   #:repository-url "https://github.com/sogaiu/tree-sitter-clojure"))
+   "1j41ba48sid6blnfzn6s9vsl829qxd86lr6yyrnl95m42x8q5cx4"
+   "0.0.13"
+   #:repository-url "https://github.com/sogaiu/tree-sitter-clojure"
+   #:get-cleanup-snippet
+   (lambda (grammar-directories)
+     #~(begin
+         (use-modules (guix build utils))
+         (for-each
+          (lambda (lang)
+            (with-directory-excursion lang
+              (delete-file "src/grammar.json")
+              (delete-file "src/node-types.json")
+              (delete-file "src/parser.c")
+              (delete-file-recursively "src/tree_sitter")))
+          '#$grammar-directories)))))
 
 (define-public tree-sitter-markdown
   ;; No tags
@@ -675,6 +687,13 @@ which will be used as a snippet in origin."
      (git-version "0.2.0" revision commit)
      #:repository-url "https://github.com/6cdh/tree-sitter-scheme"
      #:commit commit)))
+
+(define-public tree-sitter-sway
+  (tree-sitter-grammar
+   "sway" "Sway"
+   "016zq8jbyy0274qyr38f6kvvllzgni0w7742vlbkmpv8d2blr7xj"
+   "1.0.0"
+   #:repository-url "https://github.com/FuelLabs/tree-sitter-sway"))
 
 (define-public tree-sitter-racket
   ;; No tags

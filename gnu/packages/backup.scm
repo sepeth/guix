@@ -6,7 +6,7 @@
 ;;; Copyright © 2017 Thomas Danckaert <post@thomasdanckaert.be>
 ;;; Copyright © 2017, 2021 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2017 Kei Kebreau <kkebreau@posteo.net>
-;;; Copyright © 2017, 2020, 2021 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2017, 2020, 2021, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2017 Christine Lemmer-Webber <cwebber@dustycloud.org>
 ;;; Copyright © 2017 Rutger Helling <rhelling@mykolab.com>
 ;;; Copyright © 2018 Mark H Weaver <mhw@netris.org>
@@ -1058,7 +1058,7 @@ precious backup space.
 (define-public restic-rest-server
   (package
     (name "restic-rest-server")
-    (version "0.12.1")
+    (version "0.13.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1067,7 +1067,7 @@ precious backup space.
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "18jk93j91dq4639nml4qnq1fq5j3s67ca3gvfka5aafln8ir8ffk"))))
+                "1ncsmwn4g1j555cgwkk5p8f093s42fip7dajhnh554jp1zx757m3"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -1189,6 +1189,14 @@ interactive mode.")
                          (("= /etc")
                           (string-append "= $(PREFIX)/etc")))))
                    (delete 'check)
+                   #$@(if (this-package-native-input "ruby-asciidoctor")
+                          #~()
+                          ;; The 'build phase only builds the manpages.
+                          #~((delete 'build)
+                             (add-before 'install 'adjust-install-targets
+                               (lambda _
+                                 (substitute* "Makefile"
+                                   (("install-man ") ""))))))
                    (add-after 'install 'wrap-scripts
                      (lambda* (#:key inputs outputs #:allow-other-keys)
                        (define btrbk (search-input-file outputs "bin/btrbk"))
@@ -1212,7 +1220,10 @@ interactive mode.")
                                        "bin/find"
                                        "bin/mbuffer"
                                        "bin/ssh")))))))))
-    (native-inputs (list ruby-asciidoctor))
+    (native-inputs
+     (if (supported-package? ruby-asciidoctor)
+         (list ruby-asciidoctor)
+         '()))
     (inputs (list bash-minimal
                   btrfs-progs
                   coreutils
@@ -1386,7 +1397,7 @@ borgmatic is powered by borg.")
 (define-public vorta
   (package
     (name "vorta")
-    (version "0.9.1")
+    (version "0.10.3")
     ;; The test folder is not included in the PyPI archive.
     (source (origin
               (method git-fetch)
@@ -1396,14 +1407,15 @@ borgmatic is powered by borg.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0lhqikwrydnys24yic6xaqidwacdibx48cl0066xv9xnsjanfsf0"))))
+                "0b4042a0lpbmwlmbh5559b2x9vr2055w6jjrs7088n45d7rkn4sn"))))
     (build-system pyproject-build-system)
     (arguments
      (list
       #:test-flags
       #~(list "-k" "not test_excludes"
               "--ignore=tests/integration"
-              "--ignore=tests/unit")
+              "--ignore=tests/unit"
+              "--ignore=tests/network_manager/test_darwin.py")
       #:imported-modules `((guix build qt-utils)
                            (guix build cmake-build-system)
                            (guix build qt-build-system)

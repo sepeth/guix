@@ -7,6 +7,7 @@
 ;;; Copyright © 2020, 2023, 2024 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2022 Brendan Tildesley <mail@brendan.scot>
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
+;;; Copyright © 2024 Raven Hallsby <karl@hallsby.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -123,9 +124,10 @@
                   ki18n
                   kio
                   kdeclarative
-                  bluez-qt
                   shared-mime-info
                   qtdeclarative))
+    (propagated-inputs
+     (list bluez-qt))
     (synopsis "Manage the Bluetooth settings from Plasma")
     (description
      "This package provides Bluetooth manager for Plasma Shell.")
@@ -1755,6 +1757,7 @@ on top of Baloo.")
                              plasma-nm
                              plasma-pa
                              plasma-systemmonitor
+                             bluedevil
                              ;; plasma-thunderbolt ;; waiting for bolt
                              kglobalaccel
                              kglobalacceld
@@ -1805,14 +1808,14 @@ on top of Baloo.")
              libksysguard))
     (home-page "https://invent.kde.org/plasma/plasma5support")
     (synopsis "Support components for porting from KF5/Qt5 to KF6/Qt6")
-    (description "This package provids support components for porting from
+    (description "This package provides support components for porting from
 KF5/Qt5 to KF6/Qt6")
     (license (list license:lgpl2.0+))))
 
 (define-public mpvqt
   (package
     (name "mpvqt")
-    (version "1.0.0")
+    (version "1.0.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -1820,7 +1823,7 @@ KF5/Qt5 to KF6/Qt6")
                     name "-" version ".tar.xz"))
               (sha256
                (base32
-                "1fafyn3a8hgg1g3nfka6hyynlmqdygaxz0fhp4ckxwz54nlx4cci"))))
+                "130p3irs1llv7n1hs7w5xms29amh0aa2bi238wjgc9ww65gvhdwz"))))
     (build-system qt-build-system)
     (native-inputs
      (list extra-cmake-modules pkg-config))
@@ -1838,14 +1841,14 @@ KF5/Qt5 to KF6/Qt6")
 (define-public plasmatube
   (package
     (name "plasmatube")
-    (version "24.05.2")
+    (version "24.12.1")
     (source (origin
               (method url-fetch)
-                     (uri (string-append "mirror://kde/stable/release-service/" version
-                           "/src/plasmatube-" version ".tar.xz"))
+              (uri (string-append "mirror://kde/stable/release-service/" version
+                                  "/src/plasmatube-" version ".tar.xz"))
               (sha256
                (base32
-                "0dkn1ysgvhwrfdffpwbgzblc0jbb94h5r4cp23gnnk38iy4fsrim"))))
+                "00nbcpllsz2f8jvwxyikqfyvl9qg1xpaqgp8r0jj1xnzjnq1d207"))))
     (build-system qt-build-system)
     (native-inputs (list extra-cmake-modules pkg-config python-minimal))
     (inputs
@@ -1856,6 +1859,7 @@ KF5/Qt5 to KF6/Qt6")
            kirigami-addons
            ki18n
            kwindowsystem
+           purpose
            qtdeclarative
            qtmultimedia
            qtsvg
@@ -2440,7 +2444,7 @@ PulseAudio.")
                   libplasma
                   oath-toolkit
                   plasma5support
-                  qgpgme-qt6-1.23
+                  qgpgme-qt6
                   qtdeclarative))
     (arguments (list #:qtbase qtbase
                      #:configure-flags #~(list "-DQT_MAJOR_VERSION=6")))

@@ -18,6 +18,9 @@
      (eval . (setq-local guix-directory
                          (locate-dominating-file default-directory
                                                  ".dir-locals.el")))
+     ;; Magit
+     (eval . (with-eval-after-load 'git-commit
+               (add-to-list 'git-commit-trailers "Change-Id")))
 
      ;; TempEl
      (eval . (with-eval-after-load
@@ -135,7 +138,8 @@
    (eval . (put 'munless 'scheme-indent-function 1))
    (eval . (put 'mlet* 'scheme-indent-function 2))
    (eval . (put 'mlet 'scheme-indent-function 2))
-   (eval . (put 'mparameterize 'scheme-indent-function 2))
+   (eval . (put 'state-parameterize 'scheme-indent-function 2))
+   (eval . (put 'store-parameterize 'scheme-indent-function 2))
    (eval . (put 'run-with-store 'scheme-indent-function 1))
    (eval . (put 'run-with-state 'scheme-indent-function 1))
    (eval . (put 'wrap-program 'scheme-indent-function 1))

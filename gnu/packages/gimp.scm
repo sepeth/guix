@@ -224,7 +224,7 @@ provided, as well as a framework to add new color models and data types.")
 (define-public gegl
   (package
     (name "gegl")
-    (version "0.4.50")
+    (version "0.4.54")
     (source
      (origin
        (method url-fetch)
@@ -238,7 +238,7 @@ provided, as well as a framework to add new color models and data types.")
                                  (version-major+minor version)
                                  "/gegl-" version ".tar.xz")))
        (sha256
-        (base32 "1hchnzfsmv2jwky2qb52lvjh4gz14wzpfcr12iqwm1pf0sdrd130"))))
+        (base32 "07lb4czm99kcgnqhnz21ybfcy1z3qj7p9d9cxsnpjhvbikq458rm"))))
     (build-system meson-build-system)
     (arguments
      `(#:phases
@@ -400,6 +400,7 @@ buffers.")
            lcms                         ;optional, color management
            libheif                      ;optional, HEIF + AVIF support
            libmng                       ;optional, MNG support
+           libxpm                       ;optional, XPM support
            (librsvg-for-system)         ;optional, SVG support
            libxcursor                   ;optional, Mouse Cursor support
            openexr-2                    ;optional, EXR support
@@ -424,7 +425,7 @@ that is extensible via a plugin system.")
   (package
     (inherit gimp)
     (name "gimp-next")
-    (version "3.0.0-RC1")
+    (version "3.0.0-RC3")
     (source
      (origin
        (method url-fetch)
@@ -432,7 +433,7 @@ that is extensible via a plugin system.")
                            (version-major+minor version)
                            "/gimp-" version ".tar.xz"))
        (sha256
-        (base32 "0rpvbyfd6fyaz4bz9isr9h0l0ckz741p0hgkmagpi3p3qmjb5l5k"))))
+        (base32 "1v1qgq7yy6q4vkdm9qzhsw6w7lxbmfb4g2016lzkl29dy9y55yv1"))))
     (build-system meson-build-system)
     (arguments
      (list #:modules `((ice-9 popen)

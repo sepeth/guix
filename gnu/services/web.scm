@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2015 David Thompson <davet@gnu.org>
-;;; Copyright © 2015-2023 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2015-2023, 2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016 Nikita <nikita@n0.is>
 ;;; Copyright © 2016, 2017, 2018 Julien Lepiller <julien@lepiller.eu>
 ;;; Copyright © 2017, 2018, 2019 Christopher Baines <mail@cbaines.net>
@@ -17,6 +17,7 @@
 ;;; Copyright © 2022 Simen Endsjø <simendsjo@gmail.com>
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 Miguel Ángel Moreno <mail@migalmoreno.com>
+;;; Copyright © 2024 Leo Nikkilä <hello@lnikki.la>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -103,6 +104,8 @@
             nginx-configuration-nginx
             nginx-configuration-shepherd-requirement
             nginx-configuration-log-directory
+            nginx-configuration-log-format
+            nginx-configuration-log-formats
             nginx-configuration-log-level
             nginx-configuration-run-directory
             nginx-configuration-server-blocks
@@ -113,6 +116,12 @@
             nginx-configuration-global-directives
             nginx-configuration-extra-content
             nginx-configuration-file
+
+            nginx-log-format-configuration
+            nginx-log-format-configuration?
+            nginx-log-format-configuration-name
+            nginx-log-format-configuration-escape
+            nginx-log-format-configuration-format
 
             nginx-server-configuration
             nginx-server-configuration?
@@ -462,7 +471,7 @@
      (list (shepherd-service
             (provision '(httpd))
             (documentation "The Apache HTTP Server")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       `(#$(file-append package "/bin/httpd")
                         #$@(if config
@@ -525,6 +534,23 @@
                   (httpd-configuration))
                 (description "Run the Apache httpd Web server.")))
 
+(define-record-type* <nginx-log-format-configuration>
+  nginx-log-format-configuration make-nginx-log-format-configuration
+  nginx-log-format-configuration?
+  (name                nginx-log-format-configuration-name)
+  (escape              nginx-log-format-configuration-escape
+                       (sanitize assert-valid-log-format-escape)
+                       (default 'default))
+  (format              nginx-log-format-configuration-format))
+
+(define (assert-valid-log-format-escape escape)
+  "Ensure @var{escape} is one of @code{'default}, @code{'json}, or
+@code{'none}."
+  (unless (memq escape '(default json none))
+    (raise
+     (formatted-message (G_ "unknown log format escape '~a'~%") escape)))
+  escape)
+
 (define-record-type* <nginx-server-configuration>
   nginx-server-configuration make-nginx-server-configuration
   nginx-server-configuration?
@@ -583,6 +609,10 @@
   (log-level     nginx-configuration-log-level
                  (sanitize assert-valid-log-level)
                  (default 'error))
+  (log-format    nginx-configuration-log-format     ;symbol
+                 (default 'combined))
+  (log-formats   nginx-configuration-log-formats    ;list of <nginx-log-format-configuration>
+                 (default '()))
   (run-directory nginx-configuration-run-directory  ;string
                  (default "/var/run/nginx"))
   (server-blocks nginx-configuration-server-blocks
@@ -637,6 +667,12 @@ of index files."
      (format #f "~a { ~{~a~}}~%" key (map emit-global-directive alist)))
     ((key . value)
      (format #f "~a ~a;~%" key value))))
+
+(define emit-nginx-log-format-config
+  (match-lambda
+    (($ <nginx-log-format-configuration> name escape format)
+     (list "    log_format " (symbol->string name) " escape="
+           (symbol->string escape) " " format ";\n"))))
 
 (define emit-nginx-location-config
   (match-lambda
@@ -723,7 +759,7 @@ of index files."
   (match-record config
                 <nginx-configuration>
                 (nginx log-directory run-directory
-                 log-level
+                 log-level log-format log-formats
                  server-blocks upstream-blocks
                  server-names-hash-bucket-size
                  server-names-hash-bucket-max-size
@@ -745,7 +781,8 @@ of index files."
            "    fastcgi_temp_path " run-directory "/fastcgi_temp;\n"
            "    uwsgi_temp_path " run-directory "/uwsgi_temp;\n"
            "    scgi_temp_path " run-directory "/scgi_temp;\n"
-           "    access_log " log-directory "/access.log;\n"
+           (map emit-nginx-log-format-config log-formats)
+           "    access_log " log-directory "/access.log " (symbol->string log-format) ";\n"
            "    include " nginx "/share/nginx/conf/mime.types;\n"
            (if lua-package-path
                #~(format #f "    lua_package_path ~s;~%"
@@ -923,7 +960,7 @@ renewed TLS certificates, or @code{include}d files.")
      (list (shepherd-service
             (provision '(fcgiwrap))
             (documentation "Run the fcgiwrap daemon.")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       '(#$(file-append package "/sbin/fcgiwrap")
                         "-s" #$socket)
@@ -1107,7 +1144,7 @@ and the back-end of a Web service.")))
      (list (shepherd-service
             (provision '(php-fpm))
             (documentation "Run the php-fpm daemon.")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       '(#$(file-append php "/sbin/php-fpm")
                         "--fpm-config"
@@ -1245,11 +1282,6 @@ a webserver.")
 (define %hpcguix-web-log-file
   "/var/log/hpcguix-web.log")
 
-(define %hpcguix-web-log-rotations
-  (list (log-rotation
-         (files (list %hpcguix-web-log-file))
-         (frequency 'weekly))))
-
 (define (hpcguix-web-shepherd-service config)
   (let* ((specs       (hpcguix-web-configuration-specs config))
          (config-file (and specs (scheme-file "hpcguix-web.scm" specs)))
@@ -1257,7 +1289,7 @@ a webserver.")
     (shepherd-service
      (documentation "hpcguix-web daemon")
      (provision     '(hpcguix-web))
-     (requirement   '(networking))
+     (requirement   '(user-processes networking))
      (start #~(make-forkexec-constructor
                (list #$(file-append hpcguix-web "/bin/hpcguix-web")
                      (string-append "--listen="
@@ -1287,8 +1319,6 @@ a webserver.")
                              (const %hpcguix-web-accounts))
           (service-extension activation-service-type
                              (const %hpcguix-web-activation))
-          (service-extension rottlog-service-type
-                             (const %hpcguix-web-log-rotations))
           (service-extension shepherd-root-service-type
                              (compose list hpcguix-web-shepherd-service))))
    (default-value (hpcguix-web-configuration))))
@@ -1396,6 +1426,7 @@ a webserver.")
     (($ <tailon-configuration> config-file package)
      (list (shepherd-service
             (provision '(tailon))
+            (requirement '(user-processes))
             (documentation "Run the tailon daemon.")
             (start #~(make-forkexec-constructor
                       `(,(string-append #$package "/bin/tailon")
@@ -1588,7 +1619,7 @@ files.")
             (provision (list (symbol-append 'varnish- (string->symbol name))))
             (documentation (string-append "The Varnish Web Accelerator"
                                           " (" name ")"))
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       (list #$(file-append package "/sbin/varnishd")
                             "-n" #$name
@@ -1648,6 +1679,7 @@ Whoogle."))
     (list
      (shepherd-service
       (provision '(whoogle-search))
+      (requirement '(user-processes))
       (start #~(make-forkexec-constructor
                 (list (string-append #$package "/bin/whoogle-search")
                       "--host" #$host "--port" #$(number->string port))
@@ -1872,27 +1904,14 @@ WSGIPassAuthorization On
 
 (define (patchwork-django-admin-gexp patchwork settings-module)
   #~(lambda command
-      (let ((pid (primitive-fork))
-            (user (getpwnam "httpd")))
-        (if (eq? pid 0)
-            (dynamic-wind
-              (const #t)
-              (lambda ()
-                (setgid (passwd:gid user))
-                (setuid (passwd:uid user))
-
-                (setenv "DJANGO_SETTINGS_MODULE" "guix.patchwork.settings")
-                (setenv "PYTHONPATH" #$settings-module)
-                (primitive-exit
-                 (if (zero?
-                      (apply system*
-                             #$(file-append patchwork "/bin/patchwork-admin")
-                             command))
-                     0
-                     1)))
-              (lambda ()
-                (primitive-exit 1)))
-            (zero? (cdr (waitpid pid)))))))
+      (zero? (spawn-command
+              `(#$(file-append patchwork "/bin/patchwork-admin")
+                ,command)
+              #:user "httpd"
+              #:group "httpd"
+              #:environment-variables
+              `("DJANGO_SETTINGS_MODULE=guix.patchwork.settings"
+                ,(string-append "PYTHONPATH=" #$settings-module))))))
 
 (define (patchwork-django-admin-action patchwork settings-module)
   (shepherd-action
@@ -2049,7 +2068,7 @@ WSGIPassAuthorization On
      (list (shepherd-service
             (provision '(mumi))
             (documentation "Mumi bug-tracking web interface.")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       `(#$(file-append mumi "/bin/mumi") "web"
                         ,@(if #$mailer? '() '("--disable-mailer")))
@@ -2060,7 +2079,7 @@ WSGIPassAuthorization On
            (shepherd-service
             (provision '(mumi-worker))
             (documentation "Mumi bug-tracking web interface database worker.")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       '(#$(file-append mumi "/bin/mumi") "worker")
                       #:environment-variables #$environment
@@ -2070,7 +2089,7 @@ WSGIPassAuthorization On
            (shepherd-service
             (provision '(mumi-mailer))
             (documentation "Mumi bug-tracking web interface mailer.")
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (start #~(make-forkexec-constructor
                       `(#$(file-append mumi "/bin/mumi") "mailer"
                         ,@(if #$sender
@@ -2084,12 +2103,6 @@ WSGIPassAuthorization On
                       #:log-file #$%mumi-mailer-log))
             (stop #~(make-kill-destructor)))))))
 
-(define %mumi-log-rotations
-  (list (log-rotation
-         (files (list %mumi-log
-                      %mumi-mailer-log
-                      %mumi-worker-log)))))
-
 (define mumi-service-type
   (service-type
    (name 'mumi)
@@ -2099,9 +2112,7 @@ WSGIPassAuthorization On
           (service-extension account-service-type
                              (const %mumi-accounts))
           (service-extension shepherd-root-service-type
-                             mumi-shepherd-services)
-          (service-extension rottlog-service-type
-                             (const %mumi-log-rotations))))
+                             mumi-shepherd-services)))
    (description
     "Run Mumi, a Web interface to the Debbugs bug-tracking server.")
    (default-value
@@ -2133,7 +2144,7 @@ root=/srv/gemini
     (($ <gmnisrv-configuration> package config-file)
      (list (shepherd-service
             (provision '(gmnisrv))
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (documentation "Run the gmnisrv Gemini server.")
             (start (let ((gmnisrv (file-append package "/bin/gmnisrv")))
                      #~(make-forkexec-constructor
@@ -2222,7 +2233,7 @@ root=/srv/gemini
                               log-ip? user group log-file)
      (list (shepherd-service
             (provision '(agate))
-            (requirement '(networking))
+            (requirement '(user-processes networking))
             (documentation "Run the agate Gemini server.")
             (start (let ((agate (file-append package "/bin/agate")))
                      #~(make-forkexec-constructor

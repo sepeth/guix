@@ -181,19 +181,13 @@ representation."
              #:log-file "/var/log/earlyoom.log"))
    (stop #~(make-kill-destructor))))
 
-(define %earlyoom-log-rotation
-  (list (log-rotation
-         (files '("/var/log/earlyoom.log")))))
-
 (define earlyoom-service-type
   (service-type
    (name 'earlyoom)
    (default-value (earlyoom-configuration))
    (extensions
     (list (service-extension shepherd-root-service-type
-                             (compose list earlyoom-shepherd-service))
-          (service-extension rottlog-service-type
-                             (const %earlyoom-log-rotation))))
+                             (compose list earlyoom-shepherd-service))))
    (description "Run @command{earlyoom}, a daemon that quickly responds to
 @acronym{OOM, out-of-memory} conditions by terminating relevant processes.")))
 
@@ -379,7 +373,7 @@ more information)."
   ;; despite the name of the command-line option
   (scan?
    (boolean #t)
-   "Scan for cachable objects."
+   "Scan for cacheable objects."
    (serializer empty-serializer))
 
   ;; sole required field in the configuration file
@@ -475,7 +469,7 @@ more information)."
         (shepherd-service
          (documentation "Run the cachefilesd daemon for FS-Cache.")
          (provision '(cachefilesd))
-         (requirement (append '(file-systems)
+         (requirement (append '(user-processes file-systems)
                               (if use-syslog? '(syslogd) '())))
          (start #~(begin
                     (and=> #$(maybe-value cache-directory) mkdir-p)
@@ -529,7 +523,7 @@ the Linux @code{cachefiles} module.")
   (shepherd-service
    (documentation "Run rasdaemon")
    (provision '(rasdaemon))
-   (requirement '(syslogd))
+   (requirement '(user-processes syslogd))
    (start #~(make-forkexec-constructor
              '#$(rasdaemon-configuration->command-line-args config)))
    (stop #~(make-kill-destructor))))

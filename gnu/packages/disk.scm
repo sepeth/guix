@@ -3,7 +3,7 @@
 ;;; Copyright © 2015 Mathieu Lirzin <mthl@gnu.org>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2016, 2018–2022 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2016, 2019-2021, 2023 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016, 2019-2021, 2023, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016, 2023 Janneke Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2016 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2016, 2017 Marius Bakke <mbakke@fastmail.com>
@@ -71,7 +71,6 @@
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages gnupg)
-  #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-build)
   #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages graphics)
@@ -114,6 +113,7 @@
   #:use-module (guix build-system perl)
   #:use-module (guix build-system python)
   #:use-module (guix build-system pyproject)
+  #:use-module (guix build-system qt)
   #:use-module (guix build-system trivial)
   #:use-module (guix build-system scons)
   #:use-module (guix download)
@@ -511,14 +511,14 @@ scheme.")
 (define-public ddrescue
   (package
     (name "ddrescue")
-    (version "1.28")
+    (version "1.29")
     (source
      (origin
       (method url-fetch)
       (uri (string-append "mirror://gnu/ddrescue/ddrescue-"
                           version ".tar.lz"))
       (sha256
-       (base32 "1h8hxgxgwz0ih4p38b6k49i1b6r7qli8b5fhr81ivk51gixc09k6"))))
+       (base32 "18rr02kgbb94hlqi9cwfis69sbpfgc7y7v6h5yx9zcskg0r19901"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags (list (string-append "CXX=" ,(cxx-for-target)))))
@@ -594,6 +594,30 @@ which respectively make and check MS-DOS FAT file systems.")
     (description "This package provides a statically-linked @command{fsck.fat}
 and a @command{fsck.vfat} compatibility symlink for use in an initrd.")
     (license (package-license dosfstools))))
+
+(define-public fatresize
+  (package
+    (name "fatresize")
+    (version "1.1.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/ya-mouse/fatresize")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1vhz84kxfyl0q7mkqn68nvzzly0a4xgzv76m6db0bk7xyczv1qr2"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     (list pkg-config))
+    (inputs
+     (list parted))
+    (home-page "https://github.com/ya-mouse/fatresize")
+    (synopsis "Resize FAT partitions")
+    (description
+     "This package provides a tool to resize FAT partitions using libparted.")
+    (license license:gpl3+)))
 
 (define-public hdparm
   (package
@@ -1213,7 +1237,11 @@ to create devices with respective mappings for the ATARAID sets discovered.")
                             (false-if-exception
                              (search-input-file inputs
                                                 (string-append "sbin/" program)))
-                            program)))))))))
+                            (begin
+                              (format (current-warning-port)
+                                      "warning: program ~s left unpatched~%"
+                                      program)
+                              program))))))))))
     (native-inputs
      (list gobject-introspection
            pkg-config
@@ -1221,6 +1249,9 @@ to create devices with respective mappings for the ATARAID sets discovered.")
     (inputs
      (append
       (cons cryptsetup (libcryptsetup-propagated-inputs))
+      (if (supported-package? multipath-tools)
+          (list multipath-tools)
+          '())
       (list bcache-tools
             btrfs-progs
             dosfstools
@@ -1236,7 +1267,6 @@ to create devices with respective mappings for the ATARAID sets discovered.")
             libyaml
             lvm2
             mdadm
-            multipath-tools
             ndctl
             nss
             ntfs-3g
@@ -1320,7 +1350,7 @@ on your file system and offers to remove it.  @command{rmlint} can find:
 (define-public lf
   (package
     (name "lf")
-    (version "31")
+    (version "33")
     (source
      (origin
        (method git-fetch)
@@ -1329,7 +1359,7 @@ on your file system and offers to remove it.  @command{rmlint} can find:
              (commit (string-append "r" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "03icsf4c3j7295s1d8s6srz5gf09a3lghgw3zfcd86p03zhkzsaf"))))
+        (base32 "1jmqf27ysi35n3hqahlzs5hym7i4w1mplklrvv0lc0baddzx7av8"))))
     (build-system go-build-system)
     (arguments
      (list
@@ -1337,10 +1367,13 @@ on your file system and offers to remove it.  @command{rmlint} can find:
       #:import-path "github.com/gokcehan/lf"))
     (native-inputs
      (list go-github-com-djherbis-times
+           go-github-com-fsnotify-fsnotify
            go-github-com-gdamore-tcell-v2
            go-github-com-mattn-go-runewidth
+           go-github-com-xuanwo-go-locale
+           go-golang-org-x-sys
            go-golang-org-x-term
-           go-gopkg-in-djherbis-times-v1))
+           go-golang-org-x-text))
     (home-page "https://github.com/gokcehan/lf")
     (synopsis "Console file browser similar to Ranger")
     (description
@@ -1671,12 +1704,13 @@ wrapper for disk usage querying and visualisation.")
                  (,(string-append
                     (assoc-ref inputs "perl-uri-escape")
                     "/lib/perl5/site_perl")))))))))
-    (build-system gnu-build-system)
+    (build-system qt-build-system)
     (inputs
      (list bash-minimal
            perl
            perl-uri-escape
            qtbase-5
+           qtwayland-5
            zlib))
     (synopsis "Storage utilisation visualization tool")
     (description

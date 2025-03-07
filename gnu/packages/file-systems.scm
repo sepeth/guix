@@ -3,7 +3,7 @@
 ;;; Copyright © 2017 Gábor Boskovits <boskovits@gmail.com>
 ;;; Copyright © 2017, 2018, 2021, 2023 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2018 Leo Famulari <leo@famulari.name>
-;;; Copyright © 2019-2023 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2019-2023, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2020 Raghav Gururajan <raghavgururajan@disroot.org>
 ;;; Copyright © 2020 Morgan Smith <Morgan.J.Smith@outlook.com>
 ;;; Copyright © 2021 raid5atemyhomework <raid5atemyhomework@protonmail.com>
@@ -14,6 +14,8 @@
 ;;; Copyright © 2023 Aaron Covrig <aaron.covrig.us@ieee.org>
 ;;; Copyright © 2024 Ahmad Draidi <a.r.draidi@redscript.org>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2025 Julian Flake <flake@uni-koblenz.de>
+;;; Copyright © 2025 Ashish SHUKLA <ashish.is@lostca.se>
 ;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -322,14 +324,14 @@ integration with @code{avfs}.")
 (define-public davfs2
   (package
     (name "davfs2")
-    (version "1.6.1")
+    (version "1.7.1")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://download.savannah.nongnu.org/releases/"
                            "davfs2/davfs2-" version ".tar.gz"))
        (sha256
-        (base32 "1h65j2py59b97wbzzjhp4wbkk6351v3hrjscjcfab0p5xi4bjgnf"))))
+        (base32 "1b5izj2qivys6nkqjy08nznjwszar8d46ajmw5cf5jvkcw6dv3i9"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -497,7 +499,7 @@ significantly increases the risk of irreversible data loss!")
 (define-public gocryptfs
   (package
     (name "gocryptfs")
-    (version "2.4.0")
+    (version "2.5.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -506,10 +508,11 @@ significantly increases the risk of irreversible data loss!")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "08pdfx6bs1dc2k7xv54x7i1qbych4a7dlf31qwcm9wlz7lr5lawm"))))
+                "0ai30h56qvp31a3rl72biwx8w9blmi7va7d1bflmxbp41zhl6dn9"))))
     (build-system go-build-system)
     (arguments
      (list
+      #:install-source? #f
       #:import-path "github.com/rfjakob/gocryptfs"
       #:build-flags
       #~(list
@@ -518,10 +521,24 @@ significantly increases the risk of irreversible data loss!")
                      " -X main.GitVersionFuse=" #$(package-version
                                                    go-github-com-hanwen-go-fuse-v2)
                      " -X main.BuildDate=" "[reproducible]"))
+      #:test-flags
+      #~(list "-skip" (string-join
+                       (list "TestPrepareAtSyscall"
+                             "TestPrepareAtSyscallPlaintextnames"
+                             "TestGetdents")
+                       "|"))
+      ;; XXX: Test suit requires a root access to mount, limit to some unit
+      ;; tests, figure out how to enable most of the them.
+      #:test-subdirs #~(list "internal/...")
       #:phases
       #~(modify-phases %standard-phases
           ;; after 'check phase, should maybe unmount leftover mounts as in
           ;; https://github.com/rfjakob/gocryptfs/blob/a55b3cc15a6d9bce116a90f33df4bc99d9dd6a10/test.bash#L28
+          (add-after 'unpack 'fix-paths
+            (lambda* (#:key import-path #:allow-other-keys)
+              (let* ((fusermount3 "/run/setuid-programs/fusermount3"))
+                (substitute* (format #f "src/~a/mount.go" import-path)
+                  (("/bin/fusermount") fusermount3)))))
           (replace 'build
             (lambda arguments
               (for-each
@@ -535,22 +552,20 @@ significantly increases the risk of irreversible data loss!")
                 "github.com/rfjakob/gocryptfs/contrib/findholes"
                 "github.com/rfjakob/gocryptfs/contrib/atomicrename")))))))
     (native-inputs (list
-                    go-github-com-hanwen-go-fuse-v2
                     go-github-com-aperturerobotics-jacobsa-crypto
-                    go-github-com-jacobsa-oglematchers
-                    go-github-com-jacobsa-oglemock
-                    go-github-com-jacobsa-ogletest
-                    go-github-com-jacobsa-reqtrace
+                    go-github-com-hanwen-go-fuse-v2
+                    go-github-com-moby-sys-mountinfo
                     go-github-com-pkg-xattr
                     go-github-com-rfjakob-eme
                     go-github-com-sabhiram-go-gitignore
                     go-github-com-spf13-pflag
                     go-golang-org-x-crypto
-                    go-golang-org-x-net
                     go-golang-org-x-sys
                     go-golang-org-x-term
                     openssl
                     pkg-config))
+    (inputs (list
+             fuse))
     (home-page "https://github.com/rfjakob/gocryptfs")
     (synopsis "Encrypted overlay filesystem")
     (description
@@ -1349,7 +1364,7 @@ APFS.")
 (define-public snapper
   (package
     (name "snapper")
-    (version "0.10.7")
+    (version "0.12.1")
     (source
      (origin
        (method git-fetch)
@@ -1358,7 +1373,7 @@ APFS.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0nwmyzjwid1lf29dsr6w72dr781c81xyrjpk5y3scn4r55b5df0h"))
+        (base32 "1i5623cnhzivf64zr0g1nlyn9sjgabhyawhpsffykdxvcrnyqn69"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -1375,17 +1390,31 @@ APFS.")
                         (add-after 'unpack 'relative-file-locations
                           (lambda* (#:key outputs #:allow-other-keys)
                             (let* ((out (assoc-ref outputs "out")))
-                              (substitute* (list "scripts/Makefile.am"
-                                                 "data/Makefile.am")
+                              (substitute* '("scripts/Makefile.am"
+                                             "client/systemd-helper/Makefile.am"
+                                             "client/installation-helper/Makefile.am"
+                                             "data/Makefile.am")
                                 (("/usr/share")
                                  (string-append out "/share"))
                                 (("/usr/lib")
                                  (string-append out "/lib"))
                                 (("/etc/")
-                                 (string-append out "/etc/"))))
-                            (substitute* "client/Makefile.am"
-                              (("/usr/lib")
-                               "@libdir@")))))))
+                                 (string-append out "/etc/")))
+                              (substitute* (cons "data/org.opensuse.Snapper.service"
+                                                 (find-files "scripts/" "\\.sh"))
+                                (("/usr/bin/snapper")
+                                 (string-append out "/bin/snapper"))
+                                (("/usr/sbin/snapperd")
+                                 (string-append out "/sbin/snapperd"))
+                                (("/sbin/btrfs")
+                                 (which "btrfs")))
+                              (substitute* "scripts/snapper-hourly"
+                                (("PATH=.*$")
+                                 (format #f "PATH=~a/sbin:~a/bin\n"
+                                         out out)))
+                              (substitute* (find-files "." "Makefile.am")
+                                (("/usr/lib")
+                                 "@libdir@"))))))))
     (home-page "https://snapper.io")
     (native-inputs
      (list glibc-locales autoconf automake libtool pkg-config))
@@ -1563,7 +1592,7 @@ with the included @command{xfstests-check} helper.")
 (define-public zfs
   (package
     (name "zfs")
-    (version "2.2.7")
+    (version "2.3.0")
     (outputs '("out" "module" "src"))
     (source
       (origin
@@ -1572,7 +1601,7 @@ with the included @command{xfstests-check} helper.")
                             "/download/zfs-" version
                             "/zfs-" version ".tar.gz"))
         (sha256
-         (base32 "0wkniyfjmbvyyfqv35fhbdx58qk7rck3f91j05x419pjmfzy7f5j"))))
+         (base32 "19jnjcpaknb8yf7zh7f36kmnb9m91ndzxwqpqfwwc92znpm8g1vf"))))
     (build-system linux-module-build-system)
     (arguments
      (list
@@ -1896,20 +1925,20 @@ compatible directories.")
 (define-public python-dropbox
   (package
     (name "python-dropbox")
-    (version "11.36.2")
+    (version "12.0.2")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "dropbox" version))
         (sha256
-         (base32 "00650gk8557x3f38nd8a1mdby7v1l8l4l72aq48qpiw6shb3v3fl"))
+         (base32 "0qlrc2ykl7zmv808apqv5ycfzrwnm13ngz1daizh9kszmpapy1ah"))
         (snippet
          '(begin
             (use-modules (guix build utils))
             (substitute* "setup.py"
-              (("pytest-runner == 5\\.2\\.0") "pytest-runner"))))))
+              (("pytest-runner==5\\.2\\.0") "pytest-runner"))))))
     (build-system python-build-system)
-    (arguments '(#:tests? #f))  ; Tests require a network connection.
+    (arguments '(#:tests? #f))  ; Tests not included in the release tarball.
     (native-inputs
      (list python-pytest python-pytest-runner))
     (propagated-inputs
@@ -1958,31 +1987,6 @@ Dropbox API v2.")
    "@code{dbxfs} allows you to mount your Dropbox folder as if it were a
 local file system using FUSE.")
   (license license:gpl3+)))
-
-(define-public go-github-com-hanwen-fuse
-  (package
-    (name "go-github-com-hanwen-fuse")
-    (version "2.0.3")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/hanwen/go-fuse")
-             (commit (string-append "v" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32
-         "1y44d08fxyis99s6jxdr6dbbw5kv3wb8lkhq3xmr886i4w41lz03"))))
-    (build-system go-build-system)
-    (arguments
-     `(#:import-path "github.com/hanwen/go-fuse"))
-    (propagated-inputs
-     (list go-golang-org-x-sys))
-    (home-page "https://github.com/hanwen/go-fuse")
-    (synopsis "FUSE bindings for Go")
-    (description
-     "This package provides Go native bindings for the FUSE kernel module.")
-    (license license:bsd-3)))
 
 (define-public rewritefs
   (let ((revision "1")
@@ -2069,26 +2073,27 @@ memory-efficient.")
     (license license:bsd-2)))
 
 (define-public squashfuse-for-appimage
-    (package
-      (inherit squashfuse)
-      (arguments
-       (cons*
-        #:configure-flags
-        #~'("CFLAGS=-ffunction-sections -fdata-sections -Os -no-pie"
-            "LDFLAGS=-static")
-        (substitute-keyword-arguments (package-arguments squashfuse)
-          ((#:phases phases)
-           #~(modify-phases #$phases
-               (add-after 'install 'install-private-headers
-                 (lambda _
-                   (install-file "fuseprivate.h"
-                                 (string-append #$output
-                                                "/include/squashfuse/")))))))))
-      (inputs (list fuse-for-appimage
-                    `(,zstd "lib")
-                    `(,zstd "static")
-                    `(,zlib "out")
-                    `(,zlib "static")))))
+  (package
+    (inherit squashfuse)
+    (name "squashfuse-for-appimage")
+    (arguments
+     (cons*
+      #:configure-flags
+      #~'("CFLAGS=-ffunction-sections -fdata-sections -Os -no-pie"
+          "LDFLAGS=-static")
+      (substitute-keyword-arguments (package-arguments squashfuse)
+        ((#:phases phases)
+         #~(modify-phases #$phases
+             (add-after 'install 'install-private-headers
+               (lambda _
+                 (install-file "fuseprivate.h"
+                               (string-append #$output
+                                              "/include/squashfuse/")))))))))
+    (inputs (list fuse-for-appimage
+                  `(,zstd "lib")
+                  `(,zstd "static")
+                  `(,zlib "out")
+                  `(,zlib "static")))))
 
 (define-public tmsu
   (package
@@ -2144,7 +2149,7 @@ memory-efficient.")
                 (setenv "DESTDIR" #$output)
                 (invoke "make" "install")))))))
     (inputs
-     (list go-github-com-mattn-go-sqlite3 go-github-com-hanwen-fuse))
+     (list go-github-com-mattn-go-sqlite3 go-github-com-hanwen-go-fuse))
     (home-page "https://github.com/oniony/TMSU")
     (synopsis "Tag files and access them through a virtual file system")
     (description

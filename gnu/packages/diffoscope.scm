@@ -77,7 +77,7 @@
 (define-public diffoscope
   (package
     (name "diffoscope")
-    (version "284")
+    (version "289")
     (source
      (origin
        (method git-fetch)
@@ -86,7 +86,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1nl5njb4harq4f3xks0fj92nwxkpfzywpkrakh7jy2l9ngic1vb2"))))
+        (base32 "1lys2akw8d08lcc6prpbcf24ydv322aig0j5skik9gfiiwx73kgb"))))
     (build-system python-build-system)
     (arguments
      (list
@@ -273,6 +273,13 @@ install.")
       #:tests? #f
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'compress-documentation 'make-virt-files-executable
+            ;; The autopkgtest-virt- files need to be marked executable for
+            ;; reprotest to function correctly.
+            (lambda _
+              (for-each (lambda (file)
+                          (chmod file #o755))
+                        (find-files #$output "autopkgtest-virt-.*"))))
           (add-after 'install 'install-doc
             (lambda _
               (let* ((mandir1 (string-append

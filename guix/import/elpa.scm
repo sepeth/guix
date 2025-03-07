@@ -44,6 +44,7 @@
   #:use-module (guix git)
   #:use-module (guix hash)
   #:use-module (guix store)
+  #:use-module ((guix utils) #:select (downstream-package-name))
   #:use-module (guix base32)
   #:use-module (guix upstream)
   #:use-module (guix packages)
@@ -122,7 +123,7 @@ defined by ELPA-PKG-SPEC, a package specification as in an archive
   (eq? (first elpa-pkg-spec) (string->symbol name)))
 
 (define* (elpa-package-info name #:optional (repo 'gnu))
-  "Extract the information about the package NAME from the package archieve of
+  "Extract the information about the package NAME from the package archive of
 REPO."
   (let* ((archive (elpa-fetch-archive repo))
          (pkgs (match archive ((version pkg-spec ...) pkg-spec)))
@@ -421,7 +422,7 @@ type '<elpa-package>'."
           (string-drop (package-name package) 6)
           (package-name package))))
 
-(define* (latest-release package #:key (version #f))
+(define* (latest-release package #:key version partial-version?)
   "Return an <upstream-release> for the latest release of PACKAGE."
   (define name (guix-package->elpa-name package))
   (define repo (elpa-repository package))
@@ -481,7 +482,7 @@ type '<elpa-package>'."
    (pred package-from-elpa-repository?)
    (import latest-release)))
 
-(define elpa-guix-name (cut guix-name "emacs-" <>))
+(define elpa-guix-name (cut downstream-package-name "emacs-" <>))
 
 (define* (elpa-recursive-import package-name #:optional (repo 'gnu))
   (recursive-import package-name

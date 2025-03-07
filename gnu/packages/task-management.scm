@@ -10,6 +10,9 @@
 ;;; Copyright © 2022 Foo Chuan Wei <chuanwei.foo@hotmail.com>
 ;;; Copyright © 2022 Pavel Shlyak <p.shlyak@pantherx.org>
 ;;; Copyright © 2022 Matthew James Kraai <kraai@ftbfs.org>
+;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2025 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2025 Matthias Riße <matrss@0px.xyz>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -37,8 +40,13 @@
   #:use-module (gnu packages gettext)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
+  #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-check)
+  #:use-module (gnu packages golang-web)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages gstreamer)
   #:use-module (gnu packages gtk)
+  #:use-module (gnu packages haskell-apps)
   #:use-module (gnu packages hunspell)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages lua)
@@ -54,6 +62,7 @@
   #:use-module (gnu packages ruby)
   #:use-module (gnu packages time)
   #:use-module (gnu packages tls)
+  #:use-module (gnu packages version-control)
   #:use-module (guix download)
   #:use-module (guix git-download)
   #:use-module (guix hg-download)
@@ -106,6 +115,49 @@
        "Clikan is a super simple command-line utility for tracking tasks
 following the Japanese kanban (boarding) style.")
       (license license:expat))))
+
+(define-public annextimelog
+  (package
+    (name "annextimelog")
+    (version "0.14.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "annextimelog" version))
+       (sha256
+        (base32 "0m1q0pbjy7d4yvgkflg7208gmdrqn1cx346b4li0mlss1kr91hvz"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags #~(list "annextimelog/test.py")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'create-entrypoints 'wrap-program
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let ((bin (string-append #$output "/bin")))
+                (for-each (lambda (file)
+                            (wrap-program file
+                              `("PATH" ":" prefix
+                                (,(dirname (which "git"))
+                                 ,(dirname (which "git-annex"))))))
+                          (list (string-append bin "/annextimelog")
+                                (string-append bin "/atl")))))))))
+    (native-inputs
+     (list python-poetry-core
+           python-pytest))
+    (inputs
+     (list bash-minimal
+           git
+           git-annex))
+    (propagated-inputs
+     (list python-rich
+           python-tzdata))
+    (home-page "https://gitlab.com/nobodyinperson/annextimelog")
+    (synopsis "Git Annex-backed Time Tracking")
+    (description
+     "This package provides a functionality to track time spent on projects,
+backed by Git Annex.")
+    (license license:gpl3+)))
 
 (define-public t-todo-manager
   ;; Last release is more than 10 years old.  Using latest commit.
@@ -276,20 +328,21 @@ time to a logfile.")
 (define-public dstask
   (package
     (name "dstask")
-    (version "0.26")
+    (version "0.27")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/naggie/dstask")
-             (commit (string-append "v" version))))
+             (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "10q0524gfc76k0v9cy0j60cbgmmwkpnkbvl6w0pn1j5y690514f5"))))
+        (base32 "01vdxm3y5fg4hqhq4k1lk0m7w70kkwlka5jhixv7a9lf1gqldskd"))))
     (build-system go-build-system)
     (arguments
      `(#:import-path "github.com/naggie/dstask"
        #:install-source? #f
+       #:test-subdirs '("pkg/..." ".")
        #:phases
        (modify-phases %standard-phases
          (replace 'build
@@ -312,6 +365,18 @@ time to a logfile.")
                  (install-file "dstask-import" bindir)
                  (install-file ".dstask-bash-completions.sh" bash-completion)
                  (install-file ".dstask-zsh-completions.sh" zsh-completion))))))))
+    (native-inputs
+     (list go-github-com-burntsushi-toml
+           go-github-com-gofrs-uuid
+           go-github-com-mattn-go-isatty
+           go-github-com-mattn-go-runewidth
+           go-github-com-shurcool-githubv4
+           go-github-com-sirupsen-logrus
+           go-github-com-stretchr-testify
+           go-golang-org-x-oauth2
+           go-golang-org-x-sys
+           go-gopkg-in-yaml-v2
+           go-mvdan-cc-xurls-v2))
     (synopsis "CLI-based TODO manager with git-based sync + markdown notes per task")
     (description "dstask is a personal task tracker that uses git for
 synchronization.  It offers a note command to attach a Markdown based note to
@@ -467,7 +532,9 @@ on arbitrary tasks.  All the time data is saved in files residing in the
            python-pytest
            python-pytest-cov
            python-pytest-runner
-           python-pytz))
+           python-pytz
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list python-atomicwrites
            python-click
@@ -503,7 +570,9 @@ them via CalDAV using, for example, @code{vdirsyncer}.")
      (list python-mock
            python-pytest
            python-pytest-datafiles
-           python-pytest-mock))
+           python-pytest-mock
+           python-setuptools
+           python-wheel))
     (propagated-inputs
      (list python-arrow
            python-click

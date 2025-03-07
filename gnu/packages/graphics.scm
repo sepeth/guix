@@ -38,6 +38,7 @@
 ;;; Copyright © 2023 Eric Bavier <bavier@posteo.net>
 ;;; Copyright © 2023, 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2024 Ivan Vilata-i-Balaguer <ivan@selidor.net>
+;;; Copyright © 2024 James Smith <jsubuntuxp@disroot.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -492,6 +493,30 @@ applications.")
                (base32
                 "1kcvz7g6j56anv9zjyd3gidxl46vipw0gg82lns12m45cd43iwxm"))))))
 
+(define-public embree-2
+  (package/inherit embree
+    (version "2.17.7")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference (url "https://github.com/RenderKit/embree")
+                           (commit (string-append "v" version))))
+       (file-name (git-file-name (package-name embree) version))
+       (sha256
+        (base32 "19v60zdfix33c772x6dzmhsarhafsns8qy7c2ysqr7a9j16whgql"))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments embree)
+       ((#:configure-flags configure-flags)
+        #~(append (list "-DEMBREE_MAX_ISA=NONE" "-DEMBREE_TUTORIALS=OFF")
+              #$configure-flags))))
+    (inputs (modify-inputs (package-inputs embree)
+              (replace "tbb" tbb-2020)))
+    ;; Embree requires SSE2 support, so build only for x86-based architectures.
+    (supported-systems (list "i686-linux" "x86_64-linux"))
+    (description (string-append (package-description embree) "
+
+Please note that this version requires a processor with SSE2 support."))))
+
 (define-public openvdb
   (package
     (name "openvdb")
@@ -787,6 +812,65 @@ baking tools to produce normal maps.")
     (description "Open Shading Language (OSL) is a language for programmable
 shading in advanced renderers and other applications, ideal for describing
 materials, lights, displacement, and pattern generation.")
+    (license license:bsd-3)))
+
+(define-public tachyon
+  (package
+    (name "tachyon")
+    (version "0.99.5")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "http://jedi.ks.uiuc.edu/~johns/raytracer/files/"
+                    version "/tachyon-" version ".tar.gz"))
+              (sha256
+               (base32
+                "1xd6h5d4v6dsnm6w46bdcr15fwkcz44p8dncymfry50i4c83q809"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:tests? #f                  ; no tests
+           #:make-flags #~(list "linux-thr")
+           #:phases
+           #~(modify-phases %standard-phases
+               (delete 'configure)
+               (add-after 'unpack 'prepare-src
+                 (lambda _
+                   (substitute* "unix/Make-arch"
+                     (("CC = cc")
+                      (string-append "CC = " #$(cc-for-target))))
+                   (chdir "unix")))
+               (add-before 'build 'enable-png-jpeg-support
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute* "Make-config"
+                     (("USEJPEG=")
+                      "USEJPEG = -DUSEJPEG")
+                     (("JPEGLIB=")
+                      "JPEGLIB = -ljpeg")
+                     (("USEPNG=")
+                      "USEPNG = -DUSEPNG")
+                     (("PNGLIB=")
+                      "PNGLIB = -lpng -lz"))))
+               (add-before 'build 'fix-paths
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute* "Make-config"
+                     (("SHELL=/bin/sh")
+                      (string-append "SHELL=" (which "sh"))))))
+               (replace 'install
+                 (lambda _
+                   (install-file "../compile/linux-thr/tachyon"
+                                 (string-append #$output "/bin"))
+                   (install-file "../compile/linux-thr/libtachyon.a"
+                                 (string-append #$output "/lib")))))))
+    (inputs (list libjpeg-turbo libpng))
+    ;; The server does not seem to be reliably accessible
+    (home-page "http://jedi.ks.uiuc.edu/~johns/raytracer/")
+    (synopsis "Multithreaded ray tracing software")
+    (description
+     "This package contains the Tachyon raytracer.  It supports the typical
+ray tracer features, most of the common geometric primitives, shading and
+texturing modes, etc.  It also supports less common features such as HDR image
+output, ambient occlusion lighting, and support for various triangle mesh and
+volumetric texture formats beneficial for molecular visualization.")
     (license license:bsd-3)))
 
 (define-public cgal
@@ -1338,8 +1422,8 @@ graphics.")
                                 "")))))))))
     (inputs (list imath))
     (propagated-inputs
-     ;; Marked as Requires.private in OpenEXR.pc.
-     (list libdeflate))
+     (list libdeflate ; Marked as Requires.private in OpenEXR.pc.
+           imath)) ; Marked as Requires in OpenEXR.pc.
     (home-page "https://www.openexr.com/")
     (synopsis "High-dynamic-range file format library")
     (description
@@ -2528,7 +2612,7 @@ and build scripts for the OpenXR loader.")
 (define-public tinygltf
   (package
     (name "tinygltf")
-    (version "2.8.21")
+    (version "2.9.5")
     (source
      (origin
        (method git-fetch)
@@ -2537,7 +2621,7 @@ and build scripts for the OpenXR loader.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "14712lndwlk4y001jxf2rxhwrw0w5gbc2hyh9kpik1galdzg41ii"))
+        (base32 "0gx4wa0kxhig3wjn8v14dbjxl15xn0srkfxb5szzhrl06dv0nszc"))
        (modules '((guix build utils)))
        (snippet #~(begin
                     (for-each delete-file-recursively
@@ -2552,6 +2636,7 @@ and build scripts for the OpenXR loader.")
     (build-system cmake-build-system)
     (arguments
      (list
+      #:configure-flags #~(list "-DBUILD_SHARED_LIBS=ON")
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'use-our-packages
@@ -2564,10 +2649,6 @@ and build scripts for the OpenXR loader.")
                        "stb_image_write.h")
               (symlink (search-input-file inputs "include/catch.hpp")
                        "catch.hpp")))
-          (add-after 'install 'delete-static-lib
-            (lambda _
-              (delete-file (string-append #$output
-                                          "/lib/libtinygltf.a"))))
           (replace 'check
             (lambda* (#:key tests? #:allow-other-keys)
               (if tests?
@@ -2977,7 +3058,7 @@ desired local properties.")
 (define-public f3d
   (package
     (name "f3d")
-    (version "2.5.0")
+    (version "3.0.0")
     (source
      (origin
        (method git-fetch)
@@ -2986,7 +3067,7 @@ desired local properties.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0r5rddnh58hgakh7nkjiz530mcxyc6kzxfsjxkncpw7w7dxjpys3"))
+        (base32 "118gsmn074cq7xdvgc3yrlrwy52f4byvn52nhb3hf7rgfqfi9yxi"))
        (modules '((guix build utils)))
        (snippet
         #~(begin

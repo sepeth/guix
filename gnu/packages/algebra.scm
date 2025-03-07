@@ -12,10 +12,12 @@
 ;;; Copyright © 2020 Björn Höfling <bjoern.hoefling@bjoernhoefling.de>
 ;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
 ;;; Copyright © 2020 Vincent Legoll <vincent.legoll@gmail.com>
-;;; Copyright © 2020, 2021, 2023, 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2020, 2021, 2023, 2024, 2025 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2021 Lars-Dominik Braun <ldb@leibniz-psychology.org>
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2023 Mehmet Tekman <mtekman89@gmail.com>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
+;;; Copyright © 2025 Nigko Yerden <nigko.yerden@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -35,6 +37,7 @@
 (define-module (gnu packages algebra)
   #:use-module (gnu packages)
   #:use-module (gnu packages autotools)
+  #:use-module (gnu packages base)
   #:use-module (gnu packages bash)
   #:use-module (gnu packages bison)
   #:use-module (gnu packages boost)
@@ -45,20 +48,25 @@
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages flex)
   #:use-module (gnu packages fltk)
+  #:use-module (gnu packages fontutils)
   #:use-module (gnu packages gcc)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages graphviz)
   #:use-module (gnu packages image)
   #:use-module (gnu packages java)
+  #:use-module (gnu packages libffi)
   #:use-module (gnu packages maths)
   #:use-module (gnu packages mpi)
   #:use-module (gnu packages multiprecision)
+  #:use-module (gnu packages ncurses)
   #:use-module (gnu packages networking)
   #:use-module (gnu packages ocaml)
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pkg-config)
+  #:use-module (gnu packages pretty-print)
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages readline)
   #:use-module (gnu packages ruby)
@@ -72,6 +80,7 @@
   #:use-module (guix build-system ant)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system cmake)
+  #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
   #:use-module (guix build-system r)
   #:use-module (guix download)
@@ -164,7 +173,7 @@ line applications.")
 (define-public fplll
   (package
     (name "fplll")
-    (version "5.4.2")
+    (version "5.5.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -173,7 +182,7 @@ line applications.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0044nyfnwzgyfrsikbcbh00f54dd61hwn3fb6711rrskkfnw977a"))))
+                "0m38c1h5586aykac1yy5753a2ygggasrhmmrk092lcnl55ldgy2s"))))
     (build-system gnu-build-system)
     (native-inputs
      (list autoconf automake libtool pkg-config))
@@ -208,29 +217,49 @@ the real span of the lattice.")
 (define-public python-fpylll
   (package
     (name "python-fpylll")
-    (version "0.5.7")
+    (version "0.6.3")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "fpylll" version))
        (sha256
         (base32
-         "1xjqcwq90blgzvnbkbzdys8mdhi2b4li6faywm6yi8shxvz8iz0s"))))
-    (build-system python-build-system)
+         "12i4sj6p0z94r1p568jprcnklpi6qh926whzywv23d973jg09x53"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-setuptools python-wheel))
     (inputs
      (list fplll gmp mpfr pari-gp))
     (propagated-inputs
-     (list python-cysignals python-cython python-flake8 python-numpy
+     (list python-cysignals python-cython-3 python-flake8 python-numpy
            python-pytest))
     (home-page "https://github.com/fplll/fpylll")
     (synopsis "Python interface for fplll")
     (description "fpylll is a Python wrapper for fplll.")
     (license license:gpl2+)))
 
+(define pari-galdata
+  ;; version from 2008-04-12
+  (origin
+    (method url-fetch)
+    ;; no versioning, old files seem to be moved to `old/...' on update
+    (uri "https://pari.math.u-bordeaux.fr/pub/pari/packages/galdata.tgz")
+    (sha256
+     (base32
+      "1pch6bk76f1i6cwwgm7hhxi5h71m52lqayp4mnyj0jmjk406bhdp"))))
+
+(define pari-seadata-small
+  ;; version from 2009-06-18
+  (origin
+    (method url-fetch)
+    (uri "https://pari.math.u-bordeaux.fr/pub/pari/packages/seadata-small.tgz")
+    (sha256
+     (base32
+      "13qafribxwkz8h3haa0cng7arz0kh7398br4y7vqs9ib8w9yjnxz"))))
+
 (define-public pari-gp
   (package
     (name "pari-gp")
-    (version "2.15.5")
+    (version "2.17.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -238,21 +267,27 @@ the real span of the lattice.")
                     version ".tar.gz"))
               (sha256
                (base32
-                "10grsn8wr8k02akj8f8wm1rhzrk0qls4phr46gv59nfr2msxmz8f"))))
+                "1p75zpqlbz7dx6nmn4g5bb369g7gnmsg3r21hljjadr3f4q6zfk7"))))
     (build-system gnu-build-system)
     (native-inputs (list (texlive-updmap.cfg)))
     (inputs (list gmp libx11 perl readline))
     (arguments
-     '(#:make-flags '("all")
-       #:test-target "dobench"
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'configure
-           (lambda* (#:key outputs #:allow-other-keys)
-             (invoke "./Configure"
-                     "--mt=pthread"
-                     (string-append "--prefix="
-                                    (assoc-ref outputs "out"))))))))
+     (list
+      #:test-target "dobench"
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'configure
+            (lambda _
+              (invoke "./Configure"
+                      "--mt=pthread"
+                      (string-append "--prefix=" #$output))))
+          (add-after 'install 'install-data
+            (lambda _
+              (invoke "tar" "-xvf" #$pari-galdata)
+              (invoke "tar" "-xvf" #$pari-seadata-small)
+              (copy-recursively "data/" (string-append
+                                         #$output
+                                         "/share/pari")))))))
     (synopsis "PARI/GP, a computer algebra system for number theory")
     (description
      "PARI/GP is a widely used computer algebra system designed for fast
@@ -268,7 +303,7 @@ PARI is also available as a C library to allow for faster computations.")
 (define-public gp2c
   (package
    (name "gp2c")
-   (version "0.0.13")
+   (version "0.0.14")
    (source (origin
             (method url-fetch)
             (uri (string-append
@@ -276,7 +311,7 @@ PARI is also available as a C library to allow for faster computations.")
                   version ".tar.gz"))
             (sha256
               (base32
-                "0dlxlrwwvhmjljjzsq95fsm14j5n5353snd92b0pdg9ylzn784r6"))))
+                "0c3v1g04mkb45xrcrxr9xzp61nnql38k6i6s77i5f14l0b614qdg"))))
    (build-system gnu-build-system)
    (native-inputs (list perl))
    (inputs (list pari-gp))
@@ -302,7 +337,7 @@ GP2C, the GP to C compiler, translates GP scripts to PARI programs.")
 (define-public paritwine
   (package
     (name "paritwine")
-    (version "0.2.0")
+    (version "0.2.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -311,7 +346,7 @@ GP2C, the GP to C compiler, translates GP scripts to PARI programs.")
                     ".tar.gz"))
               (sha256
                (base32
-                "15m5jxmhx5zivk1k9wxpmzs8kqva3kvgxizdrkrmmp1qycn85n23"))))
+                "0xj948ngp9k2l1krwfcpzb4rxrvm2gy3r8w020lniz5hwbslagl7"))))
     (build-system gnu-build-system)
     (propagated-inputs (list pari-gp
                              gmp
@@ -360,7 +395,7 @@ precision.")
 (define-public giac
   (package
     (name "giac")
-    (version "1.9.0-93")
+    (version "1.9.0-998")
     (source
      (origin
        (method url-fetch)
@@ -368,11 +403,11 @@ precision.")
        ;; overwrites the release tarball there, introducing a checksum
        ;; mismatch every time.  See
        ;; <https://www-fourier.ujf-grenoble.fr/~parisse/debian/dists/stable/main/source/README>
-       (uri (string-append "https://www-fourier.ujf-grenoble.fr/"
-                           "~parisse/debian/dists/stable/main/source/"
-                           "giac_" version ".tar.gz"))
+       (uri (string-append
+              "https://www-fourier.ujf-grenoble.fr/~parisse/debian/dists/"
+              "stable/main/source/giac_" version ".tar.gz"))
        (sha256
-        (base32 "11acbgd264vi9r3gzx8js8x2piavhybr97iyrh027qvxlbsdsgqm"))))
+        (base32 "1r71kl21xxf3872r0q25r2b9wpg03zrp08rsnpyqrhajmxb0ljbz"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -410,9 +445,9 @@ precision.")
             (lambda _
               (delete-file (string-append #$output "/bin/xcasnew")))))))
     (inputs
-     ;; TODO: Add libnauty, unbundle "libmicropython.a".
+     ;; TODO: Unbundle "libmicropython.a".
      (list ao
-           fltk
+           fltk-1.3
            glpk-4
            gmp
            gsl
@@ -426,6 +461,7 @@ precision.")
            mesa
            mpfi
            mpfr
+           (list nauty "lib")
            ntl
            openblas
            pari-gp
@@ -566,7 +602,7 @@ matrices, and polynomials over the integers and over finite fields.")
 (define-public singular
   (package
    (name "singular")
-   (version "4.3.2p10")
+   (version "4.4.0p7")
    (source
     (origin
       (method url-fetch)
@@ -580,23 +616,24 @@ matrices, and polynomials over the integers and over finite fields.")
                                     version))
                         #\.) "-")
                       "/singular-" version ".tar.gz"))
-             (sha256 (base32
-                      "1a2j2pkp73rb1xdd5623gkk1snwd85yimssnz86y0m79zvyckhi8"))))
+            (sha256
+              (base32
+               "0625541pxxhs7789i3ddf5fm1pqvf1kyljyaii41djg9j12cdhbc"))))
    (build-system gnu-build-system)
+   (arguments
+    (list
+     #:configure-flags #~(list (string-append "--with-ntl="
+                                              #$(this-package-input "ntl")))))
    (native-inputs
     (list doxygen graphviz perl))
    (inputs
-    `(("cddlib" ,cddlib)
-      ("gmp" ,gmp)
-      ("flint" ,flint)
-      ("mpfr" ,mpfr)
-      ("ntl" ,ntl)
-      ("python" ,python-2)
-      ("readline" ,readline)))
-   (arguments
-    `(#:configure-flags
-      (list (string-append "--with-ntl="
-                           (assoc-ref %build-inputs "ntl")))))
+    (list cddlib
+          gmp
+          flint
+          mpfr
+          ntl
+          python-2
+          readline))
    (synopsis "Computer algebra system for polynomial computations")
    (description
     "Singular is a computer algebra system for polynomial computations,
@@ -607,6 +644,28 @@ geometry and singularity theory.")
    ;; combined work becomes gpl3. See COPYING in the source code.
    (license license:gpl3)
    (home-page "https://www.singular.uni-kl.de/index.php")))
+
+(define-public python-pysingular
+  (package
+    (name "python-pysingular")
+    (version "0.9.7")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "PySingular" version))
+       (sha256
+        (base32 "037n3s1l08g75k22saki6813wi3ciiq45zxca11izilgagbx20ya"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f)) ; there are no tests
+    (native-inputs (list python-setuptools python-wheel))
+    ;; XXX: GMP failed to be loaded from Singular.  Pass it here for now.
+    (inputs (list gmp singular))
+    (home-page "https://github.com/sebasguts/PySingular")
+    (synopsis "Simple interface to Singular")
+    (description "This package provides a simple Python interface to the
+Singular computer algebra system.")
+    (license license:gpl2+)))
 
 (define-public gmp-ecm
   (package
@@ -924,7 +983,7 @@ algorithms from the FORTRAN library MINPACK.")
 (define-public symengine
   (package
     (name "symengine")
-    (version "0.13.0")
+    (version "0.14.0")
     (source
      (origin
        (method git-fetch)
@@ -933,7 +992,7 @@ algorithms from the FORTRAN library MINPACK.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1jakpcazxfgr5qswkqqvn5j6y8giyxwpd68jfgvsfkhp09vygi44"))))
+        (base32 "0w00zq8c9w6sln2mrj1jg3c9qq98p2k2ff358ydl6zkpidqrbf2s"))))
     (build-system cmake-build-system)
     (arguments
      '(#:configure-flags
@@ -982,6 +1041,61 @@ Optional thin wrappers allow usage of the library from other languages.")
 to other CAS it does not try to provide extensive algebraic capabilities and a
 simple programming language but instead accepts a given language (C++) and
 extends it by a set of algebraic capabilities.")
+    (license license:gpl2+)))
+
+(define-public normaliz
+  (package
+    (name "normaliz")
+    (version "3.10.4")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/normaliz/Normaliz")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1smla96wjyv5ygg77ps9np6bfzp2qynq8vd1msybabi4621cnrma"))))
+    (build-system gnu-build-system)
+    (native-inputs (list autoconf automake libtool pkg-config))
+    ;; Flint is optional. TODO: Try to build with nauty and cocoalib support.
+    ;; The configure script fails to find nauty.h.
+    (inputs (list flint gmp))
+    (home-page "https://www.normaliz.uni-osnabrueck.de/")
+    (synopsis "Tool for discrete convex geometry")
+    (description "Normaliz is a tool for computations in affine monoids,
+vector configurations, rational polyhedra and rational cones.  Normaliz now
+computes rational and algebraic polyhedra, i.e., polyhedra defined over real
+algebraic extensions of QQ.")
+    (license license:gpl3+)))
+
+(define-public python-pynormaliz
+  (package
+    (name "python-pynormaliz")
+    (version "2.21")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pynormaliz" version))
+       (sha256
+        (base32 "0hsyxml71i2b9pa375ipbfpackj3y67jlg2rxgc433sfy3895wvf"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:tests? #f ; tests need normaliz to be built with nauty support
+      #:phases #~(modify-phases %standard-phases
+                   (replace 'check
+                     (lambda* (#:key tests? #:allow-other-keys)
+                       (if tests?
+                           (invoke "python" "tests/runtests.py")))))))
+    (native-inputs (list python-setuptools python-wheel))
+    (inputs (list flint gmp normaliz))
+    (home-page "https://github.com/Normaliz/PyNormaliz")
+    (synopsis "Python interface to Normaliz")
+    (description
+     "PyNormaliz provides an interface to Normaliz via libNormaliz.  It offers
+the complete functionality of Normaliz, and can be used interactively from
+Python.")
     (license license:gpl2+)))
 
 (define-public eigen
@@ -1146,23 +1260,26 @@ features, and more.")
 (define-public xtensor
   (package
     (name "xtensor")
-    (version "0.24.6")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/xtensor-stack/xtensor")
-                    (commit version)))
-              (sha256
-               (base32
-                "0gf5m5p61981pv7yh5425lcv8dci948ri37hn1zlli7xg54x0g3i"))
-              (file-name (git-file-name name version))))
+    (version "0.25.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/xtensor-stack/xtensor")
+             (commit version)))
+       (sha256
+        (base32 "0ziqybfm0fh6kr8qwxqacr04m9gm0njbn520izm6rsh9hysxsmw5"))
+       (file-name (git-file-name name version))))
     (build-system cmake-build-system)
-    (native-inputs
-     (list doctest googletest xtl))
     (arguments
-     `(#:configure-flags
-       '("-DBUILD_TESTS=ON")
-       #:test-target "xtest"))
+     (list
+      #:configure-flags #~(list "-DBUILD_TESTS=ON")
+      #:test-target "xtest"))
+    (native-inputs
+     (list doctest
+           googletest
+           nlohmann-json
+           xtl))
     (home-page "https://xtensor.readthedocs.io/en/latest/")
     (synopsis "C++ tensors with broadcasting and lazy computing")
     (description "xtensor is a C++ library meant for numerical analysis with
@@ -1218,37 +1335,34 @@ xtensor provides:
 (define-public gap
   (package
     (name "gap")
-    (version "4.13.1")
+    (version "4.14.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://files.gap-system.org/gap-"
                            (version-major+minor version)
-                           "/tar.gz/gap-"
-                           version
-                           ".tar.gz"))
+                           "/tar.gz/gap-" version ".tar.gz"))
        (sha256
-        (base32 "1fmy3mzbw84f1cxrkjcw7wyssj48zhhwxa0a5l58x6gvlvdxp54p"))
+        (base32 "11v4a3cpjpf6pc0hd6x1wlglq9jzakq4naggp671psvgq9r54pw4"))
        (modules '((guix build utils) (ice-9 ftw) (srfi srfi-1)))
        (snippet
         '(begin
            ;; Delete bundled external libraries.
            (for-each delete-file-recursively
-                     '("extern" "hpcgap/extern"))
-           ;; Delete packages that are known not to build.
-           ;; TODO: Investigate.
-           (with-directory-excursion "pkg"
-             (for-each delete-file-recursively
-                       '("caratinterface" ; ./configure: /bin/sh: bad interpreter: No such file or directory
-                         "cddinterface" ; configure: error: could not use setoper.h
-                         "normalizinterface" ; tries to download normaliz
-                         "semigroups" ; bundled dependencies
-                         "xgap" ; make: /bin/sh: No such file or directory
-                        )))))))
+                     '("extern" "hpcgap/extern"))))))
     (build-system gnu-build-system)
+    (native-inputs (list (texlive-updmap.cfg
+                           (list texlive-enumitem
+                                 texlive-etoolbox
+                                 texlive-fancyvrb
+                                 texlive-helvetic
+                                 texlive-rsfs
+                                 texlive-times))))
     (inputs
      (list gmp readline zlib
+           cddlib ; for the cddinterface package
            curl   ; for the curlinterface package
+	   libx11 libxaw libxt ; for the xgap package
            zeromq ; for the zeromqinterface package
      ))
     (arguments
@@ -1256,22 +1370,65 @@ xtensor provides:
        (list (string-append "LDFLAGS=-Wl,-rpath=" %output "/lib"))
        #:phases
        (modify-phases %standard-phases
+         (add-after 'unpack 'prepare-package-source
+           (lambda _
+             (with-directory-excursion "pkg"
+               ;; Unpack package tarball, so that shebangs can be modified.
+               (with-directory-excursion "caratinterface"
+                 (invoke "tar" "xvf" "carat.tgz"))
+               ;; Replace paths and adapt configuration.
+               (with-directory-excursion "xgap"
+                 (substitute* '("Makefile.in" "cnf/Makegap.in")
+                   (("/bin/sh")
+                    (string-append
+                      (assoc-ref %build-inputs "bash") "/bin/bash")))
+		 (substitute* "xgap.sh.in"
+                   (("\"@gapdir@\"")
+                    (string-append %output "/share/gap"))
+                   (("^XGAP=.*$")
+		    (string-append "XGAP=" %output
+                                   "/share/gap/pkg/xgap/bin/$XGAP_PRG\n"))
+                   (("^GAP=.*$")
+                    (string-append "GAP=" %output "/bin/gap\n"))
+                   (("VERBOSE=\"NO\"") "VERBOSE=\"YES\""))))))
+         ;; The following phases are executed after 'build, apparently in
+         ;; reverse order. So we carry out 'build, then 'build-doc, then
+         ;; 'remove-packages, then 'build-packages.
          (add-after 'build 'build-packages
            (lambda _
              (setenv "CONFIG_SHELL" (which "bash"))
              (setenv "CC" "gcc")
              (with-directory-excursion "pkg"
                (invoke "../bin/BuildPackages.sh"))))
-         (add-after 'build-packages 'build-doc
+         (add-after 'build 'remove-packages
+           ;; Delete packages that are known not to build.
+           ;; TODO: Investigate.
+           (lambda _
+             (with-directory-excursion "pkg"
+               (for-each delete-file-recursively
+                         '("normalizinterface" ; tries to download normaliz even when it is available
+                           "semigroups" ; bundled dependency libsemigroups
+             )))))
+         (add-after 'build 'build-doc
            ;; The documentation is bundled, but we create it from source.
+           ;; This needs to be done before 'remove-packages, since
+           ;; otherwise this phase fails due to missing cross references.
+           ;; Otherwise said, the documentation will include that of
+           ;; removed packages. It needs to be done after 'build since
+           ;; it requires the gap binary.
            (lambda _
              (with-directory-excursion "doc"
                (invoke "./make_doc"))))
          (add-after 'install 'install-packages
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
-                    (share (string-append out "/share/gap")))
-               (copy-recursively "pkg" (string-append share "/pkg"))))))))
+                    (bin (string-append out "/bin"))
+                    (share (string-append out "/share/gap"))
+                    (xgap-sh (string-append share "/pkg/xgap/xgap.sh"))
+                    (xgap (string-append bin "/xgap")))
+               (copy-recursively "pkg" (string-append share "/pkg"))
+               (chmod xgap-sh #o744)
+               (symlink xgap-sh xgap)))))))
     (home-page "https://www.gap-system.org/")
     (synopsis
      "System for computational group theory")
@@ -1281,7 +1438,7 @@ emphasis on computational group theory.  It provides a programming language,
 a library of thousands of functions implementing algebraic algorithms
 written in the GAP language as well as large data libraries of algebraic
 objects.")
-    ;; gap itself is gpl2+, but some packages have different licenses.
+    ;; gap itself is gpl2+, but some packages have different licenses,
     ;; effectively forcing the combined work to be licensed as gpl3+.
     (license license:gpl3+)))
 
@@ -1459,7 +1616,7 @@ finite fields.")
 (define-public m4ri
   (package
     (name "m4ri")
-    (version "20140914")
+    (version "20200125")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1468,7 +1625,7 @@ finite fields.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0xfg6pffbn8r1s0y7bn9b8i55l00d41dkmhrpf7pwk53qa3achd3"))))
+                "1dxgbv6zdyki3h61qlv7003wzhy6x14zmcaz9x19md1i7ng07w1k"))))
     (build-system gnu-build-system)
     (native-inputs
      (list autoconf automake libtool pkg-config))
@@ -1573,7 +1730,7 @@ of M4RI from F_2 to F_{2^e}.")
 (define-public eclib
   (package
     (name "eclib")
-    (version "20220621")
+    (version "20250122")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1582,7 +1739,7 @@ of M4RI from F_2 to F_{2^e}.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "07wbkzmn6w0hrv2vim7f0il7k59ccc66x5vnn623xkmhfw32b3nz"))))
+                "0f50r23788n6b899za1a7x6jkrhwj3y2v5y4xc98k63mp0wvqfq1"))))
     (build-system gnu-build-system)
     (native-inputs
      (list autoconf automake libtool))
@@ -1593,8 +1750,7 @@ of M4RI from F_2 to F_{2^e}.")
 elliptic curves over Q) and modular symbol code; it has been written by
 John Cremona to compute his elliptic curve database.")
     (license license:gpl2+)
-    (home-page (string-append "http://homepages.warwick.ac.uk/staff/"
-                              "J.E.Cremona/mwrank/index.html"))))
+    (home-page "https://johncremona.github.io/mwrank/index.html")))
 
 (define-public lrcalc
   (package
@@ -1623,6 +1779,28 @@ structure constants of Schubert polynomials.")
     (license license:gpl2+)
     (home-page "https://sites.math.rutgers.edu/~asbuch/lrcalc/")))
 
+(define-public python-lrcalc
+  (package
+    (name "python-lrcalc")
+    (version "2.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "lrcalc" version))
+       (sha256
+        (base32 "1adassfjalsdsngy01c37835qsx3gj0jx9cinc9b91x4xnd51873"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f)) ; there are no tests
+    (native-inputs (list python-cython python-setuptools python-wheel))
+    (inputs (list lrcalc))
+    (home-page "https://math.rutgers.edu/~asbuch/lrcalc")
+    (synopsis "Python bindings for the Littlewood-Richardson Calculator")
+    (description
+     "This package provides Python bindings for the Littlewood-Richardson
+Calculator.")
+    (license license:gpl3+)))
+
 (define-public iml
   (package
     (name "iml")
@@ -1638,8 +1816,8 @@ structure constants of Schubert polynomials.")
     (build-system gnu-build-system)
     (inputs
      `(("gmp" ,gmp)
-       ("cblas" ,openblas))) ; or any other BLAS library; the documentation
-                             ; mentions ATLAS in particular
+       ("cblas" ,openblas)))    ; or any other BLAS library; the documentation
+                                        ; mentions ATLAS in particular
     (arguments
      `(#:configure-flags
        (list
@@ -1700,6 +1878,46 @@ no more than about 20 bits long).")
 (@dfn{DCT}), Discrete Sine Transform (@dfn{DST}) and Discrete Hartley Transform
 (@dfn{DHT}).")
     (license license:gpl2+)))
+
+(define-public libsemigroups
+  (package
+    (name "libsemigroups")
+    (version "2.7.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/libsemigroups/libsemigroups")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0pk7887g4in7fskl0da8l2xppv293jm31ykacsss3vs5fff2pw7a"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list
+      ;; FIXME: libsemigroup's build system doesn't have an option to use
+      ;; external HPCombi.  Try to work it around in the future and skip
+      ;; support for now.
+      #:configure-flags #~(list "--enable-fmt=yes"
+                                "--enable-hpcombi=no"
+                                "--with-external-eigen=yes"
+                                "--with-external-fmt=yes")
+      #:phases #~(modify-phases %standard-phases
+                   (add-after 'unpack 'fix-version
+                     (lambda* (#:key inputs #:allow-other-keys)
+                       (substitute* "etc/version-number.sh"
+                         (("/bin/sh")
+                          (search-input-file inputs "/bin/bash"))))))))
+    (native-inputs
+     (list autoconf automake libtool pkg-config))
+    (inputs (list eigen fmt))
+    (home-page "https://github.com/libsemigroups/libsemigroups")
+    (synopsis "Library for semigroups and monoids")
+    (description
+     "@code{libsemigroups} is a C++14 library containing implementations of
+several algorithms for computing finite, and finitely presented,
+semigroups and monoids.")
+    (license license:gpl3+)))
 
 (define-public sollya
   (package
@@ -1823,3 +2041,138 @@ and not by the available RAM.")
     (description (string-append (package-description form)
                                 "  This package also includes
 @code{parform}, a version of FORM parallelized using OpenMPI."))))
+
+(define-public reduce
+  (package
+    (name "reduce")
+    (version "2024-08-12")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "mirror://sourceforge/reduce-algebra/snapshot_"
+                    version "/Reduce-svn6860-src.tar.gz"))
+              (sha256
+               (base32
+                "13bij9d4dj96vd5di59skz77s2fihj7awmkx403fvh9rd04ly25z"))
+              (modules '((guix build utils)))
+              (patches (search-patches "reduce-unbundle-libffi.patch"))
+              ;; remove binaries and unnecessary parts
+              ;; to ensure we build from source files only
+              (snippet '(map delete-file-recursively
+                         (append (find-files "csl/generated-c" "\\.img$")
+                          '("psl" "vsl"
+                            "jlisp"
+                            "jslisp"
+                            "libedit"
+                            "macbuild"
+                            "MacPorts"
+                            "mac-universal"
+                            "reduce2"
+                            "winbuild64"
+                            "common-lisp"
+                            "contrib"
+                            "generic/qreduce"
+                            "web/htdocs/images/Thumbs.db")
+                          (find-files "csl"
+                           "^(embedded|new-embedded|winbuild|support-packages)$"
+                           #:directories? #t)
+                          (find-files "libraries"
+                           "^(original|wineditline|libffi|libffi-for-mac)$"
+                           #:directories? #t))))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:parallel-build? #f
+           #:configure-flags
+           #~(list "--without-autogen"
+                   ;; fix conflict with internal build name determination
+                   "--build="
+                   "--with-csl"
+                   (string-append "CPPFLAGS=-I"
+                                  #$freetype
+                                  "/include/freetype2"))
+           #:make-flags #~(list "csl")
+           #:phases
+           #~(modify-phases %standard-phases
+               (replace 'check
+                 (lambda* (#:key tests? #:allow-other-keys)
+                   (when tests?
+                     (invoke "scripts/testall.sh" "--csl" "--noregressions"))))
+               (add-before 'patch-source-shebangs 'autogen
+                 (lambda _
+                   (invoke "sh" "autogen.sh")))
+               (add-after 'install 'fix-install
+                 (lambda _
+                   (copy-file "bin/rfcsl"
+                              (string-append #$output "/bin/rfcsl"))
+                   (copy-file "generic/newfront/redfront.1"
+                              (string-append #$output
+                                             "/share/man/man1/rfcsl.1"))
+                   (let ((.desktop-file
+                          "debianbuild/reduce/debian/redcsl.desktop")
+                         (icon "debianbuild/reduce/debian/reduce.png"))
+                     (install-file .desktop-file
+                                   (string-append #$output
+                                                  "/share/applications"))
+                     (install-file icon
+                                   (string-append
+                                    #$output
+                                    "/share/icons/hicolor/32x32/apps")))
+                   (with-directory-excursion #$output
+                     (map (lambda (dir)
+                            (map (lambda (file)
+                                   (chmod file #o444))
+                                 (find-files dir)))
+                          '("share/man/man1" "share/reduce/fonts"))))))))
+    (native-inputs (list autoconf automake libtool which))
+    (inputs
+     ;; bundled libraries: fox (adjusted) editline (adjusted)
+     ;; crlibm softfloat
+     (list freetype libffi libx11 libxext libxft ncurses))
+    (synopsis "Portable general-purpose computer algebra system")
+    (description
+     "REDUCE is a portable general-purpose computer algebra system.  It is a
+system for doing scalar, vector and matrix algebra by computer, which also
+supports arbitrary precision numerical approximation and interfaces to
+gnuplot to provide graphics.  It can be used interactively for simple
+calculations but also provides a full programming language, with a syntax
+similar to other modern programming languages.  REDUCE supports alternative
+user interfaces including Run-REDUCE, TeXmacs and GNU Emacs.  This package
+provides the Codemist Standard Lisp (CSL) version of REDUCE.  It uses the
+gnuplot program, if installed, to draw figures.")
+    (home-page "https://reduce-algebra.sourceforge.io/")
+    (license (license:non-copyleft "file://README"
+                                   "See README in the distribution."))))
+
+(define-public msolve
+  (package
+    (name "msolve")
+    (version "0.7.3")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/algebraic-solving/msolve")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1ipsdw5sk4d344ki4r5ma9vn8gyi8hrk0n951r0720wvgxkw920p"))))
+    (build-system gnu-build-system)
+    (native-inputs (list autoconf automake libtool))
+    (inputs (list flint gmp mpfr))
+    (home-page "https://msolve.lip6.fr/")
+    (synopsis
+     "Library for polynomial system solving through algebraic methods")
+    (description "@code{msolve} is a C library implementing computer algebra
+algorithms for solving polynomial systems (with rational coefficients or
+coefficients in a prime field).
+
+Currently, with msolve, you can basically solve multivariate polynomial
+systems.  This encompasses:
+
+@itemize
+@item the computation of Groebner bases
+@item real root isolation of the solutions to polynomial systems
+@item the computation of the dimension and the degree of the solution set.
+@end itemize")
+    (license license:gpl2+)))
+

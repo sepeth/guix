@@ -361,6 +361,26 @@ tests.")
     (home-page "https://gitlab.gnome.org/pwithnall/libglib-testing")
     (license license:lgpl2.1+)))
 
+(define-public libsfdo
+  (package
+    (name "libsfdo")
+    (version "0.1.3")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.freedesktop.org/vyivel/libsfdo")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1fi9hlg9ms8sszb0ylx4v0q49265vbsix455x64nkvklh049yc7n"))))
+    (build-system meson-build-system)
+    (home-page "https://gitlab.freedesktop.org/vyivel/libsfdo")
+    (synopsis "Implementation of some of the freedesktop.org specifications")
+    (description "libsfdo is a collection of libraries which implement
+some of the freedesktop.org specifications.")
+    (license license:bsd-2)))
+
 (define-public libliftoff
   (package
     (name "libliftoff")
@@ -765,6 +785,58 @@ other applications that need to directly deal with input devices.")
        `(cons* "-Dlibwacom=false"
                "-Ddebug-gui=false"    ;requires gtk+@3
                ,flags))))))
+
+(define-public libei
+  (package
+    (name "libei")
+    (version "1.3.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://gitlab.freedesktop.org/libinput/libei.git")
+                    (commit version)))
+              (sha256
+               (base32
+                "0idbl20ax060s7m435rszfv7c0bvpinjvq45qbqwvcvp0hg8r9y8"))
+              (snippet
+               #~(begin
+                   (use-modules (guix build utils))
+                   ;; Unbundle munit, we provide it as input.
+                   (substitute* "test/meson.build"
+                     (("subproject\\('munit'")
+                      "# subproject('munit'")
+                     ((", fallback: \\['munit', 'munit_dep'\\]")
+                      ""))
+                   (delete-file-recursively "subprojects")))))
+    (build-system meson-build-system)
+    (arguments
+     (list
+      #:configure-flags #~'("-Ddocumentation=api" ;protocol requires hugo
+                            "-Dsd-bus-provider=libelogind")))
+    (inputs
+     (list elogind libevdev libxkbcommon))
+    (propagated-inputs
+     ;; liboeffis-1.0.pc requires.private libelogind
+     (list elogind))
+    (native-inputs
+     (list doxygen
+           libxml2
+           munit
+           pkg-config
+           python
+           python-attrs
+           python-black
+           python-dbusmock
+           python-jinja2
+           python-pytest
+           python-structlog
+           valgrind/interactive))
+    (home-page "https://libinput.pages.freedesktop.org/libei/")
+    (synopsis "Emulated Input protocol implementation")
+    (description
+     "Libei provides a client and server implementation of the @acronym{EI,
+Emulated Input} protocol for Wayland compositors.")
+    (license license:x11)))
 
 (define-public libxdg-basedir
   (package
@@ -1347,7 +1419,7 @@ Python.")
 (define-public hyprland-protocols
   (package
     (name "hyprland-protocols")
-    (version "0.4.0")
+    (version "0.6.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1356,7 +1428,7 @@ Python.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0x86w7z3415qvixfhk9a8v5fnbnxdydzx366qz0mpmfg5h86qyha"))))
+                "17044wvfgcj7sks1dvhsbycp3ls82g1wadi3hzd6n9bhpszrpzz6"))))
     (build-system meson-build-system)
     (home-page "https://github.com/hyprwm/hyprland-protocols")
     (synopsis "Wayland protocol extensions for Hyprland")
@@ -1367,7 +1439,7 @@ Python.")
 (define-public hyprwayland-scanner
   (package
     (name "hyprwayland-scanner")
-    (version "0.4.2")
+    (version "0.4.4")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1376,11 +1448,11 @@ Python.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0r7ay4zjkfyr0xd73wz99qhnqjq7nma98gm51wm9lmai4igw90qw"))))
+                "1bnckwj7hh4k4knlyprybi1fmy9vda2h492hw6yska2shfzp6jvy"))))
     (build-system cmake-build-system)
     (arguments (list #:tests? #f))      ;No tests.
     (inputs (list pugixml))
-    (native-inputs (list gcc-13 pkg-config))
+    (native-inputs (list gcc-14 pkg-config))
     (home-page "https://github.com/hyprwm/hyprwayland-scanner")
     (synopsis "Hyprland implementation of @code{wayland-scanner}")
     (description
@@ -1442,15 +1514,16 @@ fullscreen) or other display servers.")
 (define-public wayland-protocols
   (package
     (name "wayland-protocols")
-    (version "1.37")
+    (version "1.39")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://gitlab.freedesktop.org/wayland/"
-                                  name "/-/releases/" version "/downloads/"
-                                  name "-" version ".tar.xz"))
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://gitlab.freedesktop.org/wayland/wayland-protocols")
+                    (commit version)))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "09pk3qhpc29x1a6srpqqw9dcvalg33vfmp14d276is7j4klrn3m7"))))
+                "1dpcwsd2p6sjf5164b674cr7vq24hp3lfdshijj438r4bx8bld28"))))
     (build-system meson-build-system)
     (inputs
      (list wayland))
@@ -1465,9 +1538,6 @@ functionality not available in the Wayland core protocol.  Such protocols either
 add completely new functionality, or extend the functionality of some other
 protocol either in Wayland core, or some other protocol in wayland-protocols.")
     (home-page "https://wayland.freedesktop.org")
-    (properties
-     '((release-monitoring-url
-        . "https://wayland.freedesktop.org/releases.html")))
     (license license:expat)))
 
 (define-public wayland-protocols-next
@@ -1804,8 +1874,9 @@ Analysis and Reporting Technology) functionality.")
     (source (origin
               (method url-fetch)
               (uri (string-append
-                    "https://github.com/storaged-project/udisks/releases/download/udisks-"
-                    version "/udisks-" version ".tar.bz2"))
+                    "https://github.com/storaged-project/" name
+                    "/releases/download/" name "-" version "/"
+                    name "-" version ".tar.bz2"))
               (sha256
                (base32
                 "1klf5pcr9yg8g88mwwh3q2j0idfwd8hfr2q6nknhsm02yv638mxp"))))
@@ -1841,12 +1912,21 @@ Analysis and Reporting Technology) functionality.")
       #~(list "--enable-man"
               "--enable-available-modules" ; Such as lvm2, btrfs, etc.
               "--localstatedir=/var"
-              "--enable-fhs-media"    ;mount devices in /media, not /run/media
               (string-append "--with-html-dir=" #$output:doc
                              "/share/doc/udisks/html")
               (string-append "--with-udevdir=" #$output "/lib/udev"))
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-commands
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "src/udiskslinuxdrive.c"
+                (("\"eject %s\"")
+                 (format #f "\"~a %s\""
+                         (search-input-file inputs "bin/eject"))))
+              (substitute* "src/udisksstate.c"
+                (("\"umount -l %s\"")
+                 (format #f "\"~a -l %s\""
+                         (search-input-file inputs "bin/umount"))))))
           (add-before 'configure 'fix-girdir
             (lambda _
               ;; Install introspection data to its own output.
@@ -2068,6 +2148,7 @@ which speak the Qualcomm MSM Interface (QMI) protocol.")
         (git-reference
          (url "https://gitlab.freedesktop.org/mobile-broadband/ModemManager")
          (commit version)))
+       (patches (search-patches "modem-manager-fix-test-wrapper.patch"))
        (file-name (git-file-name name version))
        (sha256
         (base32
@@ -2364,14 +2445,14 @@ iChat interoperability, and multi-user chats and Tubes using the
 (define-public colord-gtk
   (package
     (name "colord-gtk")
-    (version "0.3.0")
+    (version "0.3.1")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://www.freedesktop.org/software/colord"
                                   "/releases/" name "-" version ".tar.xz"))
               (sha256
                (base32
-                "1l61ydb0zv2ffilwpapgz5mm3bznr28zl16xqbxnz6kdsrb6cimr"))))
+                "0b8j7an572ww8n3n0j9kwrl27qd3156g4zix9rzs2c2nny4vhxn1"))))
     (outputs '("out" "doc"))
     (build-system meson-build-system)
     (arguments
@@ -2616,7 +2697,7 @@ Rendering Manager devices.")
     (home-page "https://www.freedesktop.org/wiki/Software/xdg-user-dirs/")
     (synopsis "Tool to help manage \"well known\" user directories")
     (description "xdg-user-dirs is a tool to help manage \"well known\" user
-directories, such as the desktop folder or the music folder. It also handles
+directories, such as the desktop folder or the music folder.  It also handles
 localization (i.e. translation) of the file names.  Designed to be
 automatically run when a user logs in, xdg-user-dirs can also be run
 manually by a user.")
@@ -2837,7 +2918,7 @@ Its features include:
 (define-public plymouth
   (package
     (name "plymouth")
-    (version "22.02.122")
+    (version "24.004.60")
     (source
      (origin
        (method url-fetch)
@@ -2845,29 +2926,42 @@ Its features include:
                            "plymouth/releases/" name "-" version ".tar.xz"))
        (sha256
         (base32
-         "1sysx8s7w870iawk5qlaq44x4cfqfinasiy4d3l3q0r14925218h"))))
-    (build-system gnu-build-system)
+         "0d0wbfsy70xhgxv4mldv72gzv0k8bvfxpvm90rxmx3y9b09q9xzk"))))
+    (build-system meson-build-system)
     (arguments
      (list
       #:configure-flags
-      '(list "--with-logo=/var/run/plymouth/logo.png"
-             "--localstatedir=/var"
-             "--with-boot-tty=/dev/console"
-             "--without-system-root-install"
-             "--without-rhgb-compat-link"
-             "--enable-drm"
-             "--disable-systemd-integration"
+      '(list "-Dlogo=/var/run/plymouth/logo.png"
+             "-Dlocalstatedir=/var"
+             "-Dboot-tty=/dev/console"
+             "-Ddrm=true"
+             "-Dsystemd-integration=false"
              ;; Disable GTK to dramatically reduce the closure
              ;; size from ~800 MiB to a little more than 200 MiB
-             "--disable-gtk")
+             "-Dgtk=disabled")
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'unpack 'fix-install
+            (lambda _
+              (substitute* "src/meson.build"
+                (("install_emptydir" all) (string-append "# " all)))
+              (substitute* "themes/meson.build"
+                ;; XXX: meson barfs when installing (temporarily broken)
+                ;; symlink to logo.
+                (("subdir\\('spinfinity'\\)") ""))))
           (add-after 'unpack 'make-reproducible
             (lambda _
               (substitute* "src/main.c"
                 (("__DATE__") "\"guix\"")))))))
     (inputs
-     (list glib pango libdrm libpng eudev))
+     (list eudev
+           glib
+           libdrm
+           libevdev
+           libpng
+           libxkbcommon
+           pango
+           xkeyboard-config))
     (native-inputs
      (list gettext-minimal
            pkg-config
@@ -3109,7 +3203,7 @@ compatible with the well-known scripts of the same name.")
 (define-public xdg-desktop-portal
   (package
     (name "xdg-desktop-portal")
-    (version "1.16.0")
+    (version "1.18.4")
     (source
      (origin
        (method url-fetch)
@@ -3118,30 +3212,15 @@ compatible with the well-known scripts of the same name.")
              version "/xdg-desktop-portal-" version ".tar.xz"))
        (sha256
         (base32
-         "06cczlh39kc41rvav06v37sad827y61rffy3v29i918ibj8sahav"))))
-    (build-system gnu-build-system)
-    (native-inputs
-     `(("pkg-config" ,pkg-config)
-       ("autoconf" ,autoconf)
-       ("automake" ,automake)
-       ("libtool" ,libtool)
-       ("glib:bin" ,glib "bin")
-       ("which" ,which)
-       ("gettext" ,gettext-minimal)))
-    (inputs
-     `(("gdk-pixbuf" ,gdk-pixbuf)
-       ("glib" ,glib)
-       ("flatpak" ,flatpak)
-       ("fontconfig" ,fontconfig)
-       ("json-glib" ,json-glib)
-       ("libportal" ,libportal)
-       ("dbus" ,dbus)
-       ("geoclue" ,geoclue)
-       ("pipewire" ,pipewire)
-       ("fuse" ,fuse)))
+         "0r8y8qmzcfj7b7brqcxr9lg8pavfds815ffvj0kqc378fhgaln5q"))
+       (patches (search-patches
+                 ;; Disable portal tests since they try to use fuse.
+                 "xdg-desktop-portal-disable-portal-tests.patch"
+                 "xdg-desktop-portal-disable-configuration-search-exit.patch"))))
+    (build-system meson-build-system)
     (arguments
      `(#:configure-flags
-       (list "--with-systemd=no")
+       (list "-Dsystemd=disabled")
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'po-chmod
@@ -3152,6 +3231,26 @@ compatible with the well-known scripts of the same name.")
                        (find-files "po" "\\.po$"))))
          (add-after 'unpack 'set-home-directory
            (lambda _ (setenv "HOME" "/tmp"))))))
+    (native-inputs
+     (list gettext-minimal
+           `(,glib "bin")
+           pkg-config
+           python
+           python-dbusmock
+           python-pytest
+           python-pytest-xdist))
+    (inputs
+     (list bubblewrap
+           dbus
+           flatpak
+           fontconfig
+           fuse
+           gdk-pixbuf
+           geoclue
+           glib
+           json-glib
+           libportal
+           pipewire))
     (native-search-paths
      (list (search-path-specification
             (variable "XDG_DESKTOP_PORTAL_DIR")
@@ -3169,37 +3268,6 @@ path (@code{/org/freedesktop/portal/desktop}).
 The portal interfaces include APIs for file access, opening URIs, printing
 and others.")
     (license license:lgpl2.1+)))
-
-(define-public xdg-desktop-portal-next
-  (package
-    (inherit xdg-desktop-portal)
-    (version "1.18.4")
-    (source
-     (origin
-       (method url-fetch)
-       (uri (string-append
-             "https://github.com/flatpak/xdg-desktop-portal/releases/download/"
-             version "/xdg-desktop-portal-" version ".tar.xz"))
-       (sha256
-        (base32
-         "0r8y8qmzcfj7b7brqcxr9lg8pavfds815ffvj0kqc378fhgaln5q"))
-       ;; Disable portal tests since they try to use fuse.
-       (patches (search-patches "xdg-desktop-portal-disable-portal-tests.patch"))))
-    (build-system meson-build-system)
-    (arguments
-     (substitute-keyword-arguments (package-arguments xdg-desktop-portal)
-       ((#:configure-flags _ ''())
-        #~(list "-Dsystemd=disabled"))))
-    (native-inputs
-     (list pkg-config
-           `(,glib "bin")
-           gettext-minimal
-           python
-           python-dbusmock
-           python-pytest
-           python-pytest-xdist))
-    (inputs (modify-inputs (package-inputs xdg-desktop-portal)
-              (prepend bubblewrap)))))
 
 (define-public xdg-desktop-portal-gtk
   (package
@@ -3262,7 +3330,7 @@ interfaces.")
 (define-public xdg-desktop-portal-hyprland
   (package
     (name "xdg-desktop-portal-hyprland")
-    (version "1.3.6")
+    (version "1.3.9")
     (source
      (origin
        (method git-fetch)
@@ -3271,7 +3339,7 @@ interfaces.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "17ba9jkccyp8gv79ds70khgm5wm6x8zs5m9nkilq4n2j7fsa8cfl"))))
+        (base32 "0k1bgdpg5ixxqg9r4vraszbnl4rl9gh87dhyc7rr332rf0j9n0xh"))))
     (build-system qt-build-system)
     (arguments
      (list #:tests? #f                  ;No tests.
@@ -3288,7 +3356,7 @@ interfaces.")
                      (("\\<(hyprland-share-picker)\\>" _ cmd)
                       (string-append #$output "/bin/" cmd))))))))
     (native-inputs
-     (list gcc-13 hyprwayland-scanner pkg-config))
+     (list gcc-14 hyprwayland-scanner pkg-config))
     (inputs
      (list bash-minimal
            grim

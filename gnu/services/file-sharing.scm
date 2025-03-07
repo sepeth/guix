@@ -635,7 +635,7 @@ satisfy requests from peers."))
     (list
      (shepherd-service
       (provision '(transmission-daemon transmission bittorrent))
-      (requirement '(networking))
+      (requirement '(user-processes networking))
       (documentation "Share files using the BitTorrent protocol.")
       (start #~(make-forkexec-constructor
                 '(#$(file-append transmission "/bin/transmission-daemon")
@@ -648,33 +648,12 @@ satisfy requests from peers."))
                 #:log-file #$%transmission-daemon-log-file
                 #:environment-variables
                 '("CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt")))
-      (stop #~(lambda (pid)
-                (kill pid SIGTERM)
 
-                ;; Transmission Daemon normally needs some time to shut down,
-                ;; as it will complete some housekeeping and send a final
-                ;; update to trackers before it exits.
-                ;;
-                ;; Wait a reasonable period for it to stop before continuing.
-                ;; If we don't do this, restarting the service can fail as the
-                ;; new daemon process finds the old one still running and
-                ;; attached to the port used for peer connections.
-                (let wait-before-killing ((period #$stop-wait-period))
-                  (if (zero? (car (waitpid pid WNOHANG)))
-                      (if (positive? period)
-                          (begin
-                            (sleep 1)
-                            (wait-before-killing (- period 1)))
-                          (begin
-                            (format #t
-                                    #$(G_ "Wait period expired; killing \
-transmission-daemon (pid ~a).~%")
-                                    pid)
-                            (display #$(G_ "(If you see this message \
-regularly, you may need to increase the value
-of 'stop-wait-period' in the service configuration.)\n"))
-                            (kill pid SIGKILL)))))
-                #f))
+      ;; Transmission Daemon normally needs some time to shut down, as it will
+      ;; complete some housekeeping and send a final update to trackers before
+      ;; it exits.
+      (stop #~(make-kill-destructor #:grace-period #$stop-wait-period))
+
       (actions
        (list
         (shepherd-action
@@ -700,10 +679,6 @@ running."))))))))))))
          (home-directory %transmission-daemon-configuration-directory)
          (shell (file-append shadow "/sbin/nologin"))
          (system? #t))))
-
-(define %transmission-daemon-log-rotations
-  (list (log-rotation
-         (files (list %transmission-daemon-log-file)))))
 
 (define (transmission-daemon-computed-settings-file config)
   "Return a @code{computed-file} object that, when unquoted in a G-expression,
@@ -785,8 +760,6 @@ produces a Transmission settings file (@file{settings.json}) matching CONFIG."
                              transmission-daemon-shepherd-service)
           (service-extension account-service-type
                              (const %transmission-daemon-accounts))
-          (service-extension rottlog-service-type
-                             (const %transmission-daemon-log-rotations))
           (service-extension activation-service-type
                              transmission-daemon-activation)))
    (default-value (transmission-daemon-configuration))

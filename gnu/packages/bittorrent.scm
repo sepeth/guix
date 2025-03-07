@@ -146,7 +146,9 @@
                       #:glib-or-gtk-wrap-excluded-outputs (list "out")
                       args)))
            (add-after 'glib-or-gtk-wrap 'wrap-program
-             (lambda* (#:key outputs #:allow-other-keys)
+             (lambda* (#:key inputs outputs #:allow-other-keys)
+               (glib-or-gtk:generate-gdk-pixbuf-loaders-cache
+                (map cdr inputs) (list (assoc-ref outputs "gui")))
                (wrap-program (string-append #$output:gui "/bin/transmission-gtk")
                  ;; Wrapping GDK_PIXBUF_MODULE_FILE allows Transmission to load
                  ;; its own icons in pure environments.
@@ -424,7 +426,7 @@ and will take advantage of multiple processor cores where possible.")
 (define-public libtorrent-rasterbar
   (package
     (name "libtorrent-rasterbar")
-    (version "2.0.10")
+    (version "2.0.11")
     (source
      (origin
        (method url-fetch)
@@ -433,7 +435,7 @@ and will take advantage of multiple processor cores where possible.")
                        "releases/download/v" version "/"
                        "libtorrent-rasterbar-" version ".tar.gz"))
        (sha256
-        (base32 "0pc8rbcp7njbx8m02z47pcbbwcp5cjggbgq4sfjc19dc3n65p4zw"))))
+        (base32 "0v8yrxzc7piw5lrpgkb50b4p16ic1sl4pyj0rkkasaag1xc5inzh"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -448,13 +450,10 @@ and will take advantage of multiple processor cores where possible.")
             (lambda* (#:key tests? parallel-tests? #:allow-other-keys)
               (let* ((disabled-tests
                       '(;; Requires a non-localhost IPv4 interface.
-                        "test_upnp"
-                        ;; test_ssl needs to be run separately.
-                        "test_ssl"))
+                        "test_upnp"))
                      (exclude-regex (string-append "^("
                                                    (string-join disabled-tests "|")
                                                    ")$"))
-                     (timeout "600")
                      (jobs (if parallel-tests?
                                (number->string (parallel-job-count))
                                "1")))
@@ -462,26 +461,7 @@ and will take advantage of multiple processor cores where possible.")
                   (invoke "ctest"
                           "-E" exclude-regex
                           "-j" jobs
-                          "--timeout" timeout
-                          "--output-on-failure")
-                  ;; test_ssl relies on bundled TLS certificates with a fixed
-                  ;; expiry date.  To ensure succesful builds in the future,
-                  ;; fake the time to be roughly that of the release.
-                  ;;
-                  ;; At the same time, faketime happens to cause
-                  ;; test_fast_extension, test_privacy and test_resolve_links
-                  ;; to hang, even with FAKETIME_ONLY_CMDS.  Not sure why.  So
-                  ;; execute only test_ssl under faketime.
-                  ;;
-                  ;; Note: The test_ssl test times out in the ci.
-                  ;; Temporarily disable it until that is resolved.
-                  ;; (invoke "faketime" "2022-10-24"
-                  ;;         "ctest"
-                  ;;         "-R" "^test_ssl$"
-                  ;;         "-j" jobs
-                  ;;         "--timeout" timeout
-                  ;;         "--output-on-failure")
-                  )))))))
+                          "--output-on-failure"))))))))
     (inputs (list boost openssl))
     (native-inputs
      (list libfaketime
@@ -498,7 +478,7 @@ desktops.")
 (define-public libtorrent-rasterbar-1.2
   (package
     (inherit libtorrent-rasterbar)
-    (version "1.2.19")
+    (version "1.2.20")
     (source
      (origin
        (method url-fetch)
@@ -507,12 +487,12 @@ desktops.")
                        "releases/download/v" version "/"
                        "libtorrent-rasterbar-" version ".tar.gz"))
        (sha256
-        (base32 "03p4nvsll568zlyqifid0cn135sg5whbk7g48gkbapnw92ayks7f"))))))
+        (base32 "1z5rdynzxcm6wb7v48ssfbwjairbjacb8rjix5fn70fw4668xgyc"))))))
 
 (define-public qbittorrent
   (package
     (name "qbittorrent")
-    (version "5.0.2")
+    (version "5.0.3")
     (source
      (origin
        (method git-fetch)
@@ -521,7 +501,7 @@ desktops.")
              (commit (string-append "release-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0dh3zn8r05s1jfixm7gxzhvvili8k92n6chz0g3qhd8m17613194"))))
+        (base32 "0j7c53whrw069ypyq6xsqhp0x7dsd51ck3vs2a7jzc57dyinfgwz"))))
     (build-system qt-build-system)
     (arguments
      (list #:qtbase qtbase
@@ -567,7 +547,7 @@ features.")
   (package
     (inherit qbittorrent)
     (name "qbittorrent-enhanced")
-    (version "5.0.2.10")
+    (version "5.0.3.10")
     (source
      (origin
        (method git-fetch)
@@ -577,7 +557,7 @@ features.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "1fmb5xbhn6lgfnyks69wa1cl2n9lplpgn67xrjm0yn9kgpkqc47m"))))
+         "04plcbmqbjjg7wkp7vww6ain3bkgaj5njf94pk7wlm2ysa6hbx3r"))))
     (home-page "https://github.com/c0re100/qBittorrent-Enhanced-Edition")
     (description
      "qBittorrent Enhanced is a bittorrent client based on qBittorrent with

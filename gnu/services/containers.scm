@@ -17,6 +17,7 @@
 ;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (gnu services containers)
+  #:use-module (gnu packages bash)
   #:use-module (gnu packages containers)
   #:use-module (gnu packages file-systems)
   #:use-module (gnu services)
@@ -63,10 +64,15 @@
 (define list-of-subid-ranges?
   (list-of subid-range?))
 
+(define (package-or-#f? val)
+  (or (not val)
+      (package? val)))
+
 (define-configuration/no-serialization rootless-podman-configuration
   (podman
-   (package podman)
-   "The Podman package that will be installed in the system profile.")
+   (package-or-#f podman)
+   "The Podman package that will be installed in the system profile.
+@code{#f} can be passed to suppress the installation.")
   (group-name
    (string "cgroup")
    "The name of the group that will own /sys/fs/cgroup resources.  Users that
@@ -106,8 +112,8 @@ available for each configured user."))
 
 (define rootless-podman-service-profile
   (lambda (config)
-    (list
-     (rootless-podman-configuration-podman config))))
+    (or (and=> (rootless-podman-configuration-podman config) list)
+        (list))))
 
 (define rootless-podman-service-etc
   (lambda (config)
@@ -134,7 +140,7 @@ available for each configured user."))
     (rootless-podman-configuration-group-name config))
   (program-file "cgroups2-fs-owner-entrypoint"
                 #~(system*
-                   "bash" "-c"
+                   (string-append #+bash-minimal "/bin/bash") "-c"
                    (string-append "echo Setting /sys/fs/cgroup "
                                   "group ownership to " #$group " && chown -v "
                                   "root:" #$group " /sys/fs/cgroup && "
@@ -147,7 +153,8 @@ available for each configured user."))
 (define (rootless-podman-cgroups-fs-owner-service config)
   (shepherd-service (provision '(cgroups2-fs-owner))
                     (requirement
-                     '(dbus-system
+                     '(user-processes
+                       dbus-system
                        elogind
                        file-system-/sys/fs/cgroup
                        networking
@@ -166,15 +173,16 @@ available for each configured user."))
 (define cgroups-limits-entrypoint
   (program-file "cgroups2-limits-entrypoint"
                 #~(system*
-                   "bash" "-c"
+                   (string-append #+bash-minimal "/bin/bash") "-c"
                    (string-append "echo Setting cgroups v2 limits && "
-                                  "echo +cpu +cpuset +memory +pids"
+                                  "echo +cpu +cpuset +io +memory +pids"
                                   " >> /sys/fs/cgroup/cgroup.subtree_control"))))
 
 (define (rootless-podman-cgroups-limits-service config)
   (shepherd-service (provision '(cgroups2-limits))
                     (requirement
-                     '(dbus-system
+                     '(user-processes
+                       dbus-system
                        elogind
                        networking
                        udev
@@ -194,7 +202,7 @@ pids.")
 (define rootless-podman-shared-root-fs-entrypoint
   (program-file "rootless-podman-shared-root-fs-entrypoint"
                 #~(system*
-                   "mount" "--make-shared" "/")))
+                   "/run/privileged/bin/mount" "--make-shared" "/")))
 
 (define (rootless-podman-shared-root-fs-service config)
   (shepherd-service (provision '(rootless-podman-shared-root-fs))

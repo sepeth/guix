@@ -60,11 +60,12 @@
 ;;; Copyright © 2023 Bruno Victal <mirai@makinata.eu>
 ;;; Copyright © 2023 Yovan Naumovski <yovan@gorski.stream>
 ;;; Copyright © 2023, 2024 Zheng Junjie <873216071@qq.com>
-;;; Copyright © 2023, 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2023, 2024, 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2024 Tomas Volf <~@wolfsden.cz>
 ;;; Copyright © 2022 Dominic Martinez <dom@dominicm.dev>
 ;;; Copyright © 2024 Alexey Abramov <levenson@mmer.org>
 ;;; Copyright © 2024 James Smith <jsubuntuxp@disroot.org>
+;;; Copyright © 2025 Sughosha <sughosha@disroot.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -111,6 +112,7 @@
   #:use-module (gnu packages bison)
   #:use-module (gnu packages boost)
   #:use-module (gnu packages check)
+  #:use-module (gnu packages cmake)
   #:use-module (gnu packages code)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages cpp)
@@ -147,6 +149,7 @@
   #:use-module (gnu packages libidn)
   #:use-module (gnu packages libusb)
   #:use-module (gnu packages linux)
+  #:use-module (gnu packages logging)
   #:use-module (gnu packages lua)
   #:use-module (gnu packages kerberos)
   #:use-module (gnu packages man)
@@ -349,7 +352,7 @@ the RFC.")
       (description
        "Netperf is a benchmark that can be used to measure the performance of
 many different types of networking.  It provides tests for both unidirectional
-throughput, and end-to-end latency.  The environments currently measureable
+throughput, and end-to-end latency.  The environments currently measurable
 by netperf include: TCP and UDP via BSD Sockets for both IPv4 and IPv6, DLPI,
 Unix Domain Sockets, SCTP for both IPv4 and IPv6.")
       (license license:expat))))
@@ -473,7 +476,7 @@ Android, and ChromeOS.")
 (define-public libnice
   (package
     (name "libnice")
-    (version "0.1.21")
+    (version "0.1.22")
     (source
      (origin
        (method git-fetch)
@@ -483,7 +486,7 @@ Android, and ChromeOS.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0zxh1mdrl4p2vih8f4yqzm3pp4jsmc8aq7l43dlndaz4sj4c8j44"))))
+         "0ik45q1qlr04llr2ssm6zb73840dmn31q303k3qrcpgj0jp578hg"))))
     (build-system meson-build-system)
     (outputs '("out" "doc"))
     (arguments
@@ -504,6 +507,10 @@ Android, and ChromeOS.")
                 ;; nondeterministic fashion (see:
                 ;; https://gitlab.freedesktop.org/libnice/libnice/-/issues/151).
                 (("'test-bsd'" all)
+                 (string-append "# " all))
+                ;; The test-new-trickle fails with GLib 2.83.0 (see:
+                ;; https://gitlab.freedesktop.org/libnice/libnice/-/issues/198).
+                (("'test-new-trickle'" all)
                  (string-append "# " all)))
               (substitute* "stun/tests/meson.build"
                 ;; test-bind.c:234: bad_responses: Assertion `len >= 20'
@@ -1027,7 +1034,7 @@ tasks.")
     (build-system qt-build-system)
     (arguments
      (list #:tests? #f)) ;There are no tests upstream
-    (inputs (list qtbase-5 networkmanager-qt5))
+    (inputs (list qtbase-5 qtwayland-5 networkmanager-qt5))
     (native-inputs (list qttools-5 pkg-config))
     (synopsis
      "NetworkManager front-end with information icon residing in system tray")
@@ -1857,6 +1864,7 @@ of the same name.")
            qtbase
            qtmultimedia
            qtsvg
+           qtwayland
            sbc
            snappy
            speexdsp
@@ -1949,41 +1957,6 @@ round-robin fashion.")
 manage, and delete Internet resources from Gandi.net such as domain names,
 virtual machines, and certificates.")
     (license license:gpl3+)))
-
-(define-public go-github-com-vishvananda-netns
-  (package
-    (name "go-github-com-vishvananda-netns")
-    (version "0.0.4")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/vishvananda/netns")
-             (commit (string-append "v" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "0rci8c211m57nya9il81fz6459pia3dj5i4b16fp34vjrkcxliml"))))
-    (build-system go-build-system)
-    (arguments
-     (list
-      #:import-path "github.com/vishvananda/netns"
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'disable-failing-tests
-            (lambda* (#:key tests? unpack-path #:allow-other-keys)
-              (with-directory-excursion (string-append "src/" unpack-path)
-                (substitute* (find-files "." "\\_test.go$")
-                  ;; Disable tests requiring root access.
-                  (("TestGetNewSetDelete") "OffTestGetNewSetDelete")
-                  (("TestThreaded") "OffTestThreaded"))))))))
-    (propagated-inputs
-     (list go-golang-org-x-sys))
-    (home-page "https://github.com/vishvananda/netns")
-    (synopsis "Simple network namespace handling for Go")
-    (description
-     "The netns package provides a simple interface for handling network
-namespaces in Go.")
-    (license license:asl2.0)))
 
 (define-public go-sctp
   ;; docker-libnetwork-cmd-proxy requires this exact commit.
@@ -2716,7 +2689,7 @@ library remains flexible, portable, and easily embeddable.")
 (define-public sslh
   (package
     (name "sslh")
-    (version "1.21c")
+    (version "2.1.2")
     (source
      (origin
        (method git-fetch)
@@ -2725,45 +2698,49 @@ library remains flexible, portable, and easily embeddable.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "19h32dn0076p3s7dn35qi5yp2xvnxw9sqphppmn72vyb8caxvw1z"))))
+        (base32 "0v4wmwcjqlpiagq2q30v7459ffvxb7i6kvjq1av6ajdd5iib2vpq"))))
     (build-system gnu-build-system)
     (native-inputs
      (list ;; Test dependencies.
            lcov
+           pcre2
            perl
            perl-conf-libconfig
            perl-io-socket-inet6
            perl-socket6
            psmisc))             ; for ‘killall’
     (inputs
-     (list libcap libconfig pcre tcp-wrappers))
+     (list libev libconfig pcre))
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (delete 'configure)            ; no configure script
-         (add-before 'check 'fix-tests
-           (lambda _
-             (substitute* "./t"
-               (("\"/tmp") "$ENV{\"TMPDIR\"} . \"")
-               ;; The Guix build environment lacks ‘ip6-localhost’.
-               (("ip6-localhost") "localhost"))
-             #t))
-         ;; Many of these files are mentioned in the man page. Install them.
-         (add-after 'install 'install-documentation
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (doc (string-append out "/share/doc/sslh")))
-               (install-file "README.md" doc)
-               (for-each
-                (lambda (file)
-                  (install-file file (string-append doc "/examples")))
-                (append (find-files "." "\\.cfg")
-                        (find-files "scripts"))))
-             #t)))
-       #:make-flags (list ,(string-append "CC=" (cc-for-target))
-                          "USELIBCAP=1"
-                          "USELIBWRAP=1"
-                          (string-append "PREFIX=" (assoc-ref %outputs "out")))
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'fix-tests
+                 (lambda _
+                   (substitute* "t"
+                     ;; XXX: Disable a failing test.
+                     (("my \\$DROP_CNX =          1;")
+                      "my $DROP_CNX =          0;")
+                     ;; XXX: "sslh-select" seems to not support this option for some
+                     ;; reason.  According to "sslhconf.cfg" this option just overrides the
+                     ;; verbosity configuration so it seems that we can safely drop it.
+                     (("-v 4")
+                      ""))
+                   (substitute* "test.cfg"
+                     ;; The Guix build environment lacks ‘ip4-localhost’.
+                     (("ip4-localhost") "localhost"))))
+               ;; Many of these files are mentioned in the man page. Install them.
+               (add-after 'install 'install-documentation
+                 (lambda _
+                   (let* ((doc (string-append #$output "/share/doc/sslh")))
+                     (install-file "README.md" doc)
+                     (for-each
+                      (lambda (file)
+                        (install-file file (string-append doc "/examples")))
+                      (append (find-files "." "\\.cfg")
+                              (find-files "scripts")))))))
+           #:make-flags #~(list (string-append "CC=" #$(cc-for-target))
+                                "USELIBCONFIG=1"
+                                (string-append "PREFIX=" #$output))
        #:test-target "test"))
     (home-page "https://www.rutschle.net/tech/sslh/README.html")
     (synopsis "Applicative network protocol demultiplexer")
@@ -2782,7 +2759,7 @@ that block port 22.")
 (define-public iperf
   (package
     (name "iperf")
-    (version "3.17.1")
+    (version "3.18")
     (source
      (origin
        (method git-fetch)
@@ -2791,7 +2768,7 @@ that block port 22.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "14pspy3348114r7rm2gj8h4qjhq8r8q7khrfqg8ln4vi1p9dq2x5"))))
+        (base32 "147ggkc53mviwg7q83hpfn144clqa1g3kdfbqb5jcgn15n4nr9gk"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -3186,7 +3163,7 @@ updates to the zebra daemon.")
      "Generate BGP filters from the @acronym{IRR, Internet Routing Registry}")
     (description
      "This program helps automate the creation and maintenance of @acronym{BGP,
-Border Gateway Protocol} routing filters used for peering trough Internet
+Border Gateway Protocol} routing filters used for peering through Internet
 exchanges.
 
 It generates prefix lists, (extended) access lists, policy-statement terms, and
@@ -4163,7 +4140,7 @@ powerful route filtering syntax and an easy-to-use configuration interface.")
 (define-public iwd
   (package
     (name "iwd")
-    (version "3.0")
+    (version "3.3")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4172,7 +4149,7 @@ powerful route filtering syntax and an easy-to-use configuration interface.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0lwsh56r8pq5drfhjm1wpkxsmaz516rj46mrr8wiilw5r6gxwjm6"))))
+                "0jrl2rgcazl05mqq0zbn9wgmxynndnnqk7pvbhgvmfsh76hifapq"))))
     (build-system gnu-build-system)
     (inputs
      (list dbus ell (package-source ell) openresolv readline))
@@ -4643,7 +4620,7 @@ network.")
 (define-public ngtcp2
   (package
     (name "ngtcp2")
-    (version "1.9.1")
+    (version "1.11.0")
     (source
      (origin
        (method url-fetch)
@@ -4651,7 +4628,7 @@ network.")
                            "releases/download/v" version "/"
                            "ngtcp2-" version ".tar.gz"))
        (sha256
-        (base32 "1hw2wmkp3z0p64gv4zgcrjkspb9wrdqyjymc93c4992skn9br3hd"))))
+        (base32 "1dp4r77sv70s62ihsqs6s1fdsp3mir8pjwhhw62j57mq0w6kkz21"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -4666,6 +4643,29 @@ network.")
      "The ngtcp2 project is an effort to implement the RFC9000 (IETF)
 QUIC protocol.")
     (license license:expat)))
+
+(define-public yaz
+  (package
+    (name "yaz")
+    (version "5.34.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://download.indexdata.com/pub/yaz/yaz-"
+                           version ".tar.gz"))
+       (sha256
+        (base32 "1h54vda4rgisih309jbdzs6d5vk5mfv5ca9csdbwwrg8hgjbjk6f"))))
+    (build-system gnu-build-system)
+    (home-page "https://www.indexdata.com/resources/software/yaz/")
+    (synopsis "Z39.50 toolkit for C")
+    (description
+     "YAZ is a C/C++ library for information retrieval applications using
+@uref{https://www.loc.gov/z3950/, Z39.50},
+@uref{https://www.loc.gov/standards/sru/, SRU} or
+@uref{https://solr.apache.org/, Solr Web Service} protocols for information
+retrieval.  It also offers @uref{https://zoom.z3950.org/, ZOOM} API
+implementing them.")
+    (license license:bsd-3)))
 
 (define-public yggdrasil
   (package
@@ -4758,10 +4758,47 @@ IPv6 Internet connectivity - it also works over IPv4.")
      ;; which apply to the Application, with which you must still comply
      license:lgpl3)))
 
+(define-public yggtray
+  (package
+    (name "yggtray")
+    (version "0.1.7")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/the-nexi/yggtray")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0q20dh6l1qbyd9iim82yv16gsknan0blp8z47xdxsva0ypjb2hl2"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f ;No tests.
+      #:modules '((guix build cmake-build-system)
+                  (guix build qt-utils)
+                  (guix build utils))
+      #:imported-modules `(,@%cmake-build-system-modules (guix build qt-utils))
+      #:phases #~(modify-phases %standard-phases
+                   (add-after 'install 'wrap-qt
+                     (lambda* (#:key inputs #:allow-other-keys)
+                       (wrap-qt-program "yggtray"
+                                        #:output #$output
+                                        #:inputs inputs))))))
+    (native-inputs (list cmake-minimal doxygen))
+    (inputs (list bash-minimal qtbase-5 qttools-5 qtwayland-5 yggdrasil))
+    (home-page "https://github.com/the-nexi/yggtray")
+    (synopsis "Yggdrasil tray and control panel")
+    (description
+     "@code{yggtray} is an @url{https://yggdrasil-network.github.io/, Yggdrasil} tray
+and control panel.  It allows the user to configure, run and control the Yggdrasil
+daemon.")
+    (license license:gpl3+)))
+
 (define-public nebula
   (package
     (name "nebula")
-    (version "1.9.3")
+    (version "1.9.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4770,7 +4807,7 @@ IPv6 Internet connectivity - it also works over IPv4.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "08zzbx2v713zd9p7i4kd1bvcw47xb0092p5apba1x5wg6fpxw5zr"))
+                "1slknnrdnf5a2ask11ql3gwnnl6c5359bp8rd712aq30lxa2d4r0"))
               ;; Remove windows-related binary blobs and files
               (snippet
                #~(begin
@@ -4782,6 +4819,8 @@ IPv6 Internet connectivity - it also works over IPv4.")
      (list
       #:import-path "github.com/slackhq/nebula"
       #:install-source? #f
+      ;; XXX: Pack missing packages for cmd/nebula-service
+      #:test-subdirs #~(list ".")
       #:phases
       #~(modify-phases %standard-phases
           (replace 'build
@@ -4808,29 +4847,32 @@ IPv6 Internet connectivity - it also works over IPv4.")
      (list go-dario-cat-mergo
            go-github-com-anmitsu-go-shlex
            go-github-com-armon-go-radix
-           go-github-com-cespare-xxhash-v2
            go-github-com-cyberdelia-go-metrics-graphite
            go-github-com-flynn-noise
+           go-github-com-gaissmai-bart
            go-github-com-gogo-protobuf
            go-github-com-google-gopacket
+           go-github-com-kardianos-service
            go-github-com-miekg-dns
            go-github-com-nbrownus-go-metrics-prometheus
            go-github-com-prometheus-client-golang
-           go-github-com-prometheus-client-model
-           go-github-com-prometheus-procfs
            go-github-com-rcrowley-go-metrics
            go-github-com-sirupsen-logrus
            go-github-com-skip2-go-qrcode
            go-github-com-songgao-water
            go-github-com-stretchr-testify
+           go-github-com-vishvananda-netlink
            go-golang-org-x-crypto
+           go-golang-org-x-exp
            go-golang-org-x-net
+           go-golang-org-x-sync
            go-golang-org-x-sys
            go-golang-org-x-term
+           go-golang-zx2c4-com-wireguard
            go-google-golang-org-protobuf
            go-gopkg-in-yaml-v2
-           go-github-com-vishvananda-netlink
-           go-github-com-vishvananda-netns))
+           ;go-gvisor-dev-gvisor  ; for nebula-service, not packed yet
+           ))
     (home-page "https://github.com/slackhq/nebula")
     (synopsis "Scalable, peer-to-peer overlay networking tool")
     (description

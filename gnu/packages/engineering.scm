@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015-2023 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Federico Beffa <beffa@fbengineering.ch>
 ;;; Copyright © 2016, 2018, 2020-2024 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 David Thompson <davet@gnu.org>
@@ -19,7 +19,7 @@
 ;;; Copyright © 2020, 2023 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2020, 2021 Ekaitz Zarraga <ekaitz@elenq.tech>
 ;;; Copyright © 2020 B. Wilson <elaexuotee@wilsonb.com>
-;;; Copyright © 2020, 2021, 2022, 2023, 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2020, 2021, 2022, 2023, 2024, 2025 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2020, 2021, 2023 Morgan Smith <Morgan.J.Smith@outlook.com>
 ;;; Copyright © 2021 qblade <qblade@protonmail.com>
 ;;; Copyright © 2021 Gerd Heber <gerd.heber@gmail.com>
@@ -27,20 +27,21 @@
 ;;; Copyright © 2021 Ivan Gankevich <i.gankevich@spbu.ru>
 ;;; Copyright © 2021, 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2021 Foo Chuan Wei <chuanwei.foo@hotmail.com>
-;;; Copyright © 2022 Evgeny Pisemsky <mail@pisemsky.site>
+;;; Copyright © 2022, 2025 Evgeny Pisemsky <mail@pisemsky.site>
 ;;; Copyright © 2022 Olivier Dion <olivier.dion@polymtl.ca>
 ;;; Copyright © 2022 Peter Polidoro <peter@polidoro.io>
 ;;; Copyright © 2022 Malte Frank Gerdes <malte.f.gerdes@gmail.com>
 ;;; Copyright © 2022 Konstantinos Agiannis <agiannis.kon@gmail.com>
 ;;; Copyright © 2022 Greg Hogan <code@greghogan.com>
-;;; Copyright © 2022, 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
-;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
-;;; Copyright © 2022, 2023 Felix Gruber <felgru@posteo.net>
+;;; Copyright © 2022, 2024, 2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2022, 2025 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2022, 2023, 2025 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2023 Theofilos Pechlivanis <theofilos.pechlivanis@gmail.com>
 ;;; Copyright © 2023 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2023 pinoaffe <pinoaffe@gmail.com>
 ;;; Copyright © 2024 Juliana Sims <juli@incana.org>
 ;;; Copyright © 2024 Nguyễn Gia Phong <mcsinyx@disroot.org>
+;;; Copyright © 2025 Frederick Muriuki Muriithi <fredmanglis@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -175,10 +176,37 @@
   #:use-module (gnu packages xorg)
   #:use-module ((srfi srfi-1) #:hide (zip)))
 
+(define-public cutecom
+  (package
+    (name "cutecom")
+    (version "0.60.0-RC1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://gitlab.com/cutecom/cutecom")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1k67x4l27ac6sb944b42zscm0ffq2fxbghapspgj75g4dr8ip38a"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f))                       ;no tests
+    (inputs
+     (list qtbase qttools qtserialport))
+    (home-page "https://gitlab.com/cutecom/cutecom")
+    (synopsis "Graphical serial terminal")
+    (description
+     "@code{cutecom} is a graphical serial terminal, like @code{minicom}.  It is
+aimed mainly at hardware developers or other people who need a terminal to talk to
+their devices.")
+    (license license:gpl3+)))
+
 (define-public librecad
   (package
     (name "librecad")
-    (version "2.2.0.2")
+    (version "2.2.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -187,21 +215,21 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "04pyywkc0nzhdx1wi0g63hldmbpdp0wvlrhqv8p3m1z6wyyafgjn"))))
+                "1nal6xfh9qcvn96gapb1jn3nyz3n3wwidqdc864rv38lrigms66i"))))
     (build-system qt-build-system)
     (arguments
-     '(#:test-target "check"
-       #:phases
-       (modify-phases %standard-phases
-         (replace 'configure
-           (lambda* (#:key inputs #:allow-other-keys)
-             (system* "qmake" (string-append "BOOST_DIR="
-                                             (assoc-ref inputs "boost")))))
+     (list
+      #:test-target "check"
+      #:phases
+      #~(modify-phases %standard-phases
+          (replace 'configure
+            (lambda _
+              (system* "qmake" (string-append "BOOST_DIR="
+                                              #$(this-package-input "boost")))))
          (replace 'install
            (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out   (assoc-ref outputs "out"))
-                    (bin   (string-append out "/bin"))
-                    (share (string-append out "/share/librecad")))
+             (let ((bin   (string-append #$output "/bin"))
+                   (share (string-append #$output "/share/librecad")))
                (mkdir-p bin)
                (install-file "unix/librecad" bin)
                (mkdir-p share)
@@ -216,6 +244,33 @@
      "LibreCAD is a 2D Computer-aided design (CAD) application for creating
 plans and designs.")
     (license license:gpl2)))
+
+(define-public mbpoll
+  (package
+    (name "mbpoll")
+    (version "1.5.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/epsilonrt/mbpoll")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0h5qsgy5hkrq92nxfkl564w21g5vp9nnch04fdqij06ckvzf7vdc"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f)) ;no tests
+    (native-inputs (list pkg-config))
+    (inputs (list libmodbus))
+    (home-page "https://github.com/epsilonrt/mbpoll")
+    (synopsis
+     "Command line utility to communicate with ModBus slave (RTU or TCP)")
+    (description
+     "@code{mbpoll} is a command line utility to communicate with
+@url{https://en.wikipedia.org/wiki/Modbus, ModBus} slave (RTU or TCP).")
+    (license license:gpl3)))
 
 (define-public geda-gaf
   (package
@@ -833,26 +888,82 @@ such as those made in pneumatics, hydraulics, process industries, electronics,
 and others.")
     (license license:gpl2+)))
 
+(define-public qucs-s
+  (package
+    (name "qucs-s")
+    (version "24.4.1")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/ra3xdh/qucs_s")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0307046h3vf6pprbvv47r46mpm764w49ci2cg0i3l1w9rbqlypln"))
+              (patches (search-patches "qucs-s-qucsator-rf-search.patch"))))
+    (build-system qt-build-system)
+    (arguments
+     (list
+      #:qtbase qtbase                   ;for Qt 6
+      #:configure-flags #~(list "-DWITH_QT6=ON")
+      #:tests? #f                       ;no tests
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'adjust-default-settings
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "qucs/settings.cpp"
+                (("\"ngspice\"")
+                 (format #f "~s" (search-input-file inputs "bin/ngspice")))
+                (("\"octave\"")
+                 (format #f "~s" (search-input-file inputs "bin/octave")))))))))
+    (native-inputs (list qttools))
+    (inputs (list ngspice octave qtbase qtcharts qtsvg qtwayland))
+    (synopsis "GUI for different circuit simulation kernels")
+    (description
+     "@acronym{Qucs-S, Quite universal circuit simulator with SPICE} provides
+a fancy graphical user interface for a number of popular circuit simulation
+engines.  The package contains libraries for schematic capture, visualization
+and components.  The following simulation kernels are supported:
+@itemize
+@item Ngspice (recommended)
+@item Xyce
+@item SpiceOpus
+@item Qucsator (non-SPICE)
+@end itemize\n")
+    (home-page "https://ra3xdh.github.io/")
+    (license license:gpl2+)))
+
 (define-public gerbv
   (package
     (name "gerbv")
     (version "2.10.0")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/gerbv/gerbv")
-                    (commit (string-append "v" version))))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "06bcm5zw7whsnnmfld3gl2j907lxc68gnsbzr2pc4w6qc923rgmj"))))
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/gerbv/gerbv")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "06bcm5zw7whsnnmfld3gl2j907lxc68gnsbzr2pc4w6qc923rgmj"))))
     (build-system gnu-build-system)
     (arguments
-     '(#:configure-flags '("CFLAGS=-fcommon")))
+     (list
+      #:configure-flags #~(list "CFLAGS=-O2 -g -fcommon")
+      #:phases #~(modify-phases %standard-phases
+                   (add-after 'unpack 'patch-version-generator
+                     (lambda _
+                       (substitute* "utils/git-version-gen.sh"
+                         (("/bin/bash")
+                          (which "bash"))))))))
     (native-inputs (list autoconf
                          automake
                          desktop-file-utils
                          gettext-minimal
+                         ;; Version generator needs git to work properly:
+                         ;; https://github.com/gerbv/gerbv/issues/244
+                         git-minimal/pinned
                          `(,glib "bin")
                          libtool
                          pkg-config))
@@ -874,8 +985,8 @@ as well as pick-place files.")
 
 (define-public translate2geda
   ;; There has been no formal release yet.
-  (let ((commit "4c19e7eefa338cea8f1ee999ea8b37f8d0698169")
-        (revision "1"))
+  (let ((commit "2ec576e608a6f6eead5f6bc1952234d9874703c7")
+        (revision "2"))
     (package
       (name "translate2geda")
       (version (git-version "0" revision commit))
@@ -887,27 +998,29 @@ as well as pick-place files.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1h062bbpw8nk0jamkya1k4lsgaia796jyviiz2gkdi6k1bxhwgpa"))))
+                  "0pcwbnp25fjzznzw97d233awa4j0sdfi06wza45rsp8nx1ri7a7k"))))
       (build-system ant-build-system)
       (arguments
-       `(#:tests? #f ; there are no tests
-         #:jar-name "translate2geda.jar"
-         #:source-dir "."
-         #:main-class "translate2geda"
-         #:phases
-         (modify-phases %standard-phases
-           (add-after 'install 'install-bin
-             (lambda* (#:key inputs outputs #:allow-other-keys)
-               (let* ((out (assoc-ref outputs "out"))
-                      (bin (string-append out "/bin"))
-                      (wrapper (string-append bin "/translate2geda")))
-                 (mkdir-p bin)
-                 (with-output-to-file wrapper
+       (list #:tests? #f ; there are no tests
+             #:jar-name "translate2geda.jar"
+             #:source-dir "."
+             #:main-class "translate2geda"
+             #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'install 'install-bin
                    (lambda _
-                     (format #t "#!/bin/sh~%exec ~a -jar ~a/share/java/translate2geda.jar"
-                             (which "java") out)))
-                 (chmod wrapper #o555))
-               #t)))))
+                     (let* ((bin (string-append #$output "/bin"))
+                            (wrapper (string-append bin "/translate2geda"))
+                            (jar "/share/java/translate2geda.jar"))
+                       (mkdir-p bin)
+                       (with-output-to-file wrapper
+                         (lambda _
+                           (format #t
+                                   "#!/bin/sh~%exec ~a -jar ~a~a~%"
+                                   (which "java")
+                                   #$output
+                                   jar)))
+                       (chmod wrapper #o555)))))))
       (home-page "https://github.com/erichVK5/translate2geda")
       (synopsis "Utility for converting symbol and footprint formats to gEDA")
       (description
@@ -1734,6 +1847,14 @@ developed at MIT to model electromagnetic systems.")
                (base32
                 "0i37c9k6q1iglmzp9736rrgsnx7sw8xn3djqbbjw29zsyl3pf62c"))))
     (build-system gnu-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch-shebang
+                 (lambda _
+                   (substitute* "bootstrap.sh"
+                     (("# !/bin/sh")
+                      (string-append "#!" (which "sh")))))))))
     (native-inputs
      (list autoconf
            automake
@@ -1837,14 +1958,13 @@ bindings for Python, Java, OCaml and more.")
   (package
     (inherit capstone)
     (name "python-capstone")
-    (propagated-inputs
-     (list capstone))
-    (build-system python-build-system)
+    (build-system pyproject-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
+     (list
+      #:phases
+       #~(modify-phases %standard-phases
          (add-after 'unpack 'chdir-and-fix-setup-py
-           (lambda* (#:key inputs #:allow-other-keys)
+           (lambda _
              (chdir "bindings/python")
              ;; Do not build the library again, because we already have it.
              (substitute* "setup.py" ((".*   build_libraries.*") ""))
@@ -1852,16 +1972,19 @@ bindings for Python, Java, OCaml and more.")
              ;; library.
              (substitute* "capstone/__init__.py"
                (("pkg_resources.resource_filename.*")
-                (string-append "'" (dirname (search-input-file
-                                             inputs "lib/libcapstone.so"))
-                               "',\n")))))
+                (format #f "'~a/lib',~%" #$(this-package-input "capstone"))))))
          (replace 'check
            (lambda* (#:key tests? #:allow-other-keys)
              (when tests?
-               (invoke "make" "check")))))))))
+               (invoke "make" "check")))))))
+    (native-inputs
+     (list python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list capstone))))
 
 
-(define-public python-esptool-3.0
+(define-public python-esptool
   (package
     (name "python-esptool")
     (version "3.0")
@@ -2050,7 +2173,7 @@ high-performance parallel differential evolution (DE) optimization algorithm.")
   ;; See <https://debbugs.gnu.org/cgi/bugreport.cgi?bug=27344#236>.
   (package
     (name "libngspice")
-    (version "43")
+    (version "44.2")
     (source
      (origin
        (method url-fetch)
@@ -2061,7 +2184,7 @@ high-performance parallel differential evolution (DE) optimization algorithm.")
                    "mirror://sourceforge/ngspice/ng-spice-rework/"
                    "old-releases/" version "/ngspice-" version ".tar.gz")))
        (sha256
-        (base32 "169nn6bw5628m2k8cy77yd1vs22plj83grisq58j07sk11pnmp8l"))))
+        (base32 "1zfpj09vqjamgkhnipwpwmvrzhfymikml7lw80igsx2lpnvxznp7"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -2648,41 +2771,103 @@ specification can be downloaded at @url{http://3mf.io/specification/}.")
     (home-page "https://3mf.io/")
     (license license:bsd-2)))
 
+(define-public python-keithley2600
+  (package
+    (name "python-keithley2600")
+    (version "2.1.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/OE-FET/keithley2600")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "19bs7lswb04a5xr4zdsknynmpllpj18nb19jcbjnzf1fs1dqg0hw"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f)) ; no tests provided
+    (native-inputs
+     (list python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-numpy
+           python-pyvisa
+           python-pyvisa-py))
+    (home-page "https://keithley2600.readthedocs.io/en/stable/")
+    (synopsis "Full Python driver for Keithley 2600 series of SMU")
+    (description
+     "This package provides a full Python driver for the Keithley 2600B series
+of source measurement units.  This driver provides access to base commands and
+higher level functions such as IV measurements, transfer and output curves,
+etc.  Base commands replicate the functionality and syntax from the Keithley's
+internal TSP Lua functions.")
+    (license license:expat)))
+
 (define-public python-pyvisa
   (package
     (name "python-pyvisa")
-    (version "1.13.0")
+    (version "1.14.1")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "PyVISA" version))
               (sha256
                (base32
-                "1iprr3h6d4w6v8ksgqpkgg545sai7i8hi5a5an394p26b25h1yl9"))
+                "0ybsxpc4339434ha5anix511ckdyp12cym3ld1vsspacxm0h00vi"))
               (modules '((guix build utils)))
-              (snippet '(begin
-                          ;; Delete bundled python-prettytable.
-                          (delete-file-recursively "pyvisa/thirdparty")))))
+              ;; Delete bundled python-prettytable.
+              (snippet '(delete-file-recursively "pyvisa/thirdparty"))))
     (build-system pyproject-build-system)
     (arguments
-     (list #:phases #~(modify-phases %standard-phases
-                        (add-after 'unpack 'use-system-prettytable
-                          (lambda _
-                            (substitute* "pyvisa/shell.py"
-                              (("from .thirdparty import prettytable")
-                               "import prettytable")))))))
+     (list
+      #:test-flags
+      '(list "--pyargs" "pyvisa")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'use-system-prettytable
+            (lambda _
+              (substitute* "pyvisa/shell.py"
+                (("from .thirdparty import prettytable")
+                 "import prettytable")))))))
     (native-inputs
      (list python-pytest
            python-setuptools
+           python-setuptools-scm
            python-wheel))
     (propagated-inputs
-     (list python-dataclasses
-           python-prettytable
+     (list python-prettytable
            python-typing-extensions))
     (home-page "https://pyvisa.readthedocs.io/en/latest/")
     (synopsis "Python binding for the VISA library")
     (description "PyVISA is a Python package for support of the
 @acronym{VISA, Virtual Instrument Software Architecture}, in order to control
 measurement devices and test equipment via GPIB, RS232, Ethernet or USB.")
+    (license license:expat)))
+
+(define-public python-pyvisa-py
+  (package
+    (name "python-pyvisa-py")
+    (version "0.7.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "PyVISA-py" version))
+       (sha256
+        (base32 "0lg8a041yg4yl31bxyyy51nh92rdp8ps94pzpyz7siaqg235npsc"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-wheel
+           python-setuptools))
+    (propagated-inputs
+     (list python-pyvisa
+           python-typing-extensions))
+    (home-page "https://pyvisa-py.readthedocs.io/")
+    (synopsis "Backend for PyVISA")
+    (description
+     "PyVISA-py is a backend for PyVISA that implements most of the methods
+for Message Based communication (Serial/USB/GPIB/Ethernet) using Python and
+some well developed, easy to deploy and cross platform libraries.")
     (license license:expat)))
 
 (define-public python-pandapower
@@ -2696,7 +2881,11 @@ measurement devices and test equipment via GPIB, RS232, Ethernet or USB.")
        (sha256
         (base32 "139ahp08kci8asmv35bcibbnkfr5s1ff5j84n490s47ibsglk4yi"))))
     (build-system pyproject-build-system)
-    (native-inputs (list python-pyproj python-pytest unzip))
+    (native-inputs (list python-pyproj
+                         python-pytest
+                         python-setuptools
+                         python-wheel
+                         unzip))
     (propagated-inputs (list python-deepdiff
                              python-geojson
                              python-networkx
@@ -2733,6 +2922,8 @@ Newton-Raphson power flow solvers in the C++ library lightsim2grid, and the
     (native-inputs (list python-nbmake
                          python-pytest
                          python-pytest-xdist
+                         python-setuptools
+                         python-wheel
                          unzip))
     (propagated-inputs (list python-matplotlib
                              python-pandapower
@@ -3040,6 +3231,7 @@ dynamics is used by FreeCAD 1.0.0 for its new Assembly workbench.")
            qtsvg-5
            qtwebchannel-5
            qtwebengine-5
+           qtwayland-5
            qtx11extras
            qtxmlpatterns
            sqlite
@@ -4175,9 +4367,17 @@ G-code instructions for FFF printers or PNG layers for mSLA 3D printers.")
        (uri (pypi-uri "wireviz" version))
        (sha256
         (base32 "1qbh0pknpymc42k4661b8ghbfk9him75xx57siyrl9is5s6as98f"))))
-    (build-system python-build-system)
-    (propagated-inputs
-     (list python-click python-graphviz python-pillow python-pyyaml))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:tests? #f)) ; no tests in git checkout or PyPI archive
+    (native-inputs
+     (list python-setuptools
+           python-wheel))
+    (inputs
+     (list python-click
+           python-graphviz
+           python-pillow
+           python-pyyaml))
     (home-page "https://github.com/wireviz/WireViz")
     (synopsis "Easily document cables and wiring harnesses")
     (description
@@ -4780,7 +4980,7 @@ more.")
 (define-public python-asyncua
   (package
     (name "python-asyncua")
-    (version "1.0.3")
+    (version "1.1.5")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -4790,11 +4990,11 @@ more.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0bazk3k2dyzlrh7yxs4pc76m5ysm7riia3ncg7as3xr4y9dy29bx"))))
+                "0aisj8cpfhq50h4pv2p0c9iw5cqy3hxhn5adp8wd01c46dhg6y2x"))))
     (build-system pyproject-build-system)
     (native-inputs
      (list python-asynctest
-           python-pytest-asyncio
+           python-pytest-asyncio-0.21
            python-pytest-mock
            python-pytest-runner
            python-setuptools
@@ -4803,13 +5003,16 @@ more.")
      (list python-aiofiles
            python-aiosqlite
            python-cryptography
-           python-dateutil python-pytz
+           python-dateutil
+           python-pyopenssl
+           python-pytz
            python-importlib-metadata
-           python-sortedcontainers))
+           python-sortedcontainers
+           python-typing-extensions))
+    (home-page "https://freeopcua.github.io/")
     (synopsis "OPC UA / IEC 62541 client and server library")
     (description "This package provides an OPC UA / IEC 62541 client and
 server for Python and pypy3.")
-    (home-page "https://freeopcua.github.io/")
     (license license:lgpl3+)))
 
 (define-public modglue
@@ -4846,6 +5049,53 @@ server for Python and pypy3.")
 multiple co-processes in cadabra.")
     (home-page "https://cadabra.science/")
     (license license:gpl2+)))
+
+(define-public cadabra
+  (package
+    (name "cadabra")
+    (version "1.46")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/kpeeters/cadabra.git")
+                     (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0kks3qv1rka9ynw386kspjwq0g7xmwjycwlr3bbmxjmnk9zvnn9h"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:configure-flags '("--disable-gui")
+       #:make-flags
+       (list (string-append "TIMESTAMP=-DRELEASE=\"\\\""
+                            ,version
+                            "\\\"\" -DDATETIME=\"\\\""
+                            "Thu Jan 1 01:02:00 AM CET 1970"
+                            "\\\"\" -DHOSTNAME=\"\\\""
+                            "dummy"
+                            "\\\"\""))
+       #:test-target "test"
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'fix
+           (lambda _
+             (substitute* "tests/Makefile.in"
+              (("TIMER=/usr/bin/time ")
+               "TIMER=time "))
+             ;; Upstream bug. spino is a pointer.
+             (substitute* "src/exchange.cc"
+              (("ngr.spino==false")
+               "!ngr.spino")))))))
+    (native-inputs
+     (list pkg-config time))
+    (inputs
+     (list lie pcre gmp libsigc++-2 modglue))
+    (synopsis "Computer algebra system geared towards field theory")
+    (description "This package provides a computer algebra system geared
+towards field theory.  This package is mostly meant to be used by texmacs
+and mogan.")
+    (home-page "https://cadabra.science/")
+    (license license:gpl3+)))
 
 (define-public cadabra2
   (package

@@ -38,7 +38,8 @@
 ;;; Copyright © 2022-2024 Navid Afkhami <navid.afkhami@mdc-berlin.de>
 ;;; Copyright © 2022 Greg Hogan <code@greghogan.com>
 ;;; Copyright © 2024 Marco Baggio <guix@mawumag.com>
-;;; Copyright © 2024 Spencer King <spencer.king@geneoscopy.com>
+;;; Copyright © 2024, 2025 Spencer King <spencer.king@geneoscopy.com>
+;;; Copyright © 2024 Tor-björn Claesson <tclaesson@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -105,6 +106,7 @@
   #:use-module (gnu packages protobuf)
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-xyz)
+  #:use-module (gnu packages rdf)
   #:use-module (gnu packages rust)
   #:use-module (gnu packages ssh)
   #:use-module (gnu packages sqlite)
@@ -3006,7 +3008,7 @@ similar rank-based tests for equal probability distributions due to Neuhauser
                (("^PKG_LIBS=.*")
                 (string-append "PKG_LIBS="
                                (assoc-ref inputs "libnode")
-                               "/lib/libnode.so.115\n")))
+                               "/lib/libnode.so.127\n")))
              (setenv "INCLUDE_DIR"
                      (string-append
                       (assoc-ref inputs "libnode")
@@ -3706,6 +3708,29 @@ compatible C interface to L-BFGS-B.3.0 that uses the same function types and
 optimization as the @code{optim()} function.  This package also adds more
 stopping criteria as well as allowing the adjustment of more tolerances.")
     (license license:gpl2)))
+
+(define-public r-lfc
+  (package
+    (name "r-lfc")
+    (version "0.2.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "lfc" version))
+       (sha256
+        (base32 "1fh3i5mhzgz8k6y32m2y7lilxvm10kjkp5b70zm06iygazsk8bvz"))))
+    (properties `((upstream-name . "lfc")))
+    (build-system r-build-system)
+    (native-inputs (list r-knitr))
+    (home-page "https://github.com/erhard-lab/lfc")
+    (synopsis
+     "Log fold change distribution tools for working with ratios of counts")
+    (description
+     "This is a package for ratios of count data such as obtained from RNA-seq
+are modelled using Bayesian statistics to derive posteriors for effects sizes.
+This approach is described in Erhard & Zimmer (2015) <doi:10.1093/nar/gkv696>
+and Erhard (2018) <doi:10.1093/bioinformatics/bty471>.")
+    (license license:asl2.0)))
 
 (define-public r-lmds
   (package
@@ -4740,6 +4765,45 @@ regions.  GAs can be run sequentially or in parallel, using an explicit
 master-slave parallelisation or a coarse-grain islands approach.")
     (license license:gpl2+)))
 
+(define-public r-grandr
+  (package
+    (name "r-grandr")
+    (version "0.2.6")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "grandR" version))
+       (sha256
+        (base32 "058cvcjrqhgm14vyhlm1mdhs3z0kfpjlfc3msadsvlhlb7p676sn"))))
+    (properties `((upstream-name . "grandR")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-cowplot
+                             r-ggplot2
+                             r-labeling
+                             r-lfc
+                             r-mass
+                             r-matrix
+                             r-minpack-lm
+                             r-numderiv
+                             r-patchwork
+                             r-plyr
+                             r-rcurl
+                             r-reshape2
+                             r-rlang
+                             r-scales))
+    (native-inputs (list r-knitr))
+    (home-page "https://github.com/erhard-lab/grandR")
+    (synopsis
+     "Comprehensive analysis of nucleotide conversion sequencing data")
+    (description
+     "Nucleotide conversion sequencing experiments have been developed to add
+a temporal dimension to RNA-seq and single-cell RNA-seq.  Such experiments
+require specialized tools for primary processing such as GRAND-SLAM, and
+specialized tools for downstream analyses. @code{grandR} provides a
+comprehensive toolbox for quality control, kinetic modeling, differential gene
+expression analysis and visualization of such data.")
+    (license license:asl2.0)))
+
 (define-public r-greg
   (package
     (name "r-greg")
@@ -5462,6 +5526,31 @@ convenience functions useful for using CSS selectors on XML nodes.  This
 package is a port of the Python package @code{cssselect}.")
     (license license:bsd-3)))
 
+(define-public r-redland
+  (package
+    (name "r-redland")
+    (version "1.0.17-18")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "redland" version))
+       (sha256
+        (base32 "183m1bvgj52w74383b5v6rfm7gn4izijixans1zdycqp68ibm6g9"))))
+    (properties `((upstream-name . "redland")))
+    (build-system r-build-system)
+    (inputs (list redland pcre2 zlib))
+    (propagated-inputs (list r-roxygen2))
+    (native-inputs (list r-knitr pkg-config r-spelling r-stringi r-testthat))
+    (home-page "https://cran.r-project.org/package=redland")
+    (synopsis "RDF library bindings in R")
+    (description
+     "This package provides methods to parse, query and serialize information
+stored in the @dfn{Resource Description Framework} (RDF).  This package
+supports RDF by implementing an R interface to the Redland RDF C library.  In
+brief, RDF provides a structured graph consisting of Statements composed of
+Subject, Predicate, and Object Nodes.")
+    (license license:asl2.0)))
+
 (define-public r-relations
   (package
     (name "r-relations")
@@ -5512,7 +5601,7 @@ fitters for consensus relations.")
     (home-page "https://cran.r-project.org/package=repmis")
     (synopsis "Miscellaneous tools for reproducible research")
     (description
-     "This package is a colletion of tools to load R packages and
+     "This package is a collection of tools to load R packages and
 automatically generate BibTeX files citing them as well as load and cache
 plain-text and Excel formatted data stored on GitHub, and from other
 sources.")
@@ -5642,6 +5731,29 @@ that.")
      "This package implements generalized Deming regression, Theil-Sen
 regression and Passing-Bablock regression functions.")
     (license license:lgpl2.0+)))
+
+(define-public r-deoptim
+  (package
+    (name "r-deoptim")
+    (version "2.2-8")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "DEoptim" version))
+       (sha256
+        (base32 "0k7mvf7j8y1sqv8zpiwkw4xcmgki37drkxjijrsmmhkfybfan7k3"))))
+    (properties `((upstream-name . "DEoptim")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-parallelly))
+    (home-page "https://github.com/ArdiaD/DEoptim")
+    (synopsis "Global optimization by differential evolution")
+    (description
+     "This package implements the Differential Evolution algorithm.
+This algorithm is used for the global optimization of a real-valued function
+of a real-valued parameter vector.  The implementation of
+@code{DifferentialEvolution} in DEoptim interfaces with C code for
+efficiency.")
+    (license license:gpl2+)))
 
 (define-public r-depmixs4
   (package
@@ -7010,6 +7122,36 @@ extensive prebuilt widgets make it possible to build beautiful,
 responsive, and powerful applications with minimal effort.")
     (license license:artistic2.0)))
 
+(define-public r-shinyauthr
+  (package
+    (name "r-shinyauthr")
+    (version "1.0.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "shinyauthr" version))
+       (sha256
+        (base32 "0apaqjkxpr96kx9indl0pifk5y75gdx5npfcvxfg5k2crpx9vmxk"))))
+    (properties `((upstream-name . "shinyauthr")))
+    (build-system r-build-system)
+    ;; One of the tests requires r-shinytest, which has a big JavaScript
+    ;; problem.
+    (arguments (list #:tests? #false))
+    (native-inputs (list r-testthat))
+    (propagated-inputs (list r-dplyr
+                             r-glue
+                             r-rlang
+                             r-shiny
+                             r-shinyjs
+                             r-sodium))
+    (home-page "https://github.com/paulc91/shinyauthr")
+    (synopsis "Shiny authentication modules")
+    (description
+     "With this package you can add in-app user authentication to Shiny,
+allowing you to secure publicly hosted apps and build dynamic user interfaces
+from user information.")
+    (license license:expat)))
+
 (define-public r-shinydisconnect
   (package
     (name "r-shinydisconnect")
@@ -7093,6 +7235,28 @@ console).  It also provides tools for bundling both the code and results to
 the end user.")
     (license license:gpl3)))
 
+(define-public r-shiny-router
+  (package
+    (name "r-shiny-router")
+    (version "0.3.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "shiny.router" version))
+       (sha256
+        (base32 "1zg8cdxmw620i1iv7jrghd768gw7iv52hi6lx79xvnfjz8w4si3x"))))
+    (properties `((upstream-name . "shiny.router")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-glue r-htmltools r-rlang r-shiny))
+    (native-inputs (list r-testthat))
+    (home-page "https://appsilon.github.io/shiny.router/")
+    (synopsis "Basic Routing for Shiny Web Applications")
+    (description
+     "This package provides a simple router for your Shiny apps.  The router
+allows you to create dynamic web applications with a real-time User Interface
+and easily share url to pages within your Shiny apps.")
+    (license license:expat)))
+
 ;; This package includes minified JavaScript files.  When upgrading please
 ;; check that there are no new minified JavaScript files.
 (define-public r-shinytree
@@ -7165,6 +7329,28 @@ the end user.")
     (description
      "This package exposes R bindings to jsTree, a JavaScript library that
 supports interactive trees, to enable rich, editable trees in Shiny.")
+    (license license:expat)))
+
+(define-public r-shinyvalidate
+  (package
+    (name "r-shinyvalidate")
+    (version "0.1.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "shinyvalidate" version))
+       (sha256
+        (base32 "01qlqzp0g6782maj73yygmwlchhv4xcnlc7j0w3lp6dcj7qkzz68"))))
+    (properties `((upstream-name . "shinyvalidate")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-glue r-htmltools r-rlang r-shiny))
+    (native-inputs (list r-testthat))
+    (home-page "https://rstudio.github.io/shinyvalidate/")
+    (synopsis "Input validation for Shiny apps")
+    (description
+     "This package improves the user experience of Shiny apps by helping to
+provide feedback when required inputs are missing, or input values are not
+valid.")
     (license license:expat)))
 
 (define-public r-shinydashboard
@@ -7719,6 +7905,30 @@ page dashboard or a multi-page template, where the navigation menu is
 contained in the navigation bar.")
     (license license:gpl2+)))
 
+(define-public r-spdl
+  (package
+    (name "r-spdl")
+    (version "0.0.5")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "spdl" version))
+       (sha256
+        (base32 "185qzlwac7acq126xpvcd71nv25zgkrdr8m73gv2sn1zxj78hyid"))))
+    (properties `((upstream-name . "spdl")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-rcppspdlog))
+    (home-page "https://github.com/eddelbuettel/spdl")
+    (synopsis "Easier use of RcppSpdlog functions via wrapper")
+    (description
+     "Logging functions in @code{RcppSpdlog} provide access to the logging
+functionality from the spdlog C++ library.  This package offers shorter
+convenience wrappers for the R functions which match the C++ functions, namely
+via, say, @code{spdl::debug()} at the debug level.  The actual formatting is
+done by the @code{fmt::format()} function from the fmtlib library (that is
+also @code{std::format()} in C++20 or later).")
+    (license license:gpl2+)))
+
 (define-public r-spelling
   (package
     (name "r-spelling")
@@ -8052,6 +8262,29 @@ coordinates.")
     (description "This package performs search for the global minimum of a very
 complex non-linear objective function with a very large number of optima.")
     (license license:gpl2)))
+
+(define-public r-geojsonr
+  (package
+    (name "r-geojsonr")
+    (version "1.1.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "geojsonR" version))
+       (sha256
+        (base32 "10li5xj0vx6a86nccwql4inwfbjycvaxqfbjdp4h1p5qxyibnls3"))))
+    (properties `((upstream-name . "geojsonR")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-r6 r-rcpp r-rcpparmadillo))
+    (native-inputs (list r-knitr r-testthat))
+    (home-page "https://github.com/mlampros/geojsonR")
+    (synopsis "GeoJson processing toolkit")
+    (description
+     "This package includes functions for processing @code{GeoJson} objects
+relying on RFC 7946.  The geojson encoding is based on json11, a tiny JSON
+library for C++11.  Furthermore, the source code is exported in R through the
+Rcpp and @code{RcppArmadillo} packages.")
+    (license license:expat)))
 
 (define-public r-geos
   (package
@@ -8684,9 +8917,9 @@ you to rapidly iterate while developing a package.")
     (propagated-inputs (list r-base64enc))
     (native-inputs (list pkg-config))
     (home-page "http://www.rforge.net/PKI")
-    (synopsis "Public Key Infrastucture for R based on the X.509 standard")
+    (synopsis "Public Key Infrastructure for R based on the X.509 standard")
     (description
-     "This is a package containing Public Key Infrastucture functions such as
+     "This is a package containing Public Key Infrastructure functions such as
 verifying certificates, RSA encryption and signing, which can be used to build
 PKI infrastructure and perform cryptographic tasks.")
     ;; Either of these licenses.
@@ -8736,6 +8969,55 @@ and Francois (2011, JSS), and the book by Eddelbuettel (2013, Springer); see
 @code{citation(\"Rcpp\")} for details on these last two.")
     (license license:gpl2+)))
 
+(define-public r-rcppcctz
+  (package
+    (name "r-rcppcctz")
+    (version "0.2.13")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "RcppCCTZ" version))
+       (sha256
+        (base32 "1wmbyaj08fbl4g47aq0mfkkvqwpah3d2j94fzc813dijxlsi847l"))))
+    (properties
+     `((upstream-name . "RcppCCTZ")
+       (updater-extra-native-inputs . ("tzdata-for-tests"))))
+    (build-system r-build-system)
+    (propagated-inputs (list r-rcpp))
+    (native-inputs (list r-tinytest tzdata-for-tests))
+    (home-page "https://github.com/eddelbuettel/rcppcctz")
+    (synopsis "Rcpp bindings for the CCTZ library")
+    (description
+     "Rcpp access to the CCTZ timezone library is provided.  CCTZ is a C++
+library for translating between absolute and civil times using the rules of a
+time zone.  The CCTZ source code is included in this package.")
+    (license (list license:gpl2+
+                   license:asl2.0)))) ;for CCTZ
+
+(define-public r-rcppdate
+  (package
+    (name "r-rcppdate")
+    (version "0.0.4")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "RcppDate" version))
+       (sha256
+        (base32 "1cnhvbgqfcjrwm1rx6bhhj4yf4dipcp6g1hjv1qa86pmxzyjp3dn"))))
+    (properties `((upstream-name . "RcppDate")))
+    (build-system r-build-system)
+    (home-page "https://github.com/eddelbuettel/rcppdate")
+    (synopsis "date C++ header library for date and time functionality")
+    (description
+     "This package provides a header-only C++ library is provided with support
+for dates, time zones, ISO weeks, Julian dates, and Islamic dates.
+@code{date} offers extensive date and time functionality for the C++11, C++14
+and C++17 standards.  A slightly modified version has been accepted (along
+with @file{tz.h}) as part of C++20.  This package regroups all header files
+from the upstream repository so that other R packages can use them in their
+C++ code.")
+    (license license:gpl2+)))
+
 (define-public r-rcppde
   (package
     (name "r-rcppde")
@@ -8780,6 +9062,33 @@ additional statistical distributions that can be called from C++ when writing
 code using Rcpp or RcppArmadillo.  Functions are available that return a
 @code{NumericVector} as well as doubles, and for multivariate or matrix
 distributions, Armadillo vectors and matrices.")
+    (license license:gpl2+)))
+
+(define-public r-rcppint64
+  (package
+    (name "r-rcppint64")
+    (version "0.0.5")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "RcppInt64" version))
+       (sha256
+        (base32 "1h4lshkn3p3c7swygbpmkg0pa80xcp3f9alck5q4bmml61hicwjk"))))
+    (properties `((upstream-name . "RcppInt64")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-rcpp))
+    (native-inputs (list r-tinytest))
+    (home-page "https://github.com/eddelbuettel/rcppint64")
+    (synopsis
+     "Rcpp-based helper functions to pass Int64 values between R and C++")
+    (description
+     "@code{int64} values can be created and accessed via the @code{bit64}
+package and its @code{integer64} class which package the @code{int64}
+representation cleverly into a @code{double}.  The @code{nanotime} package
+builds on this to support nanosecond-resolution timestamps.  This package
+helps conversions between R and C++ via several helper functions provided via
+a single header file.  A complete example client package is included as an
+illustration.")
     (license license:gpl2+)))
 
 (define-public r-rcppml
@@ -10193,6 +10502,32 @@ experiments\" (2011), Annals of Applied Statistics, Vol. 5, No. 3, 1752-1779,
 by Li, Brown, Huang, and Bickel")
     (license license:gpl2+)))
 
+(define-public r-imola
+  (package
+    (name "r-imola")
+    (version "0.5.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "imola" version))
+       (sha256
+        (base32 "087zdzn1vkyvqrdlwnackr6jyacrhg69q4b77s8z477kplickw8x"))))
+    (properties `((upstream-name . "imola")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-glue
+                             r-htmltools
+                             r-magrittr
+                             r-shiny
+                             r-stringi
+                             r-yaml))
+    (native-inputs (list r-knitr))
+    (home-page "https://github.com/pedrocoutinhosilva/imola")
+    (synopsis "CSS layouts (grid and flexbox) for R/Shiny")
+    (description
+     "This package allows users to create CSS grid and flexbox layouts for
+R/Shiny without needing to write custom CSS.")
+    (license license:expat)))
+
 (define-public r-inext
   (package
     (name "r-inext")
@@ -11081,6 +11416,27 @@ package contains an old implementation based on legacy code from S-PLUS which
 is being phased out.  A modern MySQL client based on Rcpp is available from
 the RMariaDB package.")
     (license license:gpl2)))
+
+(define-public r-rpanglaodb
+  (package
+    (name "r-rpanglaodb")
+    (version "0.2.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "rPanglaoDB" version))
+       (sha256
+        (base32 "1ykzih3idgp2yhbw4039hhhzv0nmrmn3wx2c4dxmgp5qzhrg42nf"))))
+    (properties `((upstream-name . "rPanglaoDB")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-matrix r-pbapply r-seurat r-xml r-xml2))
+    (home-page "https://github.com/dosorio/rPanglaoDB/")
+    (synopsis
+     "Download and merge Single-Cell RNA-Seq data from the PanglaoDB database")
+    (description
+     "This R package downloads labeled single-cell RNA-seq data from PanglaoDB.
+It merges the data into a Seurat object for streamlined analysis.")
+    (license license:gpl3)))
 
 (define-public r-rpmm
   (package
@@ -13534,6 +13890,28 @@ units, plus unit conversions based on the data from @acronym{NIST, National
 Institute of Standards and Technology}, USA.")
     (license license:gpl3+)))
 
+(define-public r-numero
+  (package
+    (name "r-numero")
+    (version "1.9.7")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "Numero" version))
+       (sha256
+        (base32 "04pf6x7qmgkfyj98c23maxcvlwwwfw6jas7l72xp0713lyndjl15"))))
+    (properties `((upstream-name . "Numero")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-rcpp))
+    (native-inputs (list r-knitr r-rmarkdown))
+    (home-page "https://cran.r-project.org/package=Numero")
+    (synopsis "Statistical framework to define subgroups in complex datasets")
+    (description
+     "The package includes the necessary functions to construct a
+self-organizing map of data, to evaluate the statistical significance of the
+observed data patterns, and to visualize the results.")
+    (license license:gpl2+)))
+
 (define-public r-stabs
   (package
     (name "r-stabs")
@@ -14928,7 +15306,7 @@ local smoothers and many more.")
           (add-after 'unpack 'process-javascript
             (lambda* (#:key inputs #:allow-other-keys)
               (with-directory-excursion "inst/assets/html2canvas/"
-                (minify (assoc-ref inputs "_")
+                (minify (assoc-ref inputs "html2canvas.js")
                         #:target "html2canvas.min.js")))))))
     (propagated-inputs
      (list r-base64enc
@@ -22306,7 +22684,7 @@ the base function @code{with()}.")
     (propagated-inputs (list r-abind r-bitops r-rnifti))
     (native-inputs (list r-testthat))
     (home-page "https://rigorousanalytics.blogspot.com")
-    (synopsis "Vizualization of medical imaging data")
+    (synopsis "Visualization of medical imaging data")
     (description
      "This package provides functions for the input/output and visualization
 of medical imaging data that follow either the ANALYZE, NIfTI or AFNI formats.
@@ -27673,6 +28051,34 @@ releases/download/v0.10.1/mathquill-0.10.1.tgz")
 authoring books and technical documents with R Markdown.")
     (license license:gpl3)))
 
+(define-public r-optimparallel
+  (package
+    (name "r-optimparallel")
+    (version "1.0-2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "optimParallel" version))
+       (sha256
+        (base32 "178ayfaivkbxkghxbg97lx4gl27kxkmgaaw9y8q5206r4cncd6qg"))))
+    (properties `((upstream-name . "optimParallel")))
+    (build-system r-build-system)
+    (arguments
+     (list
+      #:phases '(modify-phases %standard-phases
+                  (add-after 'unpack 'set-HOME
+                    (lambda _
+                      (setenv "HOME" "/tmp"))))))
+    (native-inputs (list r-numderiv r-r-rsp r-testthat))
+    (home-page "https://github.com/florafauna/optimParallel-R")
+    (synopsis "Parallel version of the L-BFGS-B optimization method")
+    (description
+     "This tool provides a parallel version of the L-BFGS-B method of
+@code{optim()}.  The main function of the package is @code{optimParallel()},
+which has the same usage and output as @code{optim()}.  Using
+@code{optimParallel()} can significantly reduce the optimization time.")
+    (license license:gpl2+)))
+
 (define-public r-options
   (package
     (name "r-options")
@@ -27804,8 +28210,8 @@ variance components, using the likelihood-ratio statistics G.")
     (synopsis "Inference of trait associations with SNP haplotypes")
     (description
      "Hapassoc performs likelihood inference of trait associations with
-haplotypes and other covariates in @dfn{generalized linear models} (GLMs). The
-functions are developed primarily for data collected in cohort or
+haplotypes and other covariates in @dfn{generalized linear models} (GLMs).
+The functions are developed primarily for data collected in cohort or
 cross-sectional studies.  They can accommodate uncertain haplotype phase and
 handle missing genotypes at some SNPs.")
     (license license:gpl2)))
@@ -35328,7 +35734,7 @@ package.")
     (native-inputs
      (list r-knitr r-testthat))
     (home-page "https://github.com/renkun-ken/formattable")
-    (synopsis "Print vectors and data frames with text fromatting")
+    (synopsis "Print vectors and data frames with text formatting")
     (description
      "This R package provides functions to create formattable vectors and data
 frames.  @emph{Formattable} vectors are printed with text formatting, and
@@ -37227,7 +37633,7 @@ client).")
     (home-page "https://cran.r-project.org/web/packages/asd")
     (synopsis "Simulations for Adaptive Seamless Designs")
     (description
-     "This package provdes means to run simulations for adaptive seamless
+     "This package provides means to run simulations for adaptive seamless
 designs with and without early outcomes for treatment selection and
 subpopulation type designs.")
     (license license:gpl3)))
@@ -37862,17 +38268,18 @@ inference diagnostics.
      "Bayesian Regression Models using 'Stan'")
     (description
      "Fit Bayesian generalized (non-)linear multivariate multilevel models
-using 'Stan' for full Bayesian inference. A wide range of distributions and
-link functions are supported, allowing users to fit -- among others -- linear,
-robust linear, count data, survival, response times, ordinal, zero-inflated,
-hurdle, and even self-defined mixture models all in a multilevel context.
-Further modeling options include non-linear and smooth terms, auto-correlation
-structures, censored data, meta-analytic standard errors, and quite a few
-more. In addition, all parameters of the response distribution can be
-predicted in order to perform distributional regression. Prior specifications
-are flexible and explicitly encourage users to apply prior distributions that
-actually reflect their beliefs. Model fit can easily be assessed and compared
-with posterior predictive checks and leave-one-out cross-validation.")
+using @emph{Stan} for full Bayesian inference.  A wide range of distributions
+and link functions are supported, allowing users to fit -- among others --
+linear, robust linear, count data, survival, response times, ordinal,
+zero-inflated, hurdle, and even self-defined mixture models all in a
+multilevel context.  Further modeling options include non-linear and smooth
+terms, auto-correlation structures, censored data, meta-analytic standard
+errors, and quite a few more. In addition, all parameters of the response
+distribution can be predicted in order to perform distributional
+regression. Prior specifications are flexible and explicitly encourage users
+to apply prior distributions that actually reflect their beliefs. Model fit
+can easily be assessed and compared with posterior predictive checks and
+leave-one-out cross-validation.")
     (license license:gpl2)))
 
 (define-public r-mstate
@@ -38057,6 +38464,52 @@ via Newick parenthetic text.  This improves accessibility to the comprehensive
 range of object-specific analytical and tree-visualization functions found
 across a wide array of bioinformatic R packages.")
     (license license:gpl3)))
+
+(define-public r-phytools
+  (package
+    (name "r-phytools")
+    (version "2.4-4")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "phytools" version))
+       (sha256
+        (base32 "1i25dlikdx9av5653ra2709sjm9fc3fsis1yfsb7zagivi408ph9"))))
+    (properties `((upstream-name . "phytools")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-ape
+                             r-clustergeneration
+                             r-coda
+                             r-combinat
+                             r-deoptim
+                             r-doparallel
+                             r-expm
+                             r-foreach
+                             r-maps
+                             r-mass
+                             r-mnormt
+                             r-nlme
+                             r-numderiv
+                             r-optimparallel
+                             r-phangorn
+                             r-scatterplot3d))
+    (home-page "https://github.com/liamrevell/phytools")
+    (synopsis "Phylogenetic tools for comparative biology")
+    (description
+     "This package offers extensive tools for phylogenetic analysis.  It
+focuses on phylogenetic comparative biology but also includes methods for
+visualizing, analyzing, manipulating, reading, writing, and inferring
+phylogenetic trees.  Functions for comparative biology include ancestral state
+reconstruction, model fitting, and phylogeny and trait data simulation.  A
+broad range of plotting methods includes mapping trait evolution on trees,
+projecting trees into phenotype space or geographic maps, and visualizing
+correlated speciation between trees.  Additional functions allow for reading,
+writing, analyzing, inferring, simulating, and manipulating phylogenetic trees
+and comparative data.  Examples include computing consensus trees, simulating
+trees and data under various models, and attaching species or clades to a tree
+either randomly or non-randomly.  This package provides numerous tools for
+tree manipulations and analyses that are valuable for phylogenetic research.")
+    (license license:gpl2+)))
 
 (define-public r-kmer
   (package
@@ -39216,6 +39669,63 @@ to speed up repeated queries of the same set of target points.")
      "This package contains methods described by Dennis Helsel in his
 book @emph{Nondetects and Data Analysis: Statistics for Censored
 Environmental Data}.")
+    (license license:gpl2+)))
+
+(define-public r-nanoarrow
+  (package
+    (name "r-nanoarrow")
+    (version "0.6.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "nanoarrow" version))
+       (sha256
+        (base32 "0wad6dvc7f4z9ll0v5mvqlvk2waf2wfhpnd3sckxsjfpg2s1an6b"))))
+    (properties `((upstream-name . "nanoarrow")))
+    (build-system r-build-system)
+    (native-inputs (list r-arrow
+                         r-bit64
+                         r-blob
+                         r-hms
+                         r-jsonlite
+                         r-testthat
+                         r-tibble
+                         r-vctrs
+                         r-withr))
+    (home-page "https://arrow.apache.org/nanoarrow/latest/r/")
+    (synopsis "Interface to the nanoarrow C library")
+    (description
+     "This package provides an R interface to the @code{nanoarrow} C library
+and the Apache Arrow application binary interface.  Functions to import and
+export @code{ArrowArray}, @code{ArrowSchema}, and @code{ArrowArrayStream} C
+structures to and from R objects are provided alongside helpers to facilitate
+zero-copy data transfer among R bindings to libraries implementing the Arrow C
+data interface.")
+    (license license:asl2.0)))
+
+(define-public r-nanotime
+  (package
+    (name "r-nanotime")
+    (version "0.3.11")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "nanotime" version))
+       (sha256
+        (base32 "19q8xklkdp8jsq1hjj78wzr0q00fy8z5p2skyz2xlzvam3555pnb"))))
+    (properties
+     `((upstream-name . "nanotime")
+       (updater-extra-native-inputs . ("tzdata-for-tests"))))
+    (build-system r-build-system)
+    (propagated-inputs (list r-bit64 r-rcpp r-rcppcctz r-rcppdate r-zoo))
+    (native-inputs (list r-tinytest tzdata-for-tests))
+    (home-page "https://github.com/eddelbuettel/nanotime")
+    (synopsis "Nanosecond-resolution time support for R")
+    (description
+     "Full 64-bit resolution date and time functionality with nanosecond
+granularity is provided, with easy transition to and from the standard POSIXct
+type.  Three additional classes offer interval, period and duration
+functionality for nanosecond-resolution timestamps.")
     (license license:gpl2+)))
 
 (define-public r-naturalsort
@@ -41440,10 +41950,9 @@ kernel estimators.")
       "https://cran.r-project.org/web/packages/lpme/")
     (synopsis "Nonparametric Estimation of Measurement Error Models")
     (description
-      "Provide nonparametric methods for mean regression model,
-modal regression and conditional density estimation in the
-presence/absence of measurement error. Bandwidth selection is
-also provided for each method.")
+      "Provide nonparametric methods for mean regression model, modal
+regression and conditional density estimation in the presence/absence of
+measurement error.  Bandwidth selection is also provided for each method.")
     (license license:gpl2+)))
 
 (define-public r-aws-signature
@@ -43578,6 +44087,71 @@ Analysis Toolkit (GATK) to load tables and plot data.  The GATK is a toolkit
 for variant discovery in high-throughput sequencing data.")
     (license license:expat)))
 
+(define-public r-intrees
+  (package
+    (name "r-intrees")
+    (version "1.4")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "inTrees" version))
+       (sha256
+        (base32 "18gbw7v4xbsxdifk32qga3h3j17w40ljs1mkk0b4fzwin9z4sh27"))))
+    (properties `((upstream-name . "inTrees")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-arules
+                             r-data-table
+                             r-gbm
+                             r-rrf
+                             r-xgboost
+                             r-xtable))
+    (home-page "https://cran.r-project.org/package=inTrees")
+    (synopsis "Interpret Tree Ensembles")
+    (description
+     "For tree ensembles such as random forests, regularized random forests and
+gradient boosted trees, this package provides functions for: extracting,
+measuring and pruning rules; selecting a compact rule set; summarizing rules
+into a learner; calculating frequent variable interactions; formatting rules in
+latex code.  Reference: Interpreting tree ensembles with @code{inTrees} (Houtao
+Deng, 2019, <doi:10.1007/s41060-018-0144-8>).")
+    (license license:gpl3+)))
+
+(define-public r-randomforestexplainer
+  (package
+    (name "r-randomforestexplainer")
+    (version "0.10.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "randomForestExplainer" version))
+       (sha256
+        (base32 "1ny8c3vn2zvdx12avwvlm4lp648jigkrkcvnhf5qmj8rh0w069v0"))))
+    (properties `((upstream-name . "randomForestExplainer")))
+    (build-system r-build-system)
+    (propagated-inputs (list r-data-table
+                             r-dplyr
+                             r-dt
+                             r-ggally
+                             r-ggplot2
+                             r-ggrepel
+                             r-randomforest
+                             r-ranger
+                             r-reshape2
+                             r-rmarkdown))
+    (native-inputs (list r-knitr r-testthat))
+    (home-page "https://github.com/ModelOriented/randomForestExplainer")
+    (synopsis
+     "Explaining and Visualizing Random Forests in Terms of Variable Importance")
+    (description
+     "This package provides a set of tools to help explain which variables are most
+important in a random forests.  Various variable importance measures are
+calculated and visualized in different settings in order to get an idea on how
+their importance changes depending on our criteria (Hemant Ishwaran and Udaya B.
+Kogalur and Eiran Z. Gorodeski and Andy J. Minn and Michael S. Lauer (2010)
+<doi:10.1198/jasa.2009.tm08622>, Leo Breiman (2001)
+<doi:10.1023/A:1010933404324>).")
+    (license (list license:gpl2+ license:gpl3+))))
+
 (define-public r-randomforestsrc
   (package
     (name "r-randomforestsrc")
@@ -43603,6 +44177,31 @@ quantile regression and solutions for class imbalanced data.  It provides a
 fast interface using subsampling and confidence regions for variable
 importance.")
     (license license:gpl3+)))
+
+(define-public r-rrf
+  (package
+    (name "r-rrf")
+    (version "1.9.4.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (cran-uri "RRF" version))
+       (sha256
+        (base32 "05sswrqjrwyyk9aha7fvvw78iymgv89y0asl5cqfl9fg7gsw9ghs"))))
+    (properties `((upstream-name . "RRF")))
+    (build-system r-build-system)
+    (native-inputs (list gfortran))
+    (home-page "https://sites.google.com/site/houtaodeng/rrf")
+    (synopsis "Regularized random forest")
+    (description
+     "Feature Selection with Regularized Random Forest.  This package is based
+on the @code{randomForest} package by Andy Liaw.  The key difference is the
+@code{RRF()} function that builds a regularized random forest.  Fortran
+original by Leo Breiman and Adele Cutler, R port by Andy Liaw and Matthew
+Wiener, Regularized random forest for classification by Houtao Deng,
+Regularized random forest for regression by Xin Guan.  Reference: Houtao
+Deng (2013) <doi:10.48550/@code{arXiv.1306.0237>}.")
+    (license license:gpl2+)))
 
 (define-public r-contfrac
   (package

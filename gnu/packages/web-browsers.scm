@@ -1,7 +1,7 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2014 John Darrington <jmd@gnu.org>
 ;;; Copyright © 2014, 2019 Mark H Weaver <mhw@netris.org>
-;;; Copyright © 2015, 2016, 2019, 2021-2023 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015, 2016, 2019, 2021-2023, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Kei Kebreau <kkebreau@posteo.net>
 ;;; Copyright © 2017, 2024 Eric Bavier <bavier@posteo.net>
 ;;; Copyright © 2018–2021 Tobias Geerinckx-Rice <me@tobias.gr>
@@ -44,6 +44,7 @@
   #:use-module (guix build-system glib-or-gtk)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system go)
+  #:use-module (guix build-system meson)
   #:use-module (guix build-system python)
   #:use-module (guix download)
   #:use-module (guix gexp)
@@ -98,6 +99,7 @@
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages readline)
+  #:use-module (gnu packages regex)
   #:use-module (gnu packages sdl)
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages suckless)
@@ -106,6 +108,7 @@
   #:use-module (gnu packages tls)
   #:use-module (gnu packages web)
   #:use-module (gnu packages webkit)
+  #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg))
 
 (define-public midori
@@ -218,6 +221,75 @@ features including, tables, builtin image display, bookmarks, SSL and more.")
     ;; One file (https.c) contains an exception permitting
     ;; linking of the program with openssl.
     (license license:gpl1+)))
+
+(define-public elinks
+  (let ((commit "5e6ea2669c69db492a5c3e920e4a47a8a9af70fc")
+        (revision "1"))
+    (package
+      (name "elinks")
+      (version (git-version "0.18.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/rkd77/elinks")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32
+           "1rjq66kwq4d44fwv3wphycxldw7mnyngadcgq9lnk8vz2f8026kw"))))
+      (build-system meson-build-system)
+      (arguments
+       (list
+        #:configure-flags
+        #~(list "-D256-colors=true"
+                "-Dbrotli=true"
+                "-Dcgi=true"
+                "-Dfinger=true"
+                "-Dgemini=true"
+                "-Dgopher=true"
+                ;; FIXME: gpm is disabled because Meson cannot find its shared
+                ;; library even though "gpm" is given as an input.
+                "-Dgpm=false"
+                "-Dhtml-highlight=true"
+                "-Dlibev=true"
+                "-Dlzma=true"
+                "-Dnntp=true"
+                "-Dreproducible=true"
+                "-Dsource-date-epoch=1"
+                "-Dtest=true"
+                "-Dtrue-color=true")))
+      (native-inputs
+       (list autoconf
+             automake
+             gnu-gettext
+             perl
+             pkg-config
+             python-minimal))
+      (inputs
+       (list brotli
+             bzip2
+             curl
+             expat
+             gnutls
+             gpm
+             libcss
+             libdom
+             libev
+             libgcrypt
+             libidn
+             lua
+             openssl
+             tre
+             xz
+             zlib))
+      (home-page "http://elinks.cz/")
+      (synopsis "Advanced text mode web browser")
+      (description
+       "ELinks is a feature-rich program for browsing the web in text mode.
+It can render both frames and tables, is highly customisable and can be
+extended via Lua scripts.  It is like an enhanced Lynx and Links.")
+      (license license:gpl2+))))
 
 (define-public luakit
   (package
@@ -732,7 +804,7 @@ is fully configurable and extensible in Common Lisp.")
 (define-public lagrange
   (package
     (name "lagrange")
-    (version "1.17.6")
+    (version "1.18.4")
     (source
      (origin
        (method url-fetch)
@@ -740,7 +812,7 @@ is fully configurable and extensible in Common Lisp.")
         (string-append "https://git.skyjake.fi/skyjake/lagrange/releases/"
                        "download/v" version "/lagrange-" version ".tar.gz"))
        (sha256
-        (base32 "0fsjn74cmrchqgnj88yzdxyj1gm0i2vrzh69b9b9bi7y2wk9il5r"))
+        (base32 "0c3dwsp8zkx2nzmd5mskcf91n20mjk7dlzgy6gn3df6brw57awk9"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -750,8 +822,12 @@ is fully configurable and extensible in Common Lisp.")
            (delete-file-recursively "lib/sealcurses")))))
     (build-system cmake-build-system)
     (arguments
-     `(#:tests? #false                  ;no tests
-       #:configure-flags (list "-DTFDN_ENABLE_SSE41=OFF")))
+     (list
+       #:tests? #false                  ;no tests
+       #:configure-flags
+       #~(list "-DTFDN_ENABLE_SSE41=OFF"
+               (string-append "-DUNISTRING_DIR="
+                              #$(this-package-input "libunistring")))))
     (native-inputs
      (list pkg-config zip))
     (inputs
@@ -860,7 +936,7 @@ http, and https via third-party applications.")
 (define-public tinmop
   (package
     (name "tinmop")
-    (version "0.9.9.14142135623")
+    (version "0.9.9.1414213562373")
     (source
      (origin
        (method git-fetch)
@@ -869,20 +945,23 @@ http, and https via third-party applications.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "02kp527gyh60fm2ss92wy3k3m9fih82wvzndri98sj2zc0wgcnki"))))
+        (base32 "1grcngb6rnyzkdkf52m62m1kmd8nxm9m85bpg2py5mp3ghf5y5gp"))))
     (build-system gnu-build-system)
     (native-inputs
      (list autoconf
            automake
+           bash-completion
            gnu-gettext
            libjpeg-turbo
            imagemagick
            mandoc
            nano
            openssl
+           pkg-config
            sbcl
            tk
            unzip
+           which
            xdg-utils))
     (inputs
      (list ncurses
@@ -909,7 +988,6 @@ http, and https via third-party applications.")
            sbcl-log4cl
            sbcl-marshal
            sbcl-nodgui
-           sbcl-osicat
            sbcl-parse-number
            sbcl-percent-encoding
            sbcl-purgatory
@@ -920,6 +998,7 @@ http, and https via third-party applications.")
            sbcl-unix-opts
            sbcl-usocket
            sbcl-yason
+           sdl2-ttf
            sqlite))
     (arguments
      `(#:tests? #f
@@ -939,15 +1018,16 @@ http, and https via third-party applications.")
                (("AC_PATH_PROGS.+GIT")
                 "dnl")
                (("AC_PATH_PROG.+GPG")
-                "dnl"))
-             #t))
-         (add-after 'configure 'fix-asdf
-           (lambda* (#:key inputs #:allow-other-keys)
-             (substitute* "Makefile.in"
-               (("LISP_COMPILER) ")
-                (string-concatenate
-                 '("LISP_COMPILER) --eval \"(require 'asdf)\" "
-                   "--eval \"(push \\\"$$(pwd)/\\\" asdf:*central-registry*)\"  "))))
+                "dnl")
+               (("AC_PATH_PROG.+SDL2")
+                "dnl ")
+               (("AC_CHECK_HEADER.+ttf")
+                "dnl "))
+             (substitute* "Makefile.am"
+               (("dist_completion_DATA")
+                "#")
+               (("completiondir")
+                "#"))
              #t)))))
     (synopsis
      "Gemini, gopher, kami and mastodon/pleroma client with a terminal interface")
@@ -1035,6 +1115,40 @@ Features include
 @item Support for any character encoding recognised by Python.
 @end itemize")
     (license license:bsd-2)))
+
+(define-public dillo
+  (package
+    (name "dillo")
+    (version "3.2.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/dillo-browser/dillo")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "19rr09b4xvnz7isng8pzxm5879g3pqvml5v8vh4gbwwn93dnlwpn"))))
+    (build-system gnu-build-system)
+    (native-inputs (list autoconf automake))
+    (inputs (list fltk-1.3
+                  fontconfig
+                  openssl
+                  libjpeg-turbo
+                  libpng
+                  libwebp
+                  libxext
+                  libx11
+                  libxfixes
+                  libxft
+                  libxrender
+                  zlib))
+    (home-page "https://dillo-browser.github.io/")
+    (synopsis "Very small and fast graphical web browser")
+    (description
+     "Dillo is a minimalistic web browser particularly intended for
+-older or slower computers and embedded systems.")
+    (license license:gpl3+)))
 
 (define-public edbrowse
   (package

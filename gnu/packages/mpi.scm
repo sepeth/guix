@@ -37,13 +37,18 @@
   #:use-module (gnu packages)
   #:use-module (gnu packages base)
   #:use-module (gnu packages bash)
+  #:use-module (gnu packages bison)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages documentation)
   #:use-module (gnu packages fabric-management)
+  #:use-module (gnu packages flex)
   #:use-module (gnu packages gcc)
   #:use-module (gnu packages java)
   #:use-module (gnu packages libevent)
+  #:use-module (gnu packages libunwind)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages pciutils)
+  #:use-module (gnu packages profiling)
   #:use-module (gnu packages python)
   #:use-module (gnu packages xorg)
   #:use-module (gnu packages gtk)
@@ -148,7 +153,7 @@ bind processes, and much more.")
 (define-public hwloc-2
   (package
     (inherit hwloc-1)
-    (version "2.11.2")
+    (version "2.12.0")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://download.open-mpi.org/release/hwloc/v"
@@ -156,7 +161,7 @@ bind processes, and much more.")
                                   "/hwloc-" version ".tar.bz2"))
               (sha256
                (base32
-                "02c4zqifmfk91a8q5515c4azgx6hmmcbc5d9l7qh0w86mvn8zy7p"))))
+                "1m2qkjw35qj9gv9yjn1p46bahdp9l133hs34j61lwwd5q2ys5806"))))
 
     (native-inputs (modify-inputs (package-native-inputs hwloc-1)
                      (append bash)))              ;for completion tests
@@ -328,7 +333,7 @@ software vendors, application developers and computer science researchers.")
 (define-public openmpi-5
   (package
     (inherit openmpi)
-    (version "5.0.6")
+    (version "5.0.7")
     (source
      (origin
        (method url-fetch)
@@ -361,7 +366,7 @@ software vendors, application developers and computer science researchers.")
            ;; documentation.
            (delete-file-recursively "docs/html")))
        (sha256
-        (base32 "0mw1z4ppnlvxngwd58kl5q26qmvf3bgjkd4r8wjpqis3pky86hdx"))))
+        (base32 "1pf25zp9y0ch3vab3ycpjkck4njrsms0sg6zs0s36h3ajc4j17qi"))))
 
     (inputs (modify-inputs (package-inputs openmpi)
               ;; As of Open MPI 5.0.X, PMIx is used to communicate
@@ -681,3 +686,68 @@ modular framework for other derived implementations.")
           '%standard-phases)
          phases)))
     (synopsis "Implementation of the Message Passing Interface (MPI) for OmniPath")))
+
+(define (make-scorep mpi)
+  (package
+    (name (string-append "scorep-" (package-name mpi)))
+    (version "3.1")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "http://www.vi-hps.org/upload/packages/scorep/scorep-"
+                    version ".tar.gz"))
+              (sha256
+               (base32
+                "0h45357djna4dn9jyxx0n36fhhms3jrf22988m9agz1aw2jfivs9"))
+              (modules '((guix build utils)))
+              (snippet
+               ;; Remove bundled software.
+               '(begin
+                  (for-each delete-file-recursively
+                            '("vendor/opari2" "vendor/cube"))
+                  #t))))
+    (build-system gnu-build-system)
+    (inputs
+     `(("mpi" ,mpi)
+       ("papi" ,papi)
+       ("opari2" ,opari2)
+       ("libunwind" ,libunwind)
+       ("otf2" ,otf2)
+       ("cubelib" ,cube "lib")                    ;for lib, include
+       ("openmpi" ,openmpi)
+       ("zlib" ,zlib)))
+    (native-inputs
+     (list gfortran
+           flex
+           cube ;for cube-config
+           bison
+           python
+           doxygen
+           which))
+    (arguments
+     `(#:configure-flags
+       (list "--enable-shared" "--disable-static"
+             (string-append "--with-opari2="
+                            (assoc-ref %build-inputs "opari2"))
+             (string-append "--with-cube="
+                            (assoc-ref %build-inputs "cube")))
+       #:parallel-tests? #f
+       #:make-flags '("V=1")
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'install 'licence
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let ((doc (string-append (assoc-ref outputs "out")
+                                       "/share/doc/scorep")))
+               (install-file "COPYING" doc)
+               #t))))))
+    (home-page "https://www.vi-hps.org/projects/score-p/")
+    (synopsis "Performance measurement infrastructure for parallel code")
+    (description
+     "The Score-P (Scalable Performance Measurement Infrastructure for
+Parallel Codes) measurement infrastructure is a scalable and easy-to-use tool
+suite for profiling, event trace recording, and online analysis of
+high-performance computing (HPC) applications.")
+    (license license:cpl1.0)))
+
+(define-public scorep-openmpi (make-scorep openmpi))

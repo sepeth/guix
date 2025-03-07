@@ -356,7 +356,7 @@ website for more information about Yubico and the YubiKey.")
 (define-public opensc
   (package
     (name "opensc")
-    (version "0.25.1")
+    (version "0.26.0")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -364,7 +364,7 @@ website for more information about Yubico and the YubiKey.")
                     version "/opensc-" version ".tar.gz"))
               (sha256
                (base32
-                "0yxk97aj29pybvya6r9ix9xh00hdzcfrc2lcns4vb3kwpplamjr3"))))
+                "0azqfmg9wnjry9qa8q2lsdrnxphf2mb111v8v1h54l718nnswyw3"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -413,9 +413,9 @@ authentication, encryption and digital signatures.  OpenSC implements the PKCS
     (home-page "https://github.com/OpenSC/pkcs11-helper")
     (synopsis "Library that simplifies the interaction with PKCS#11 providers")
     (description
-     "Pkcs11-helper is a library that simplifies the interaction with
-PKCS#11 providers for end-user applications. PKCS#11 is published standard.
-PKCS#11 is the de-facto standard to access cryptographic devices")
+     "Pkcs11-helper is a library that simplifies the interaction with PKCS#11
+providers for end-user applications.  PKCS#11 is published standard.  PKCS#11
+is the de-facto standard to access cryptographic devices")
     (license (list license:gpl2 license:bsd-3))))
 
 
@@ -682,7 +682,7 @@ verifying the cryptographic operations.")
 (define-public pam-u2f
   (package
     (name "pam-u2f")
-    (version "1.3.0")
+    (version "1.3.2")
     (source (origin
               (method git-fetch)
               (uri
@@ -691,7 +691,7 @@ verifying the cryptographic operations.")
                 (commit (string-append "pam_u2f-" version))))
               (file-name (git-file-name name version))
               (sha256
-               (base32 "1swvys98mw7ailllgqicvhj315qajhvqrmm314cp3bj0l76s9qpv"))))
+               (base32 "0528r0q3j1d6cb3dzh9vgagr8v2b2y5yylykr1cqjmg9hvp35a4i"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -849,7 +849,8 @@ an unprivileged user.")
                   qtgraphicaleffects
                   qtquickcontrols-5
                   qtquickcontrols2-5
-                  qtsvg-5))
+                  qtsvg-5
+                  qtwayland-5))
     (home-page "https://developers.yubico.com/yubikey-manager-qt/")
     (synopsis "GUI for configuring any YubiKey over all USB interfaces")
     (description "YubiKey Manager (Qt) is a graphical application for
@@ -980,14 +981,14 @@ devices.")
 (define-public ausweisapp
   (package
     (name "ausweisapp")
-    (version "2.1.0")
+    (version "2.2.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://github.com/Governikus/AusweisApp/releases"
                                   "/download/" version "/AusweisApp-" version ".tar.gz"))
               (sha256
                (base32
-                "1jzxfybjrc3byw42bqjvn1nsn7vbgcl8y94sywjy6vaj3a58hy36"))))
+                "1rbbgr90ivay1sh8sarp0nd1p8zdyfscjjwg8jdi2ig61jr795zf"))))
 
     (build-system qt-build-system)
     (native-inputs
@@ -1019,7 +1020,7 @@ devices.")
      "This application is developed and issued by the German government to be
 used for online authentication with electronic German ID cards and residence
 titles.  To use this app, a supported RFID card reader or NFC-enabled smart
-phone is required.")
+phone and a running pcscd service are required.")
     (license license:eupl1.2)))
 
 (define-deprecated/public ausweisapp2 ausweisapp

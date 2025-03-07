@@ -6,7 +6,7 @@
 ;;; Copyright © 2015, 2016, 2017 David Thompson <davet@gnu.org>
 ;;; Copyright © 2016-2021, 2023, 2024 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016, 2017, 2020 Kei Kebreau <kkebreau@posteo.net>
-;;; Copyright © 2016, 2018, 2019, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2016, 2018, 2019, 2024, 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2016, 2017, 2018 Julian Graham <joolean@gmail.com>
 ;;; Copyright © 2017–2021 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2017 Manolis Fragkiskos Ragkousis <manolis837@gmail.com>
@@ -22,15 +22,18 @@
 ;;; Copyright © 2020 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2021 Alexandru-Sergiu Marton <brown121407@posteo.ro>
 ;;; Copyright © 2021 Dmitry Polyakov <polyakov@liltechdude.xyz>
-;;; Copyright © 2020-2022, 2024 James Smith <jsubuntuxp@disroot.org>
+;;; Copyright © 2020-2022, 2024-2025 James Smith <jsubuntuxp@disroot.org>
 ;;; Copyright © 2021 Ekaitz Zarraga <ekaitz@elenq.tech>
 ;;; Copyright © 2021 Andy Tai <atai@atai.org>
 ;;; Copyright © 2022 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2022 Jai Vetrivelan <jaivetrivelan@gmail.com>
 ;;; Copyright © 2022 dan <i@dan.games>
+;;; Copyright © 2022 Cairn <cairn@pm.me>
 ;;; Copyright © 2023, 2024 John Kehayias <john.kehayias@protonmail.com>
+;;; Copyright © 2022-2023, 2025 Adam Faiz <adam.faiz@disroot.org>
 ;;; Copyright © 2024 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -60,6 +63,7 @@
   #:use-module (guix build-system cmake)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
+  #:use-module (guix build-system go)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
   #:use-module (guix build-system scons)
@@ -76,6 +80,8 @@
   #:use-module (gnu packages check)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages documentation)
+  #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages fltk)
   #:use-module (gnu packages fonts)
   #:use-module (gnu packages fontutils)
@@ -92,12 +98,14 @@
   #:use-module (gnu packages graphviz)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
+  #:use-module (gnu packages haskell-xyz)
   #:use-module (gnu packages icu4c)
   #:use-module (gnu packages image)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages llvm)
   #:use-module (gnu packages lua)
   #:use-module (gnu packages m4)
+  #:use-module (gnu packages maths)
   #:use-module (gnu packages mp3)
   #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages music)
@@ -105,10 +113,12 @@
   #:use-module (gnu packages networking)
   #:use-module (gnu packages pcre)
   #:use-module (gnu packages pkg-config)
+  #:use-module (gnu packages pretty-print)
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-crypto)
+  #:use-module (gnu packages python-graphics)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages readline)
@@ -123,6 +133,7 @@
   #:use-module (gnu packages texinfo)
   #:use-module (gnu packages textutils)
   #:use-module (gnu packages tls)
+  #:use-module (gnu packages version-control)
   #:use-module (gnu packages video)
   #:use-module (gnu packages vulkan)
   #:use-module (gnu packages web)
@@ -286,7 +297,7 @@ offers a wide range of functions, including par-score calculations.")
    (home-page "https://github.com/Doom-Utils/deutex")
    (synopsis "WAD file composer for Doom and related games")
    (description
-    "DeuTex is a wad composer for Doom, Heretic, Hexen and Strife. It can be
+    "DeuTex is a wad composer for Doom, Heretic, Hexen and Strife.  It can be
 used to extract the lumps of a wad and save them as individual files.
 Conversely, it can also build a wad from separate files.  When extracting a
 lump to a file, it does not just copy the raw data, it converts it to an
@@ -295,6 +306,98 @@ Conversely, when it reads files for inclusion in pwads, it does the necessary
 conversions (for example, from PPM to Doom picture format).  In addition,
 DeuTex has functions such as merging wads, etc.")
    (license license:gpl2+)))
+
+(define-public go-codeberg-org-anaseto-gruid-sdl
+  (package
+    (name "go-codeberg-org-anaseto-gruid-sdl")
+    (version "0.5.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://codeberg.org/anaseto/gruid-sdl.git")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0q2k9ysfvqb715mrpk2f3sagkjmcsinh3s6nfgi6f3axckzj2351"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:skip-build? #t ; it needs to be built on final application side only
+      #:tests? #f      ; no tests provided
+      #:import-path "codeberg.org/anaseto/gruid-sdl"))
+    (native-inputs
+     (list pkg-config)) ; for go-github-com-veandco-go-sdl2
+    (propagated-inputs
+     (list go-codeberg-org-anaseto-gruid
+           go-github-com-veandco-go-sdl2
+           go-golang-org-x-image))
+    (home-page "https://codeberg.org/anaseto/gruid-sdl")
+    (synopsis "Gruid Driver using the go-sdl2 SDL2 bindings")
+    (description
+     "Package sdl provides a Driver for making native graphical apps.")
+    (license license:isc)))
+
+(define-public go-github-com-veandco-go-sdl2
+  (package
+    (name "go-github-com-veandco-go-sdl2")
+    (version "0.4.40")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/veandco/go-sdl2")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0wi74j32dj5bzlp85v2qlhxn03p9p3500vxmm3d2wj656nwjw3cg"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:skip-build? #t
+      #:import-path "github.com/veandco/go-sdl2"
+      #:test-flags
+      #~(list "-skip" (string-join
+                       (list
+                        ;; QuitSubSystem(32): subsystem still initialized.
+                        "TestInitQuit"
+                        ;; Field not found "lockData" and type size mismatch.
+                        "TestStructABI"
+                        ;; Parameter 'src' is invalid.
+                        "TestSurface"
+                        ;; Test examples is provided as git submodule
+                        ;; <https://github.com/veandco/go-sdl2-examples>.
+                        "TestTTF")
+                       "|"))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-sdl-wrapper-headers
+            (lambda* (#:key import-path #:allow-other-keys)
+              (with-directory-excursion (string-append "src/" import-path)
+                (substitute* (find-files "." "\\.h")
+                  (("<SDL_image.h>") "<SDL2/SDL_image.h>")
+                  (("<SDL_mixer.h>") "<SDL2/SDL_mixer.h>")
+                  (("<SDL_ttf.h>") "<SDL2/SDL_ttf.h>")))))
+          (add-before 'check 'pre-check
+            (lambda _
+              (setenv "HOME" "/tmp")
+              (setenv "XDG_RUNTIME_DIR" (getcwd)))))))
+    (native-inputs
+     (list pkg-config))
+    (propagated-inputs
+     (list go-github-com-golang-freetype
+           sdl2
+           sdl2-gfx
+           sdl2-image
+           sdl2-mixer
+           sdl2-ttf))
+    (home-page "https://github.com/veandco/go-sdl2")
+    (synopsis "SDL2 binding for Go")
+    (description
+     "@code{go-sdl2} is SDL2 wrapped for Go users.  It enables
+interoperability between Go and the SDL2 library which is written in C. That
+means the original SDL2 installation is required for this to work.")
+    (license license:bsd-3)))
 
 (define-public grfcodec
   ;; Latest release 6.0.6 requires an older boost and does not build with our
@@ -351,7 +454,7 @@ DeuTex has functions such as merging wads, etc.")
       (synopsis "GRF development tools")
       (description
        "The @dfn{Graphics Resource File} (GRF) development tools are a set of
-tools for developing (New)GRFs. It includes a number of smaller programs, each
+tools for developing (New)GRFs.  It includes a number of smaller programs, each
 with a specific task:
 @enumerate
 @item @code{grfcodec} decodes and encodes GRF files for OpenTTD.
@@ -481,7 +584,7 @@ files) into @file{.grf} and/or @file{.nfo} files.")
          (add-before 'build 'build-ext
            (lambda _
              (invoke "python" "setup.py" "build_ext" "--inplace"))))))
-    (native-inputs (list swig))
+    (native-inputs (list swig python-setuptools python-wheel))
     (home-page "https://github.com/pybox2d/pybox2d")
     (synopsis "2D game physics for Python")
     (description
@@ -506,7 +609,7 @@ types (revolute, prismatic, wheel, etc.).")
     (arguments
      (list #:tests? #f)) ; no tests
     (native-inputs
-     (list python-setuptools))
+     (list python-setuptools python-wheel))
     (propagated-inputs
      (list python-pygame python-uniseg))
     (home-page "https://python-sge.github.io/")
@@ -517,6 +620,43 @@ general-purpose 2D game engine.  It takes care of several details for you so
 you can focus on the game itself.  This makes more rapid game development
 possible, and it also makes the SGE easy to learn.")
     (license license:lgpl3+)))
+
+(define-public python-pyscroll
+  (package
+    (name "python-pyscroll")
+    (version "2.31")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "pyscroll" version))
+              (sha256
+               (base32
+                "0w3c58mkkbsyvx9w9hwdizk20pbds800m7v9vg49ydw440dha0hr"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-pygame))
+    (home-page "https://github.com/bitcraft/pyscroll")
+    (synopsis "Fast scrolling maps library for pygame")
+    (description "@code{pyscroll} is a simple and fast module
+for animated scrolling maps for your new or existing game.")
+    (license license:lgpl3+)))
+
+(define-public python-pytmx
+  (package
+    (name "python-pytmx")
+    (version "3.32")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "PyTMX" version))
+              (sha256
+               (base32
+                "1jh9b0pjqbjdv72v5047p5d769ic084g013njvky0zcfiwrxi3w5"))))
+    (build-system python-build-system)
+    (propagated-inputs
+     (list python-pygame python-pysdl2 python-pyglet))
+  (home-page "https://github.com/bitcraft/PyTMX")
+  (synopsis "Python library to read Tiled Map Editor's TMX maps")
+  (description "@code{pytmx} is a map loader for python/pygame designed for games.
+It provides smart tile loading with a fast and efficient storage base.")
+  (license license:lgpl3+)))
 
 (define-public python-tmx
   (package
@@ -580,6 +720,25 @@ Game Engine easier.  In addition to SGE's conveniences, the user has access to a
 GUI toolkit, lighting and physics frameworks and @code{Tiled} TMX format
 support.")
     (license license:lgpl3+)))
+
+(define-public python-neteria
+  (package
+    (name "python-neteria")
+    (version "1.0.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "neteria" version))
+       (sha256
+        (base32 "1azlix80a6vns2i3z0bdbqk32kx8s2gjh2nvshab235fd9h85yv7"))))
+    (build-system python-build-system)
+    (propagated-inputs
+     (list python-rsa))
+    (home-page "https://pypi.org/project/neteria/")
+    (synopsis "Simple game networking library")
+    (description
+     "This package provides a game networking framework for Python.")
+    (license license:gpl3+)))
 
 (define-public slade
   (package
@@ -676,6 +835,95 @@ clone.")
     ;; As noted in 'COPYING', part of it is under GPLv2+, while the rest is
     ;; under BSD-2.
     (license license:gpl2+)))
+
+(define-public trenchbroom
+  (package
+    (name "trenchbroom")
+    (version "2024.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/TrenchBroom/TrenchBroom")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "18cb3w7wxc9y2izh0flkkl77sg897dh0g49zq7rbhpvw35j4xgaj"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:configure-flags
+           #~(list "-DCMAKE_BUILD_TYPE=Release" "-G" "Unix Makefiles"
+                   "-DCMAKE_PREFIX_PATH=cmake/packages"
+                   (string-append "-DFREEIMAGE_INCLUDE_PATH="
+                                  #$freeimage "/include")
+                   (string-append "-DFREEIMAGE_LIBRARY="
+                                  #$freeimage "/lib/libfreeimage.so")
+                   (string-append "-Dfreetype_INCLUDE_DIR="
+                                  #$freetype "/include/freetype2")
+                   (string-append "-Dfreetype_LIBRARY="
+                                  #$freetype "/lib/libfreetype.so"))
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'fix-build-system
+                 (lambda _
+                   (substitute* "CMakeLists.txt"
+                     (("set\\(CMAKE_TOOLCHAIN_FILE")
+                      "#set(CMAKE_TOOLCHAIN_FILE"))
+                   (substitute* "app/CMakeLists.txt"
+                     (("/usr") #$output))))
+               (add-before 'build 'set-environment-variables
+                 (lambda _
+                   ;; Set home so fontconfig can write cache.
+                   (setenv "HOME" (getenv "TEMP"))
+                   ;; Set QT platform for offscreen rendering.
+                   (setenv "QT_QPA_PLATFORM" "offscreen")
+                   (setenv "XDG_RUNTIME_DIR" (getenv "TEMP"))))
+               (add-after 'install 'wrap-trenchbroom
+                 (lambda _
+                   (wrap-program (string-append #$output "/bin/trenchbroom")
+                     ;; TrenchBroom needs $XDG_DATA_DIRS set to find game
+                     ;; configs.
+                     `("XDG_DATA_DIRS" ":" prefix
+                       (,(string-append #$output "/share")))
+                     ;; TrenchBroom also doesn't work well with Wayland backend.
+                     '("QT_QPA_PLATFORM" = ("xcb")))))
+               (add-after 'install 'install-desktop-file
+                 (lambda _
+                   (make-desktop-entry-file
+                    (string-append #$output "/share/applications/"
+                                   #$(package-name this-package) ".desktop")
+                    #:name "TrenchBroom"
+                    #:comment #$(package-synopsis this-package)
+                    #:exec #$name
+                    #:icon #$name
+                    #:categories '("Development")
+                    #:keywords '("quake" "level" "editor")))))
+           #:tests? #f)) ; No tests.
+    (inputs
+     (list assimp
+           bash-minimal
+           catch2
+           fmt
+           freeglut
+           freeimage
+           freetype
+           glew
+           glm
+           glu
+           libxxf86vm
+           mesa
+           miniz
+           qtbase-5
+           qtsvg-5
+           tinyxml2))
+    (native-inputs (list git pandoc python p7zip))
+    (home-page "https://kristianduske.com/trenchbroom/")
+    (synopsis "Cross-platform level editor for Quake-engine based games")
+    (description "TrenchBroom is a cross-platform level editor for
+Quake-engine based games.  It supports Quake, Quake 2, Hexen 2, as well as
+other games.  TrenchBroom provides many simple and advanced tools to create
+complex and interesting levels.")
+    (license license:gpl3+)))
 
 (define-public tsukundere
   (package
@@ -991,14 +1239,14 @@ archive on a per-file basis.")
 (define-public love
   (package
     (name "love")
-    (version "11.4")
+    (version "11.5")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://github.com/love2d/love/releases/download/"
                            version "/love-" version "-linux-src.tar.gz"))
        (sha256
-        (base32 "0sak3zjpzfs3ys315m8qvszi946fz76jcpsb58j11wplyp5fwbz3"))))
+        (base32 "0fachzyfl26gwg13l5anfppzljxpmd0pvwpap0lgva8syx1hhvh6"))))
     (build-system gnu-build-system)
     (native-inputs
      (list pkg-config))
@@ -1365,6 +1613,50 @@ and multimedia programs in the Python language.")
                    license:psfl
                    license:public-domain
                    license:lgpl2.1+))))
+
+(define-public python-pygame-menu
+  (package
+    (name "python-pygame-menu")
+    (version "4.5.1")
+    (source
+     ;; Tests not included in release.
+     (origin
+       (method git-fetch)
+       (uri
+        (git-reference
+         (url "https://github.com/ppizarror/pygame-menu")
+         (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "0xd5d6nfkd5bp2zfq77yglp6mz043w28zprfz7savgmph5kvdnfh"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-before 'check 'prepare-test-environment
+                 (lambda _
+                   (setenv "HOME" (getcwd))))
+               (add-before 'check 'skip-certain-tests
+                 (lambda _
+                   (substitute* "test/test_font.py"
+                     (("test_font_argument") "skip_test_font_argument")
+                     (("test_system_load") "skip_test_system_load"))
+                   (substitute* "test/test_baseimage.py"
+                     ;; Tuples differ: (111, 110) != (110, 109)
+                     (("test_invalid_image") "skip_test_invalid_image")
+                     (("test_scale") "skip_test_scale")))))))
+    (propagated-inputs (list python-pygame python-pyperclip
+                             python-typing-extensions))
+    (native-inputs (list python-nose2 python-setuptools python-wheel))
+    (home-page "https://pygame-menu.readthedocs.io")
+    (synopsis "Menu for pygame")
+    (description
+     "Pygame-menu is a python-pygame library for creating menus and GUIs.
+It supports several widgets, such as buttons, color inputs, clock objects,
+drop selectors, frames, images, labels, selectors, tables, text inputs,
+color switches, and many more, with multiple options to customize.")
+    (license license:expat)))
 
 (define-public python-pygame-sdl2
   (let ((real-version "2.1.0")
@@ -2087,7 +2379,7 @@ scripted in a Python-like language.")
 (define-public godot
   (package
     (name "godot")
-    (version "4.3")
+    (version "4.4")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -2096,7 +2388,7 @@ scripted in a Python-like language.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1hqjlhjhxyp1kll7s68b34kisvba1d5dsr804flc0bw4f47l2sdz"))
+                "1la1sk6v3scpgvv7gpqxbmh6vybz5v67jbl19ks07i50g8bpiswx"))
               (modules '((guix build utils)
                          (ice-9 ftw)
                          (srfi srfi-1)))
@@ -2129,9 +2421,11 @@ scripted in a Python-like language.")
                               ;; which is no longer in the glslang output
                               ;; after the most recent update.
                               "glslang"
+                              "jolt_physics"
                               "jpeg-compressor"
                               "libktx"
                               "libsimplewebm"
+                              "manifold"
                               "meshoptimizer"
                               "minimp3"
                               "miniupnpc"
@@ -2197,9 +2491,9 @@ scripted in a Python-like language.")
               ;; Scons does not use the environment variables by default,
               ;; but this substitution makes it do so.
               (substitute* "SConstruct"
-                (("env = Environment\\(tools=custom_tools\\)")
+                (("env = Environment\\(tools=\\[\\]\\)")
                  (string-append
-                  "env = Environment(tools=custom_tools)\n"
+                  "env = Environment(tools=[])\n"
                   "env = Environment(ENV=os.environ)")))))
           (add-after 'scons-use-env 'fix-dlopen-paths
             (lambda* (#:key inputs #:allow-other-keys)
@@ -2209,6 +2503,10 @@ scripted in a Python-like language.")
                              "platform/linuxbsd/fontconfig-so_wrap.c"
                              "platform/linuxbsd/libudev-so_wrap.c"
                              "platform/linuxbsd/speechd-so_wrap.c"
+                             "platform/linuxbsd/wayland/dynwrappers/libdecor-so_wrap.c"
+                             "platform/linuxbsd/wayland/dynwrappers/wayland-client-core-so_wrap.c"
+                             "platform/linuxbsd/wayland/dynwrappers/wayland-cursor-so_wrap.c"
+                             "platform/linuxbsd/wayland/dynwrappers/wayland-egl-core-so_wrap.c"
                              "platform/linuxbsd/x11/display_server_x11.cpp"
                              "platform/linuxbsd/x11/dynwrappers/xcursor-so_wrap.c"
                              "platform/linuxbsd/x11/dynwrappers/xext-so_wrap.c"
@@ -2226,6 +2524,10 @@ scripted in a Python-like language.")
                             "libfontconfig.so.1"
                             "libudev.so.1"
                             "libspeechd.so.2"
+                            "libdecor-0.so.0"
+                            "libwayland-client.so.0"
+                            "libwayland-cursor.so.0"
+                            "libwayland-egl.so.1"
                             "libXrandr.so.2"
                             "libXcursor.so.1"
                             "libXext.so.6"
@@ -2263,6 +2565,20 @@ scripted in a Python-like language.")
                 (("./thirdparty/linuxbsd_headers/xkbcommon/xkbcommon-keysyms.h")
                  (string-append
                   (search-input-file inputs "include/xkbcommon/xkbcommon-keysyms.h"))))))
+          (add-after 'unbundle-xkbcommon 'unbundle-wayland
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "platform/linuxbsd/wayland/SCsub"
+                ;; This first file does not exist in a "protocol" directory of
+                ;; our wayland package, so this can't be grouped with the
+                ;; other substitutions.
+                (("#thirdparty/wayland/protocol/wayland.xml")
+                 (search-input-file inputs "share/wayland/wayland.xml"))
+                (("#thirdparty/wayland-protocols")
+                 (string-append
+                  #$(this-package-input "wayland-protocols") "/share/wayland-protocols"))
+                (("#thirdparty/wayland")
+                 (string-append
+                    #$(this-package-input "wayland") "/share/wayland")))))
           (replace 'install
             (lambda* (#:key inputs #:allow-other-keys)
               (let ((zenity (search-input-file inputs "bin/zenity")))
@@ -2311,6 +2627,7 @@ scripted in a Python-like language.")
            libpng
            harfbuzz
            icu4c
+           libdecor
            libtheora
            libvorbis
            libvpx
@@ -2329,6 +2646,8 @@ scripted in a Python-like language.")
            pulseaudio
            speech-dispatcher
            vulkan-loader
+           wayland
+           wayland-protocols
            wslay
            zenity
            zlib
@@ -2379,6 +2698,74 @@ scripted in a Python-like language.")
     (license (list license:expat        ; code
                    license:cc-by4.0)))) ; documentation
 
+(define-public ericw-tools
+  (package
+    (name "ericw-tools")
+    (version "0.18.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference (url "https://github.com/ericwa/ericw-tools")
+                           (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "11sap7qv0rlhw8q25azvhgjcwiql3zam09q0gim3i04cg6fkh0vp"))
+       (patches
+        (search-patches "ericw-tools-add-check-for-sse2-in-light.cc.patch"
+                        "ericw-tools-gcc-11-pass-const-to-offsetof.patch"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:configure-flags #~(list "-DENABLE_LIGHTPREVIEW=OFF")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'disable-copying-embree-files
+                 (lambda _
+                   ;; Tries to copy files from embree, disable it.
+                   (substitute* "light/CMakeLists.txt"
+                     (("install\\\(FILES \\$\\{EMBREE")
+                      "#install(FILES ${EMBREE"))))
+               (add-after 'install 'rename-binaries
+                 (lambda _
+                   ;; Rename binaries to prevent collisions with other
+                   ;; packages.
+                   (rename-file (string-append #$output "/bin/bspinfo")
+                                (string-append #$output "/bin/qbspinfo"))
+                   (rename-file (string-append #$output "/bin/bsputil")
+                                (string-append #$output "/bin/qbsputil"))
+                   (rename-file (string-append #$output "/bin/light")
+                                (string-append #$output "/bin/qlight"))
+                   (rename-file (string-append #$output "/bin/vis")
+                                (string-append #$output "/bin/qvis"))))
+               (add-after 'install-license-files 'clean-up-bin-directory
+                 (lambda _
+                   ;; Install target copies text documents to #$output/bin, move
+                   ;; them to #$output/share/doc.
+                   (delete-file (string-append #$output "/bin/gpl_v3.txt"))
+                   (rename-file
+                    (string-append #$output "/bin/changelog.txt")
+                    (string-append #$output "/share/doc/"
+                                   #$(package-name this-package) "-"
+                                   #$(package-version this-package)
+                                   "/changelog.txt"))
+                   (rename-file
+                    (string-append #$output "/bin/README.md")
+                    (string-append #$output "/share/doc/"
+                                   #$(package-name this-package) "-"
+                                   #$(package-version this-package)
+                                   "/README.md")))))
+           #:tests? #f)) ; No tests
+    (inputs (list embree-2))
+    (home-page "https://ericwa.github.io/ericw-tools/")
+    (synopsis "Map compiling tools for Quake/Hexen 2")
+    (description
+     "This package provides a collection of command line utilities used for
+building Quake maps as well as working with various Quake file formats.  The
+utilities include @command{qbsp} for building the geometry, @command{qvis} for
+calculating visibility, @command{qlight} for lighting, @command{bspinfo} for
+getting information, and @command{bsputil} for basic editing of data in a map
+file.")
+    (license license:gpl2+)))
+
 (define-public eureka
   (package
     (name "eureka")
@@ -2420,7 +2807,7 @@ scripted in a Python-like language.")
               ("libfontconfig" ,fontconfig)
               ("libjpeg" ,libjpeg-turbo)
               ("libpng" ,libpng)
-              ("fltk" ,fltk)
+              ("fltk" ,fltk-1.3)
               ("zlib" ,zlib)))
     (native-inputs (list pkg-config xdg-utils))
     (synopsis "Doom map editor")
@@ -2630,22 +3017,18 @@ people base their games, ports to new platforms, and other projects.")
       (license license:gpl2))))
 
 (define-public inform
-  ;; The latest release does not yet have a build system.
-  ;; This commit is the earliest to have one.
-  (let ((commit "20cbfff96015938809d0e3da6cd0d83b76d27f14")
-        (revision "0"))
     (package
       (name "inform")
-      (version (git-version "6.41" revision commit))
+      (version "6.42")
       (source
        (origin
          (method git-fetch)
          (uri (git-reference
                (url "https://jxself.org/git/inform.git")
-               (commit commit)))
+               (commit (string-append "v" version))))
          (file-name (git-file-name name version))
          (sha256
-          (base32 "19z8pgrj1s2irany5s6xxwsm3bdnri1as46fdi16zdp4aah523jy"))))
+          (base32 "1gb7b8y4qq9n3r4giqr4shzn3xli6aiaax7k4lzlgic7w1x3zjfl"))))
       (build-system gnu-build-system)
       (native-inputs (list autoconf automake))
       (synopsis "The Inform 6 compiler")
@@ -2654,7 +3037,7 @@ people base their games, ports to new platforms, and other projects.")
 This version of the compiler has been modified slightly to work better when the
 Inform standard library is in a non-standard location.")
       (home-page "https://jxself.org/git/inform.git")
-      (license license:gpl3+))))
+      (license license:gpl3+)))
 
 (define-public informlib
   (package

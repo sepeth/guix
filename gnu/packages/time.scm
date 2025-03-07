@@ -25,6 +25,8 @@
 ;;; Copyright © 2024 Liliana Marie Prikler <liliana.prikler@gmail.com>
 ;;; Copyright © 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2024 Ricardo Wurmus <rekado@elephly.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -47,7 +49,6 @@
   #:use-module (gnu packages check)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages geo)
-  #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages libffi)
   #:use-module (gnu packages perl)
@@ -69,18 +70,45 @@
   #:use-module (guix licenses)
   #:use-module (guix packages))
 
+(define-public termdown
+  (package
+    (name "termdown")
+    (version "1.18.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "termdown" version))
+       (sha256
+        (base32
+         "07nxsqpwnpr9jkvif2ngjlcq05z0ldnmqxd15d1l593lzmxdyrci"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-setuptools python-wheel))
+    (propagated-inputs
+     (list python-click
+           python-pyfiglet
+           python-dateutil))
+    (home-page "https://github.com/trehn/termdown")
+    (synopsis "Countdown timer for your terminal")
+    (description
+     "Termdown provides a fancy text display while it counts down to zero from
+a starting point you provide.  The user can pause and resume the countdown
+from the text user interface.  It can also be used in stop watch mode which
+counts forward or for just showing the current time.")
+    (license gpl3)))
+
 (define-public time
   (package
     (name "time")
     (version "1.9")
     (source
      (origin
-      (method url-fetch)
-      (uri (string-append "mirror://gnu/time/time-"
-                          version ".tar.gz"))
-      (sha256
-       (base32
-        "07jj7cz6lc13iqrpgn81ivqh8rkm73p4rnivwgrrshk23v4g1b7v"))))
+       (method url-fetch)
+       (uri (string-append "mirror://gnu/time/time-"
+                           version ".tar.gz"))
+       (sha256
+        (base32
+         "07jj7cz6lc13iqrpgn81ivqh8rkm73p4rnivwgrrshk23v4g1b7v"))))
     (build-system gnu-build-system)
     (home-page "https://www.gnu.org/software/time/")
     (synopsis "Run a command, then display its resource usage")
@@ -167,6 +195,31 @@ expressions.")
     (home-page "https://github.com/python/tzdata")
     (synopsis "Python wrapper of IANA time zone data")
     (description "This package provides a thin Python wrapper around tzdata.")
+    (license asl2.0)))
+
+(define-public python-pytz-deprecation-shim
+  (package
+    (name "python-pytz-deprecation-shim")
+    (version "0.1.0.post0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pytz_deprecation_shim" version))
+       (sha256
+        (base32 "17d58msbi18dc4lk29hcrgylvrv9vhniwi24axfdwvb13fp7n2dg"))))
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-dateutil python-tzdata))
+    (native-inputs (list python-pytest
+                         python-pytz
+                         python-setuptools
+                         python-wheel))
+    (home-page "https://github.com/pganssle/pytz-deprecation-shim")
+    (synopsis "Shims to make deprecation of pytz easier")
+    (description
+     "This package aims to make the transition away from @code{pytz} easier.
+It is intended for temporary usage only, and should allow you to drop your
+dependency on @code{pytz} while also giving your users notice that eventually
+you will remove support for the pytz-specific interface.")
     (license asl2.0)))
 
 (define-public python-pytz
@@ -322,7 +375,7 @@ business day calculation.")
 (define-public python-ciso8601
   (package
     (name "python-ciso8601")
-    (version "2.1.3")
+    (version "2.3.2")
     (source
      (origin
        (method git-fetch)
@@ -332,20 +385,45 @@ business day calculation.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32
-         "0g1aiyc1ayh0rnibyy416m5mmck38ksgdm3jsy0z3rxgmgb24951"))))
-    (build-system python-build-system)
-    ;; Pytz should only be required for Python 2, but the test suite fails
-    ;; without it.
+        (base32 "189adk14ygs1cx3ncm1wqqfh18r72gl299zkllncynp1y79d0nd1"))))
+    (build-system pyproject-build-system)
     (native-inputs
-     (list python-pytz))
+     (list python-pytest
+           python-setuptools
+           python-wheel))
     (home-page "https://github.com/closeio/ciso8601")
-    (synopsis
-     "Fast ISO8601 date time parser")
+    (synopsis "Fast ISO8601 date time parser")
     (description
-     "The package ciso8601 converts ISO 8601 or RFC 3339 date time strings into
-Python datetime objects.")
+     "The package ciso8601 converts ISO 8601 or RFC 3339 date time strings
+into Python datetime objects.")
     (license expat)))
+
+(define-public python-relativetimebuilder
+  (package
+    (name "python-relativetimebuilder")
+    (version "3.0.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "relativetimebuilder" version))
+       (sha256
+        (base32 "1x83vzwajz8rmml8x4ysr4cnxh6x0w42wkhw4zivd8qsbi9zcwzm"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
+    (propagated-inputs
+     (list python-aniso8601
+           python-dateutil))
+    (home-page "https://bitbucket.org/nielsenb/relativetimebuilder")
+    (synopsis "ANISO8601 builder for dateutil relativedeltas")
+    (description
+     "This package provides functionality for utilizing the relativedelta
+feature from the dateutil library, ensuring calendar precision with
+aniso8601.")
+    ;; setup.py and PyPI: "License :: OSI Approved :: BSD License"
+    (license bsd-3)))
 
 (define-public python-timezonefinder
   (package
@@ -413,17 +491,20 @@ under several distributions that's hard or impossible to figure out.")
 (define-public python-isodate
   (package
     (name "python-isodate")
-    (version "0.6.1")
+    (version "0.7.2")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "isodate" version))
        (sha256
         (base32
-         "1sdx4z0x6kv1qxjfi0gd82wfg16wca04q0nb93ba1c78wwfqiia8"))))
-    (build-system python-build-system)
+         "1rjkm5qj3lz60sgva5g38cpfqd8byj2jlaf0qskg8xna8c7smlac"))))
+    (build-system pyproject-build-system)
     (native-inputs
-     (list python-six))
+     (list python-pytest
+           python-setuptools
+           python-setuptools-scm
+           python-wheel))
     (home-page "https://github.com/gweis/isodate/")
     (synopsis "Python date parser and formatter")
     (description
@@ -666,7 +747,7 @@ choosing.")
      (list
       #:import-path "github.com/antonmedv/countdown"))
     (native-inputs
-     (list go-github.com-nsf-termbox-go))
+     (list go-github-com-nsf-termbox-go))
     (home-page "https://github.com/antonmedv/countdown")
     (synopsis "Counts to zero with a text user interface")
     (description

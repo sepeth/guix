@@ -13,7 +13,7 @@
 ;;; Copyright © 2020 Roel Janssen <roel@gnu.org>
 ;;; Copyright © 2021 Stefan Reichör <stefan@xsteve.at>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
-;;; Copyright © 2024 David Elsing <david.elsing@posteo.net>
+;;; Copyright © 2024, 2025 David Elsing <david.elsing@posteo.net>
 ;;; Copyright © 2024 Romain Garbage <romain.garbage@inria.fr>
 ;;; Copyright © 2024 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
@@ -78,14 +78,14 @@
 (define-public parallel
   (package
     (name "parallel")
-    (version "20241122")
+    (version "20250222")
     (source
      (origin
       (method url-fetch)
       (uri (string-append "mirror://gnu/parallel/parallel-"
                           version ".tar.bz2"))
       (sha256
-       (base32 "0n4ajx6d37dx6hmmvrc2499yxp3frai662kxq05s2z6188ppb7hs"))
+       (base32 "1xxvblq82q5jisd6qcwk861ww5s7i7kiibnvagr3nkni1mzb4nnh"))
       (snippet
        '(begin
           (use-modules (guix build utils))
@@ -599,8 +599,8 @@ features.")
 (define-public cpuinfo
   ;; There's currently no tag on this repo.
   (let ((version "0.0")
-        (revision "3")
-        (commit "05332fd802d9109a2a151ec32154b107c1e5caf9"))
+        (revision "4")
+        (commit "ca156f7bc9109c552973414a63d310f76ef0cbf8"))
     (package
       (name "cpuinfo")
       (version (git-version version revision commit))
@@ -611,7 +611,7 @@ features.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "0w0kfc1fn9viirkhbr8dgfy9m5clfsg3k9p6kdxhzqpyjhgd252n"))))
+                  "12ip6mnmymqhcbi8p98cn109y47pg9ygbj3k96r22dbmr77a50c4"))))
       (build-system cmake-build-system)
       (arguments
        (list

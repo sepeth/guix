@@ -140,6 +140,7 @@ MODULES =					\
   guix/platform.scm                             \
   guix/platforms/arm.scm                        \
   guix/platforms/avr.scm                        \
+  guix/platforms/loongarch.scm                  \
   guix/platforms/mips.scm                       \
   guix/platforms/or1k.scm                       \
   guix/platforms/powerpc.scm                    \
@@ -284,6 +285,7 @@ MODULES =					\
   guix/build/bournish.scm			\
   guix/build/qt-utils.scm			\
   guix/build/zig-build-system.scm		\
+  guix/build/zig-utils.scm			\
   guix/build/make-bootstrap.scm			\
   guix/build/toml.scm			\
   guix/search-paths.scm				\
@@ -440,11 +442,16 @@ AUX_FILES =						\
   gnu/packages/aux-files/emacs/guix-emacs.el		\
   gnu/packages/aux-files/findclass.php			\
   gnu/packages/aux-files/guix.vim			\
-  gnu/packages/aux-files/linux-libre/6.11-arm.conf	\
-  gnu/packages/aux-files/linux-libre/6.11-arm64.conf	\
-  gnu/packages/aux-files/linux-libre/6.11-i686.conf	\
-  gnu/packages/aux-files/linux-libre/6.11-x86_64.conf	\
-  gnu/packages/aux-files/linux-libre/6.11-riscv.conf	\
+  gnu/packages/aux-files/linux-libre/6.13-arm.conf	\
+  gnu/packages/aux-files/linux-libre/6.13-arm64.conf	\
+  gnu/packages/aux-files/linux-libre/6.13-i686.conf	\
+  gnu/packages/aux-files/linux-libre/6.13-riscv.conf	\
+  gnu/packages/aux-files/linux-libre/6.13-x86_64.conf	\
+  gnu/packages/aux-files/linux-libre/6.12-arm.conf	\
+  gnu/packages/aux-files/linux-libre/6.12-arm64.conf	\
+  gnu/packages/aux-files/linux-libre/6.12-i686.conf	\
+  gnu/packages/aux-files/linux-libre/6.12-x86_64.conf	\
+  gnu/packages/aux-files/linux-libre/6.12-riscv.conf	\
   gnu/packages/aux-files/linux-libre/6.6-arm.conf	\
   gnu/packages/aux-files/linux-libre/6.6-arm64.conf	\
   gnu/packages/aux-files/linux-libre/6.6-i686.conf	\
@@ -465,10 +472,6 @@ AUX_FILES =						\
   gnu/packages/aux-files/linux-libre/5.4-arm64.conf	\
   gnu/packages/aux-files/linux-libre/5.4-i686.conf	\
   gnu/packages/aux-files/linux-libre/5.4-x86_64.conf	\
-  gnu/packages/aux-files/linux-libre/4.19-arm.conf	\
-  gnu/packages/aux-files/linux-libre/4.19-arm64.conf	\
-  gnu/packages/aux-files/linux-libre/4.19-i686.conf	\
-  gnu/packages/aux-files/linux-libre/4.19-x86_64.conf	\
   gnu/packages/aux-files/pack-audit.c			\
   gnu/packages/aux-files/python/sanity-check.py		\
   gnu/packages/aux-files/python/sitecustomize.py	\
@@ -482,8 +485,11 @@ EXAMPLES =					\
   gnu/system/examples/asus-c201.tmpl		\
   gnu/system/examples/bare-bones.tmpl		\
   gnu/system/examples/bare-hurd.tmpl		\
+  gnu/system/examples/bare-hurd64.tmpl		\
   gnu/system/examples/beaglebone-black.tmpl	\
   gnu/system/examples/desktop.tmpl		\
+  gnu/system/examples/devel-hurd64.tmpl		\
+  gnu/system/examples/devel-hurd.tmpl		\
   gnu/system/examples/lightweight-desktop.tmpl	\
   gnu/system/examples/docker-image.tmpl		\
   gnu/system/examples/plasma.tmpl		\
@@ -556,6 +562,7 @@ SCM_TESTS =					\
   tests/graph.scm				\
   tests/gremlin.scm				\
   tests/hackage.scm				\
+  tests/hexpm.scm				\
   tests/home-import.scm				\
   tests/home-services.scm			\
   tests/http-client.scm				\
@@ -563,7 +570,10 @@ SCM_TESTS =					\
   tests/import-github.scm			\
   tests/import-utils.scm			\
   tests/inferior.scm				\
+  tests/ipfs.scm				\
   tests/lint.scm				\
+  tests/machine/hetzner.scm                     \
+  tests/machine/hetzner/http.scm                 \
   tests/minetest.scm				\
   tests/modules.scm				\
   tests/monads.scm				\
@@ -597,6 +607,7 @@ SCM_TESTS =					\
   tests/size.scm				\
   tests/status.scm				\
   tests/store-database.scm			\
+  tests/store-deadlock.scm			\
   tests/store-deduplication.scm		\
   tests/store-roots.scm			\
   tests/store.scm				\
@@ -1066,14 +1077,15 @@ SOURCE_TARBALLS =					\
 
 # Systems supported by Guix.
 SUPPORTED_SYSTEMS ?= x86_64-linux i686-linux armhf-linux aarch64-linux \
-  powerpc64le-linux
+  powerpc64le-linux riscv64-linux
 
 # Guix binary tarballs.
 BINARY_TARBALLS =							\
   $(foreach system,$(SUPPORTED_SYSTEMS),guix-binary.$(system).tar.xz)
 
-# Systems supported by Guix System.
-GUIX_SYSTEM_SUPPORTED_SYSTEMS ?= x86_64-linux i686-linux
+# Systems supported by the Guix System installer.
+# A Hurd install happens from a Linux installer image.
+GUIX_SYSTEM_INSTALLER_SYSTEMS ?= x86_64-linux i686-linux
 
 # Systems for which we build Guix VMs.
 GUIX_SYSTEM_VM_SYSTEMS ?= x86_64-linux
@@ -1134,10 +1146,10 @@ release: dist-with-updated-version all
 # Build 'current-guix' to speed things up for the next step.
 	$(top_builddir)/pre-inst-env guix build				\
 	      -e '((@ (gnu packages package-management) current-guix))'	\
-	      $(call system_flags,$(GUIX_SYSTEM_SUPPORTED_SYSTEMS))	\
+	      $(call system_flags,$(GUIX_SYSTEM_INSTALLER_SYSTEMS))	\
 	      -v1 --no-grafts --fallback
 # Generate the ISO installation images.
-	for system in $(GUIX_SYSTEM_SUPPORTED_SYSTEMS) ; do				\
+	for system in $(GUIX_SYSTEM_INSTALLER_SYSTEMS) ; do				\
 	  GUIX_DISPLAYED_VERSION="`git describe --match=v* | sed -'es/^v//'`" ;		\
 	  image=`$(top_builddir)/pre-inst-env						\
 	    guix system image -t iso9660						\
@@ -1201,7 +1213,7 @@ assert-no-store-file-names:
 	  exit 1 ;								\
 	fi
 
-# Make sure important substitutes are available.  Check only the primary
+# Make sure installer substitutes are available.  Check only the primary
 # server so that '--display-missing' doesn't print two lists.
 assert-binaries-available: $(GOBJECTS)
 	$(AM_V_at)$(top_builddir)/pre-inst-env				\

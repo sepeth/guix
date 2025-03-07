@@ -10,7 +10,7 @@
 ;;; Copyright © 2022 jgart <jgart@dismail.de>
 ;;; Copyright © 2023 wrobell <wrobell@riseup.net>
 ;;; Copyright © 2023 Tim Johann <t1m@phrogstar.de>
-;;; Copyright © 2024 Igor Goryachev <igor@goryachev.org>
+;;; Copyright © 2024, 2025 Igor Goryachev <igor@goryachev.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -49,7 +49,7 @@
 (define-public erlang
   (package
     (name "erlang")
-    (version "27.2")
+    (version "27.3")
     (source (origin
               (method git-fetch)
               ;; The tarball from http://erlang.org/download contains many
@@ -61,7 +61,7 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0s9pw7vyjb53mvk4y0kj5zdv8nr30yklvnjs6va4gxn0xm4k7amb"))
+                "07anydbg96y05n8mgh9b0gnw7zv5bw72zfl93hjhj5grdl27v99y"))
               (patches (search-patches "erlang-man-path.patch"))))
     (build-system gnu-build-system)
     (native-inputs
@@ -74,7 +74,7 @@
                                "/OTP-" version "/otp_doc_man_" version ".tar.gz"))
            (sha256
             (base32
-             "12biwwh6yzaf8j8w4qzk9mbzcw567ffmx6i8vx2ry8qd2758mvp6"))))))
+             "1j0ln7hcsnabpb7m7vhn2k440n0vham9hlvwad5d4pp5f4wy08rj"))))))
     (inputs
      (list ncurses openssl wxwidgets))
     (propagated-inputs
@@ -284,7 +284,7 @@ Mozilla's canonical set.")
     (build-system rebar-build-system)
     (home-page "https://github.com/project-fifo/cf")
     (synopsis "Terminal colour helper for Erlang io and io_lib")
-    (description "This package provides a helper library for termial colour
+    (description "This package provides a helper library for terminal colour
 printing extending the io:format syntax to add colours.")
     (license license:expat)))
 

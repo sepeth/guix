@@ -2,7 +2,7 @@
 ;;; Copyright © 2022–2024 Liliana Marie Prikler <liliana.prikler@gmail.com>
 ;;; Copyright © 2023 Simon Tournier <zimon.toutoune@gmail.com>
 ;;; Copyright © 2023 David Elsing <david.elsing@posteo.net>
-;;; Copyright © 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2024-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -162,7 +162,8 @@ satisfiability checking (SAT).")
                #~(begin
                    (delete-file-recursively "clasp")
                    (delete-file-recursively "libgringo/gen")
-                   (delete-file-recursively "third_party")))
+                   (delete-file-recursively "third_party")
+                   (delete-file "libpyclingo/_clingo.c")))
               (sha256
                (base32
                 "1mxl3gwx55sf2ifcb92mfy989c50yqpnq0d0r2mxdqr0riy40hjb"))))
@@ -442,13 +443,10 @@ Lua code.")))
           (guix build utils)))
        ((#:phases phases #~%standard-phases)
         #~(modify-phases #$phases
-            (add-after 'unpack 'fix-failing-tests
+            (add-after 'unpack 'generate-sources
               (lambda _
-                (substitute* "libpyclingo/clingo/tests/test_conf.py"
-                  (("ctl\\.solve\\(on_statistics=on_statistics\\)" all)
-                   (string-append
-                    all
-                    "; self.skipTest(\"You shall not fail.\")")))))
+                (with-directory-excursion "libpyclingo"
+                  (invoke "python" "compile.py" "c"))))
             (add-after 'install 'install-distinfo
               (lambda* (#:key inputs outputs #:allow-other-keys)
                 (with-directory-excursion (python:site-packages inputs outputs)
@@ -568,8 +566,13 @@ bindings for Clingo.")
                   (string-append "\""
                                  (search-input-file inputs "bin/clingo")
                                  "\""))))))))
-     (inputs (list clingo))
-     (propagated-inputs (list python-clingo))
+     (native-inputs
+      (list python-setuptools
+            python-wheel))
+     (inputs
+      (list clingo))
+     (propagated-inputs
+      (list python-clingo))
      (home-page "https://potassco.org/")
      (synopsis "Optimization in Answer Set Programming")
      (description "@command{asprin} is a general framework for optimization in
@@ -768,7 +771,7 @@ which allows user interfaces to be specified entirely as a logic program.")
                (base32
                 "1k8y3pm3w81n2appfl98drv1hpgjjqi2hxb1aa52y2m831lir38s"))))
     (build-system pyproject-build-system)
-    (inputs (list python-clingo))
+    (propagated-inputs (list python-clingo))
     (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://potassco.org/clintest/")
     (synopsis "Test framework for clingo programs")
@@ -804,7 +807,7 @@ certain.")
                                               "\"\n"))
                               (("\"autoflake\",") "")))))))
     (propagated-inputs (list python-clingo))
-    (native-inputs (list python-pytest))
+    (native-inputs (list python-pytest python-setuptools python-wheel))
     (home-page "https://github.com/potassco/clingo-explaid")
     (synopsis "Develop explanation systems with Clingo")
     (description "This package provides tools to develop explanation systems

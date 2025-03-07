@@ -2,7 +2,7 @@
 ;;; Copyright © 2018–2022 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2020 Brice Waegeneire <brice@waegenei.re>
-;;; Copyright © 2021, 2023, 2024 Evgeny Pisemsky <mail@pisemsky.site>
+;;; Copyright © 2021, 2023-2025 Evgeny Pisemsky <mail@pisemsky.site>
 ;;; Copyright © 2021 Léo Le Bouter <lle-bout@zaclys.net>
 ;;; Copyright © 2021 Denis Carikli <GNUtoo@cyberdimension.org>
 ;;; Copyright © 2021, 2022 Petr Hodina <phodina@protonmail.com>
@@ -19,6 +19,7 @@
 ;;; Copyright © 2023 Foundation Devices, Inc. <hello@foundationdevices.com>
 ;;; Copyright © 2024 Giacomo Leidi <goodoldpaul@autistici.org>
 ;;; Copyright © 2024 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2024 Jakob Kirsch <jakob.kirsch@web.de>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -63,6 +64,7 @@
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages golang)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
   #:use-module (gnu packages haskell-xyz)
@@ -71,6 +73,7 @@
   #:use-module (gnu packages linux)
   #:use-module (gnu packages lua)
   #:use-module (gnu packages lxqt)
+  #:use-module (gnu packages messaging)
   #:use-module (gnu packages mtools)
   #:use-module (gnu packages package-management)
   #:use-module (gnu packages ncurses)
@@ -84,6 +87,7 @@
   #:use-module (gnu packages protobuf)
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-crypto)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
@@ -106,6 +110,7 @@
   #:use-module (guix build-system perl)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system qt)
   #:use-module (guix download)
   #:use-module (guix gexp)
   #:use-module (guix git-download)
@@ -606,13 +611,13 @@ read/write access to i2c devices to users in the @samp{i2c} group.")
        (file-name (git-file-name name version))
        (sha256
         (base32 "1hq19gdy9ybraclkqvv1nlf46irql5b6wrc1y6wi0ihkqly20vgz"))))
-    (build-system cmake-build-system)
+    (build-system qt-build-system)
     (arguments
      (list #:tests? #f))                    ; No test suite
     (native-inputs
      (list pkg-config qttools-5))
     (inputs
-     (list ddcutil glib qtbase-5))
+     (list ddcutil glib qtbase-5 qtwayland-5))
     (home-page "https://www.ddcutil.com/")
     (synopsis "Graphical user interface for ddcutil")
     (description "ddcui is a graphical user interface for ddcutil, implemented
@@ -909,7 +914,7 @@ coolers, fan controllers and other devices.")
 (define-public memtest86+
   (package
     (name "memtest86+")
-    (version "6.20")
+    (version "7.20")
     (source
      (origin
        (method git-fetch)
@@ -918,7 +923,7 @@ coolers, fan controllers and other devices.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1wsrdgpxi2nrcazihi1ghkn681iqkpwd8wnp533avcfg16n0jd17"))
+        (base32 "0ifly0jbq4xy81mc6k621a8rr0ipjzn7783v2b535s1s55xrz7i5"))
        (patches
         (search-patches "memtest86+-build-reproducibly.patch"))))
     (build-system gnu-build-system)
@@ -1140,7 +1145,7 @@ technology, such as head mounted displays with built in head tracking.")
                            "dependencies/winring0"
                            ;; Some bundled appimages
                            "scripts/tools"))))))
-    (build-system cmake-build-system)
+    (build-system qt-build-system)
     (arguments
      (list
        #:tests? #f ; doesn't have tests
@@ -1172,7 +1177,8 @@ technology, such as head mounted displays with built in head tracking.")
            nlohmann-json
            libusb
            mbedtls-lts
-           qtbase-5))
+           qtbase-5
+           qtwayland-5))
     (native-inputs
      (list pkg-config
            qttools-5))
@@ -1612,3 +1618,35 @@ modern instrumentation and data acquision systems using Ethernet.")
 HID compatible USB relay modules available with different number of
 output relays.")
     (license license:gpl2+)))
+
+(define-public python-usbrelay
+  (package
+    (inherit usbrelay)
+    (name "python-usbrelay")
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-setuptools
+           python-wheel))
+    (inputs
+     (list usbrelay))
+    (propagated-inputs
+     (list python-paho-mqtt))
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'install-daemon
+            (lambda _
+              (install-file "usbrelayd.8"
+                            (string-append #$output "/share/man/man8"))
+              (install-file "usbrelayd"
+                            (string-append #$output "/sbin"))
+              (chmod (string-append #$output "/sbin/usbrelayd") #o555)))
+          (add-after 'install-daemon 'chdir
+            (lambda _
+              (chdir "usbrelay_py"))))))
+    (synopsis "Python library to control USB relay modules")
+    (description
+     "This is the Python extension to @code{usbrelay}, a Linux driver based on
+hidapi for a variety of inexpensive HID compatible USB relay modules.  This
+package also includes @code{usbrelayd}.")))

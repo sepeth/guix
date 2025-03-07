@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2012-2021, 2021-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2012-2021, 2021-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2013, 2014, 2015, 2016 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2012 Nikita Karetnikov <nikita@karetnikov.org>
 ;;; Copyright © 2014, 2015, 2016, 2017, 2018, 2019, 2020 Mark H Weaver <mhw@netris.org>
@@ -11,7 +11,7 @@
 ;;; Copyright © 2016, 2017 Alex Kost <alezost@gmail.com>
 ;;; Copyright © 2016 Raymond Nicholson <rain1@openmailbox.org>
 ;;; Copyright © 2016 Mathieu Lirzin <mthl@gnu.org>
-;;; Copyright © 2016, 2018-2023 Nicolas Goaziou <mail@nicolasgoaziou.fr>
+;;; Copyright © 2016, 2018-2023, 2025 Nicolas Goaziou <mail@nicolasgoaziou.fr>
 ;;; Copyright © 2016, 2018, 2019, 2020, 2021, 2022, 2023 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2016 David Craven <david@craven.ch>
 ;;; Copyright © 2016 John Darrington <jmd@gnu.org>
@@ -34,7 +34,7 @@
 ;;; Copyright © 2018 Vasile Dumitrascu <va511e@yahoo.com>
 ;;; Copyright © 2019 Tim Gesthuizen <tim.gesthuizen@yahoo.de>
 ;;; Copyright © 2019 mikadoZero <mikadozero@yandex.com>
-;;; Copyright © 2019, 2020, 2021, 2022, 2023, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2019-2025 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2019 Stefan Stefanović <stefanx2ovic@gmail.com>
 ;;; Copyright © 2019-2022 Brice Waegeneire <brice@waegenei.re>
 ;;; Copyright © 2019 Kei Kebreau <kkebreau@posteo.net>
@@ -63,7 +63,7 @@
 ;;; Copyright © 2021 Solene Rapenne <solene@perso.pw>
 ;;; Copyright © 2021, 2022 Petr Hodina <phodina@protonmail.com>
 ;;; Copyright © 2021 Ryan Sundberg <ryan@arctype.co>
-;;; Copyright © 2022-2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
+;;; Copyright © 2022-2025 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;; Copyright © 2022 Rene Saavedra <nanuui@protonmail.com>
 ;;; Copyright © 2022 muradm <mail@muradm.net>
 ;;; Copyright © 2022, 2023 Denis 'GNUtoo' Carikli <GNUtoo@cyberdimension.org>
@@ -141,7 +141,6 @@
   #:use-module (gnu packages gnome)
   #:use-module (gnu packages gnupg)
   #:use-module (gnu packages golang)
-  #:use-module (gnu packages golang-build)
   #:use-module (gnu packages gperf)
   #:use-module (gnu packages graphviz)
   #:use-module (gnu packages gstreamer)
@@ -514,41 +513,56 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
 ;; The current "stable" kernels. That is, the most recently released major
 ;; versions that are still supported upstream.
 
-(define-public linux-libre-6.11-version "6.11.11")
-(define-public linux-libre-6.11-gnu-revision "gnu")
-(define deblob-scripts-6.11
+(define-public linux-libre-6.13-version "6.13.5")
+(define-public linux-libre-6.13-gnu-revision "gnu")
+(define deblob-scripts-6.13
   (linux-libre-deblob-scripts
-   linux-libre-6.11-version
-   linux-libre-6.11-gnu-revision
-   (base32 "0igjsnlnvzl9q2cb5ypavbfirldqw86v7krmxljivshh765xzykd")
-   (base32 "0y5s6yr50vilmi095argqikq1inng9rsaf5r8b3j2zz3brk8d17j")))
-(define-public linux-libre-6.11-pristine-source
-  (let ((version linux-libre-6.11-version)
-        (hash (base32 "1z2913y38clnlmhvwj49h7p4pic24s4d8np7nmd4lk7m2xz8w532")))
+   linux-libre-6.13-version
+   linux-libre-6.13-gnu-revision
+   (base32 "0m8k0ms0kwc9jr9akzdk2ckriw8qrlx3b7isyqsc4rvdg4c41vrx")
+   (base32 "1ywbnwmcwjclndmv5nrxcjws1dhqd4maf2i2l3kmnj5ipnvjdjaf")))
+(define-public linux-libre-6.13-pristine-source
+  (let ((version linux-libre-6.13-version)
+        (hash (base32 "1qp6aprkkf2iwlhg2czd2msyqc728ab1vyr2v1nw3yzkhh3wngi8")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
-                            deblob-scripts-6.11)))
+                            deblob-scripts-6.13)))
 
 ;; The "longterm" kernels — the older releases with long-term upstream support.
 ;; Here are the support timelines:
 ;; <https://www.kernel.org/category/releases.html>
 
-(define-public linux-libre-6.6-version "6.6.66")
+(define-public linux-libre-6.12-version "6.12.17")
+(define-public linux-libre-6.12-gnu-revision "gnu")
+(define deblob-scripts-6.12
+  (linux-libre-deblob-scripts
+   linux-libre-6.12-version
+   linux-libre-6.12-gnu-revision
+   (base32 "1d2v3608fxa1s7ncpkkzxa48g2qz4agrxx1kyww3fn8z66l8k4vj")
+   (base32 "1pzqaqccjbd089ff3i1kd788y9dj063x12vzffhi335xf930ad6f")))
+(define-public linux-libre-6.12-pristine-source
+  (let ((version linux-libre-6.12-version)
+        (hash (base32 "1cv3vrvwsj4ldbq7f9ccmal9as2ziw0cn8g3fd4lx5w09z9mq82w")))
+   (make-linux-libre-source version
+                            (%upstream-linux-source version hash)
+                            deblob-scripts-6.12)))
+
+(define-public linux-libre-6.6-version "6.6.80")
 (define-public linux-libre-6.6-gnu-revision "gnu")
 (define deblob-scripts-6.6
   (linux-libre-deblob-scripts
    linux-libre-6.6-version
    linux-libre-6.6-gnu-revision
-   (base32 "1a28pdl645bj4d8gac71dmwmll6a2kgd3k7gkpfvi94yqkzd9r2z")
-   (base32 "1x3455v7sfzakq99ydifh65yzvjzrw06p2lchwb6902yzqbnh786")))
+   (base32 "10vhj2rj8mpfnxh4yarpvj79bnnb3yk70s8qjxhhzb9ln6slh8gy")
+   (base32 "1cjhbw04n72avb4i0yc7bcggwziyvfdl80h53c8hyd8g9wk90sjk")))
 (define-public linux-libre-6.6-pristine-source
   (let ((version linux-libre-6.6-version)
-        (hash (base32 "0lhy5waj330hmaxbqpfw2fxzkvvlxxs1nr325i8jy736qhvpjxcx")))
+        (hash (base32 "09qkadl9fm0c589qyjdwhgryr85xampz0k7lsafmrx142g813ybc")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-6.6)))
 
-(define-public linux-libre-6.1-version "6.1.120")
+(define-public linux-libre-6.1-version "6.1.129")
 (define-public linux-libre-6.1-gnu-revision "gnu")
 (define deblob-scripts-6.1
   (linux-libre-deblob-scripts
@@ -558,12 +572,12 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
    (base32 "060pbbvk3c1r9v6fz1qm5f0hjb29wi67lg7an0nwl6bpjsk5ci52")))
 (define-public linux-libre-6.1-pristine-source
   (let ((version linux-libre-6.1-version)
-        (hash (base32 "06gp5fdq0bc39hd8mf9mrdrygdybdr3nzsb58lcapf5vmjw9gjb1")))
+        (hash (base32 "0axm373w49cjga541nxk9rxpkh75wl1b04l8w6clm93mvszy6qwx")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-6.1)))
 
-(define-public linux-libre-5.15-version "5.15.174")
+(define-public linux-libre-5.15-version "5.15.178")
 (define-public linux-libre-5.15-gnu-revision "gnu")
 (define deblob-scripts-5.15
   (linux-libre-deblob-scripts
@@ -573,12 +587,12 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
    (base32 "1pbl08jzqh944z34bz25k2v7igsm3r89jbcg0hba3cvyybkkfc2g")))
 (define-public linux-libre-5.15-pristine-source
   (let ((version linux-libre-5.15-version)
-        (hash (base32 "02kn9nvaa36s070k235lk9x6n40l2zlwj4v6i2y6nnx0cjw3rrn3")))
+        (hash (base32 "0hkw2l4gr5m6jw2adxcgm2sb6kl0w51r6s4hcbn6rlm4bvmzgsgg")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.15)))
 
-(define-public linux-libre-5.10-version "5.10.231")
+(define-public linux-libre-5.10-version "5.10.234")
 (define-public linux-libre-5.10-gnu-revision "gnu1")
 (define deblob-scripts-5.10
   (linux-libre-deblob-scripts
@@ -588,12 +602,12 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
    (base32 "14jdl5rk3w7h97svl6j6ngbywj5qixmpv6ifhqkzjxpp07xngvs4")))
 (define-public linux-libre-5.10-pristine-source
   (let ((version linux-libre-5.10-version)
-        (hash (base32 "0xcnlz5ib4b368z5cyp4qwys3jsbm18wlvwn73rzj2j6rj1lhnjn")))
+        (hash (base32 "1rgb4v6dvqlw1mgzsli0hxaj2d5d4m1nylgcrwm4bkpiwbzc95wm")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.10)))
 
-(define-public linux-libre-5.4-version "5.4.287")
+(define-public linux-libre-5.4-version "5.4.290")
 (define-public linux-libre-5.4-gnu-revision "gnu1")
 (define deblob-scripts-5.4
   (linux-libre-deblob-scripts
@@ -603,25 +617,10 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
    (base32 "1q1wcslpwpwsnwzbddjdc0qv2h89492skyw2zsjyb4rpz41s66mg")))
 (define-public linux-libre-5.4-pristine-source
   (let ((version linux-libre-5.4-version)
-        (hash (base32 "082bq26bwi8jxfbk840wf9awm5l65aya4bg43im9qvqfpzjzl3qd")))
+        (hash (base32 "0mm4q8f6kbqddy4zaxjf5xyqpnla5qprvsf7v3vq01gmlzr3rivc")))
    (make-linux-libre-source version
                             (%upstream-linux-source version hash)
                             deblob-scripts-5.4)))
-
-(define-public linux-libre-4.19-version "4.19.325")
-(define-public linux-libre-4.19-gnu-revision "gnu1")
-(define deblob-scripts-4.19
-  (linux-libre-deblob-scripts
-   linux-libre-4.19-version
-   linux-libre-4.19-gnu-revision
-   (base32 "0pjal2cc2f99cvw8r4icb4l24j41k48jkj6bqk7pcahzcgx33ycb")
-   (base32 "048isws4h3lya8dwpwyhqglsjg9sckxk0gfsxdbqg336n5vi0gb1")))
-(define-public linux-libre-4.19-pristine-source
-  (let ((version linux-libre-4.19-version)
-        (hash (base32 "1qcd1rrv96p9iz9a9qpx3b9rm2jyps6sgj7l7m21m8ydwmyysyv0")))
-    (make-linux-libre-source version
-                             (%upstream-linux-source version hash)
-                             deblob-scripts-4.19)))
 
 (define %boot-logo-patch
   ;; Linux-Libre boot logo featuring Freedo and a gnu.
@@ -651,8 +650,13 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
     (patches (append (origin-patches source)
                      patches))))
 
-(define-public linux-libre-6.11-source
-  (source-with-patches linux-libre-6.11-pristine-source
+(define-public linux-libre-6.13-source
+  (source-with-patches linux-libre-6.13-pristine-source
+                       (list %boot-logo-patch
+                             %linux-libre-arm-export-__sync_icache_dcache-patch)))
+
+(define-public linux-libre-6.12-source
+  (source-with-patches linux-libre-6.12-pristine-source
                        (list %boot-logo-patch
                              %linux-libre-arm-export-__sync_icache_dcache-patch)))
 
@@ -687,11 +691,6 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
                              ;; can be dropped for linux-libre 5.7
                              (search-patch
                               "linux-libre-support-for-Pinebook-Pro.patch"))))
-
-(define-public linux-libre-4.19-source
-  (source-with-patches linux-libre-4.19-pristine-source
-                       (list %boot-logo-patch
-                             %linux-libre-arm-export-__sync_icache_dcache-patch)))
 
 
 ;;;
@@ -777,10 +776,15 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
     (description "Headers of the Linux-Libre kernel.")
     (license license:gpl2)))
 
-(define-public linux-libre-headers-6.11
-  (make-linux-libre-headers* linux-libre-6.11-version
-                             linux-libre-6.11-gnu-revision
-                             linux-libre-6.11-source))
+(define-public linux-libre-headers-6.13
+  (make-linux-libre-headers* linux-libre-6.13-version
+                             linux-libre-6.13-gnu-revision
+                             linux-libre-6.13-source))
+
+(define-public linux-libre-headers-6.12
+  (make-linux-libre-headers* linux-libre-6.12-version
+                             linux-libre-6.12-gnu-revision
+                             linux-libre-6.12-source))
 
 (define-public linux-libre-headers-6.6
   (make-linux-libre-headers* linux-libre-6.6-version
@@ -807,22 +811,22 @@ corresponding UPSTREAM-SOURCE (an origin), using the given DEBLOB-SCRIPTS."
                              linux-libre-5.4-gnu-revision
                              linux-libre-5.4-source))
 
-(define-public linux-libre-headers-4.19
-  (make-linux-libre-headers* linux-libre-4.19-version
-                             linux-libre-4.19-gnu-revision
-                             linux-libre-4.19-source))
-
 ;; The following package is used in the early bootstrap, and thus must be kept
 ;; stable and with minimal build requirements.
 (define-public linux-libre-headers-5.15.49
   (make-linux-libre-headers "5.15.49" "gnu"
                             "13zqdcm4664vh7g57sxbfrlpsxm7zrma72mxdfdz7d9yndy2gfv8"))
 
+;; linux 5.19 include loongarch support.
+(define-public linux-libre-headers-5.19.17
+  (make-linux-libre-headers "5.19.17" "gnu"
+                            "0m1yabfvaanbzv0ip04r4kvs16aq0pp2dk93xzi5cq18i3vw351m"))
+
 (define-public linux-libre-headers linux-libre-headers-5.15.49)
 ;; linux-libre-headers-latest points to the latest headers package
 ;; and should be used as a dependency for packages that depend on
 ;; the headers.
-(define-public linux-libre-headers-latest linux-libre-headers-6.11)
+(define-public linux-libre-headers-latest linux-libre-headers-6.13)
 
 
 ;;;
@@ -916,7 +920,11 @@ ARCH and optionally VARIANT, or #f if there is no such configuration."
     ("CONFIG_VIRTIO_MMIO" . m)
     ("CONFIG_FUSE_FS" . m)
     ("CONFIG_CIFS" . m)
-    ("CONFIG_9P_FS" . m)))
+    ("CONFIG_9P_FS" . m)
+    ;; Disable the EFI pstore storage backend to avoid causing
+    ;; unrecoverable failures on some EFI systems:
+    ;; https://lists.gnu.org/archive/html/help-guix/2025-01/msg00173.html
+    ("CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE" . #t)))
 
 (define (config->string options)
   (string-join (map (match-lambda
@@ -1143,19 +1151,27 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
 ;;; Generic kernel packages.
 ;;;
 
-(define-public linux-libre-6.11
-  (make-linux-libre* linux-libre-6.11-version
-                     linux-libre-6.11-gnu-revision
-                     linux-libre-6.11-source
+(define-public linux-libre-6.13
+  (make-linux-libre* linux-libre-6.13-version
+                     linux-libre-6.13-gnu-revision
+                     linux-libre-6.13-source
                      '("x86_64-linux" "i686-linux" "armhf-linux"
                        "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
                      #:configuration-file kernel-config))
 
-(define-public linux-libre-version         linux-libre-6.11-version)
-(define-public linux-libre-gnu-revision    linux-libre-6.11-gnu-revision)
-(define-public linux-libre-pristine-source linux-libre-6.11-pristine-source)
-(define-public linux-libre-source          linux-libre-6.11-source)
-(define-public linux-libre                 linux-libre-6.11)
+(define-public linux-libre-6.12
+  (make-linux-libre* linux-libre-6.12-version
+                     linux-libre-6.12-gnu-revision
+                     linux-libre-6.12-source
+                     '("x86_64-linux" "i686-linux" "armhf-linux"
+                       "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
+                     #:configuration-file kernel-config))
+
+(define-public linux-libre-version         linux-libre-6.13-version)
+(define-public linux-libre-gnu-revision    linux-libre-6.13-gnu-revision)
+(define-public linux-libre-pristine-source linux-libre-6.13-pristine-source)
+(define-public linux-libre-source          linux-libre-6.13-source)
+(define-public linux-libre                 linux-libre-6.13)
 
 (define-public linux-libre-6.6
   (make-linux-libre* linux-libre-6.6-version
@@ -1197,23 +1213,15 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                        "aarch64-linux" "powerpc64le-linux" "riscv64-linux")
                      #:configuration-file kernel-config))
 
-(define-public linux-libre-4.19
-  (make-linux-libre* linux-libre-4.19-version
-                     linux-libre-4.19-gnu-revision
-                     linux-libre-4.19-source
-                     '("x86_64-linux" "i686-linux" "armhf-linux"
-                       "aarch64-linux" "powerpc64le-linux")
-                     #:configuration-file kernel-config))
-
 ;; Linux-Libre-LTS points to the *newest* released long-term support version of
 ;; Linux-Libre.
 ;; Reference: <https://www.kernel.org/category/releases.html>
 
-(define-public linux-libre-lts-version         linux-libre-6.6-version)
-(define-public linux-libre-lts-gnu-revision    linux-libre-6.6-gnu-revision)
-(define-public linux-libre-lts-pristine-source linux-libre-6.6-pristine-source)
-(define-public linux-libre-lts-source          linux-libre-6.6-source)
-(define-public linux-libre-lts                 linux-libre-6.6)
+(define-public linux-libre-lts-version         linux-libre-6.12-version)
+(define-public linux-libre-lts-gnu-revision    linux-libre-6.12-gnu-revision)
+(define-public linux-libre-lts-pristine-source linux-libre-6.12-pristine-source)
+(define-public linux-libre-lts-source          linux-libre-6.12-source)
+(define-public linux-libre-lts                 linux-libre-6.12)
 
 
 ;;;
@@ -1259,26 +1267,10 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                         ("CONFIG_RTC_DRV_RK808" . #t))
                       (default-extra-linux-options linux-libre-5.4-version))))
 
-(define-public linux-libre-arm-generic-4.19
-  (make-linux-libre* linux-libre-4.19-version
-                     linux-libre-4.19-gnu-revision
-                     linux-libre-4.19-source
-                     '("armhf-linux")
-                     #:defconfig "multi_v7_defconfig"
-                     #:extra-version "arm-generic"))
-
 (define-public linux-libre-arm-omap2plus
   (make-linux-libre* linux-libre-version
                      linux-libre-gnu-revision
                      linux-libre-source
-                     '("armhf-linux")
-                     #:defconfig "omap2plus_defconfig"
-                     #:extra-version "arm-omap2plus"))
-
-(define-public linux-libre-arm-omap2plus-4.19
-  (make-linux-libre* linux-libre-4.19-version
-                     linux-libre-4.19-gnu-revision
-                     linux-libre-4.19-source
                      '("armhf-linux")
                      #:defconfig "omap2plus_defconfig"
                      #:extra-version "arm-omap2plus"))
@@ -1312,32 +1304,38 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                       (default-extra-linux-options linux-libre-version))))
 
 (define-public linux-libre-lts-arm64-generic
-  (make-linux-libre* linux-libre-lts-version
-                     linux-libre-lts-gnu-revision
-                     linux-libre-lts-source
-                     '("aarch64-linux")
-                     #:defconfig "defconfig"
-                     #:extra-version "arm64-generic"
-                     #:extra-options
-                     (append
-                      `(;; Provide support for ath9k wireless
-                        ("CONFIG_ATH9K_HTC" . m)
-                        ;; needed to fix the RTC on rockchip platforms
-                        ("CONFIG_RTC_DRV_RK808" . #t)
-                        ;; Pinebook display, battery, charger and usb
-                        ("CONFIG_DRM_ANALOGIX_ANX6345" . m)
-                        ("CONFIG_CHARGER_AXP20X" . m)
-                        ("CONFIG_INPUT_AXP20X_PEK" . m)
-                        ("CONFIG_CHARGER_AXP20X" . m)
-                        ("CONFIG_BATTERY_AXP20X" . m)
-                        ("CONFIG_PINCTRL_AXP209" . m)
-                        ("CONFIG_AXP20X_POWER" . m)
-                        ("CONFIG_AXP20X_ADC" . m)
-                        ;; Pinebook PRO battery and sound support
-                        ("CONFIG_BATTERY_CW2015" . m)
-                        ("CONFIG_CHARGER_GPIO" . m)
-                        ("CONFIG_SND_SOC_ES8316" . m))
-                      (default-extra-linux-options linux-libre-lts-version))))
+  (if (string=? linux-libre-lts-version linux-libre-version)
+
+      ;; Make it a strict alias so that the user interface does not see two
+      ;; packages with the exact same name and version.
+      linux-libre-arm64-generic
+
+      (make-linux-libre* linux-libre-lts-version
+                         linux-libre-lts-gnu-revision
+                         linux-libre-lts-source
+                         '("aarch64-linux")
+                         #:defconfig "defconfig"
+                         #:extra-version "arm64-generic"
+                         #:extra-options
+                         (append
+                          `( ;; Provide support for ath9k wireless
+                            ("CONFIG_ATH9K_HTC" . m)
+                            ;; needed to fix the RTC on rockchip platforms
+                            ("CONFIG_RTC_DRV_RK808" . #t)
+                            ;; Pinebook display, battery, charger and usb
+                            ("CONFIG_DRM_ANALOGIX_ANX6345" . m)
+                            ("CONFIG_CHARGER_AXP20X" . m)
+                            ("CONFIG_INPUT_AXP20X_PEK" . m)
+                            ("CONFIG_CHARGER_AXP20X" . m)
+                            ("CONFIG_BATTERY_AXP20X" . m)
+                            ("CONFIG_PINCTRL_AXP209" . m)
+                            ("CONFIG_AXP20X_POWER" . m)
+                            ("CONFIG_AXP20X_ADC" . m)
+                            ;; Pinebook PRO battery and sound support
+                            ("CONFIG_BATTERY_CW2015" . m)
+                            ("CONFIG_CHARGER_GPIO" . m)
+                            ("CONFIG_SND_SOC_ES8316" . m))
+                          (default-extra-linux-options linux-libre-lts-version)))))
 
 (define-public linux-libre-arm64-generic-5.10
   (make-linux-libre* linux-libre-5.10-version
@@ -1381,9 +1379,9 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
 (define-public linux-libre-arm64-honeycomb
   ;; Kernel for use on the HoneyComb LX2 boards:
   ;; <https://shop.solid-run.com/product/SRCFTXE000IV13/>.
-  (make-linux-libre* linux-libre-5.15-version
-                     linux-libre-5.15-gnu-revision
-                     linux-libre-5.15-source
+  (make-linux-libre* linux-libre-lts-version
+                     linux-libre-lts-gnu-revision
+                     linux-libre-lts-source
                      '("aarch64-linux")
                      #:extra-version "arm64-honeycomb"
                      #:extra-options
@@ -1435,8 +1433,35 @@ Linux kernel.  It has been modified to remove all non-free binary blobs.")
                         ("CONFIG_CRYPTO_USER_API_AEAD" . #true)
 
                         ;; For connecting to ci.guix.gnu.org over VPN.
-                        ("CONFIG_WIREGUARD" . m))
-                      (default-extra-linux-options linux-libre-5.15-version))))
+                        ("CONFIG_WIREGUARD" . m)
+
+                        ;; restool support
+                        ("CONFIG_FSL_MC_UAPI_SUPPORT" . #t)
+                        ("CONFIG_FSL_MC_BUS" . #t)
+                        ("CONFIG_VFIO_FSL_MC" . #t)
+                        ("CONFIG_FSL_MC_DPIO" . #t)
+                        ("CONFIG_ARM_GIC_V3_ITS_FSL_MC" . #t)
+
+                        ;; vsockets support
+                        ;; TODO This seems to be enabled by default on other
+                        ;; architectures?
+                        ("CONFIG_VSOCKETS" . m)
+                        ("CONFIG_VSOCKETS_DIAG" . m)
+                        ("CONFIG_VSOCKETS_LOOPBACK" . m)
+                        ("CONFIG_VMWARE_VMCI_VSOCKETS" . m)
+                        ("CONFIG_VIRTIO_VSOCKETS" . m)
+                        ("CONFIG_VIRTIO_VSOCKETS_COMMON" . m)
+                        ("CONFIG_HYPERV_VSOCKETS" . m)
+                        ("CONFIG_VHOST_IOTLB" . m)
+                        ("CONFIG_VHOST_RING" . m)
+                        ("CONFIG_VHOST_TASK" . #true)
+                        ("CONFIG_VHOST" . m)
+                        ("CONFIG_VHOST_MENU" . #true)
+                        ("CONFIG_VHOST_NET" . m)
+                        ("CONFIG_VHOST_SCSI" . m)
+                        ("CONFIG_VHOST_VSOCK" . m)
+                        ("CONFIG_VHOST_VDPA" . m))
+                      (default-extra-linux-options linux-libre-lts-version))))
 
 (define-public linux-libre-riscv64-generic
   (make-linux-libre* linux-libre-version
@@ -1532,7 +1557,7 @@ and should be used with caution, especially on untested models.")
 (define-public corefreq
   (package
     (name "corefreq")
-    (version "1.96.5")
+    (version "1.98.4")
     (source
      (origin
        (method git-fetch)
@@ -1541,7 +1566,11 @@ and should be used with caution, especially on untested models.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "15wi9v7zcd62ab03zji43l33f1mc70lsdvqylv33kfpaf3k72lm4"))))
+        (base32 "0mxp5h23y09674syaj5gpdifr53zvgjv7g7hargwg6897883qfln"))))
+    ;; The upstream Makefile is now such a proprietary mess that standard builds
+    ;; as performed by our linux-module-build-system are more or less impossible
+    ;; without heavy patching.  However, we still keep it as the main build
+    ;; system because lifting out LINUX-MODULE-BUILDER would be even messier.
     (build-system linux-module-build-system)
     (outputs (list "out" "linux-module"))
     (arguments
@@ -1552,30 +1581,52 @@ and should be used with caution, especially on untested models.")
                        (guix build utils))
            #:make-flags
            #~(list (string-append "CC=" #$(cc-for-target))
-               "OPTIM_LVL=3"
-               (string-append "PREFIX=" #$output))
-           #:tests? #f                      ; no test suite
+                   "OPTIM_LVL=3"
+                   (string-append "PREFIX=" #$output))
+           #:tests? #f                   ;no test suite
+           #:source-directory "../build" ;must contain modules.order
            #:phases
            #~(modify-phases %standard-phases
-               (add-after 'unpack 'untangle-module-targets
-                 ;; Having to build everything in one pass would complicate the
-                 ;; definition.  Let each build system handle what it's good at.
+               (add-after 'unpack 'patch-Makefile
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (let ((dir (search-input-directory
+                               inputs "lib/modules/build")))
+                     (substitute* "Makefile"
+                       (("^(KERNELREL \\?= ).*" _ =)
+                        (string-append = (dirname dir) "\n"))
+                       (("^(KERNELDIR \\?= ).*" _ =)
+                        (string-append = dir "\n"))
+                       (("^([[:space:]]+)(.* modules_install.*)"
+                         _ indent command)
+                        (string-append indent "@echo skipping " command))))))
+               (add-before 'build 'prepare
+                 (lambda* (#:key source-directory make-flags #:allow-other-keys)
+                   ;; Lazily fix another mismatch between what the kernel module
+                   ;; build system expects and what this package provides.
+                   (symlink "source/build" source-directory) ;$(BUILD)
+                   ;; Set up symbolic links inside $(BUILD), for some reason.
+                   (apply invoke "make" "prepare" make-flags)))
+               (replace 'build (assoc-ref gnu:%standard-phases 'build))
+               (add-before 'install 'resolve-symlink
+                 ;; The build system silently fails to install from a symlink.
                  (lambda _
-                   (substitute* "Makefile"
-                     ((".*MAKE.*KERNELDIR.*") ""))))
-               (add-after 'build 'gnu:build
-                 (assoc-ref gnu:%standard-phases 'build))
+                   (delete-file "../build")
+                   (copy-recursively "build" "../build")))
+               (add-before 'install 'create-output
+                 (lambda _
+                   ;; Avoid installing the corefreq binary as …/bin.
+                   (mkdir-p (string-append #$output "/bin"))))
                (add-after 'install 'gnu:install
                  (assoc-ref gnu:%standard-phases 'install))
                (add-after 'install 'separate-module
                  (lambda* (#:key outputs #:allow-other-keys)
                    ;; Adding INSTALL_MOD_PATH= to #:make-flags would still create an
                    ;; empty <out>/lib/modules directory, so just do it all by hand.
-                   (let* ((out    (assoc-ref outputs "out"))
+                   (let* ((output (assoc-ref outputs "out"))
                           (module (assoc-ref outputs "linux-module")))
-                     (mkdir-p (string-append module "/lib"))
-                     (rename-file (string-append out    "/lib/modules")
-                                  (string-append module "/lib/modules")))))
+                     (mkdir-p module)
+                     (rename-file (string-append output "/lib")
+                                  (string-append module "/lib")))))
                (add-after 'install 'install-README
                  ;; There is no proper documentation.  Provide something.
                  (lambda* (#:key outputs #:allow-other-keys)
@@ -1665,15 +1716,16 @@ and the notification, WiFi, and Bluetooth LED.")
      "This package provides the @code{tuxedo_keyboard}, @code{tuxedo_io},
 @code{clevo_wmi} @acronym{WMI, Windows Management Engine} and the
 @code{clevo_acpi} @acronym{ACPI, Advanced Configuration and Power Interface}
-kernel modules to control the keyboard on most Tuxedo computers. Only white
-backlight only models are currently not supported. The @code{tuxedo_io} module
-is also needed for the @code{tuxedo-control-center} (short tcc) package.")
+kernel modules to control the keyboard on most Tuxedo computers.  Only white
+backlight only models are currently not supported.  The @code{tuxedo_io}
+module is also needed for the @code{tuxedo-control-center} (short tcc)
+package.")
     (license license:gpl3+)))
 
 (define-public evdi
   (package
     (name "evdi")
-    (version "1.14.4")                  ;inherited by libevdi
+    (version "1.14.8")                  ;inherited by libevdi
     (source
      (origin
        (method git-fetch)
@@ -1682,7 +1734,7 @@ is also needed for the @code{tuxedo-control-center} (short tcc) package.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1r9gd4ffr8sh9y3ic8fxwgp4gjls2yd6bgsgvcf0vy571s2aqggr"))))
+        (base32 "18n8kk4gbbj252a2dqb7mbpscfb437x42flh1fsl4g5c8brczc77"))))
     (build-system linux-module-build-system)
     (arguments
      (list #:tests? #f                  ;no test suite
@@ -1731,7 +1783,7 @@ display settings applets in graphical environments")
     (description
      "Libevdi is a library that gives applications easy access to
 @acronym{EVDI, Extensible Virtual Display Interface} devices provided by the
-@code{evdi} driver package.  ")
+@code{evdi} driver package.")
     (license license:lgpl2.1)))
 
 (define-public ec
@@ -1952,7 +2004,7 @@ application by hooking GStreamer into the loopback device.")
 (define-public xpadneo
   (package
     (name "xpadneo")
-    (version "0.9.5")
+    (version "0.9.7")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1961,7 +2013,7 @@ application by hooking GStreamer into the loopback device.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1pq7p9sxlw1v9rnny9070b39rpwfq6rip0z92mwlw4qzinmqqgdd"))))
+                "1v5akvz14izxk3fav6x4l50gi8xzsjwxjddczc2yy78gni1a7ybs"))))
     (build-system linux-module-build-system)
     (arguments
      (list #:tests? #f                  ; no `check' target
@@ -2551,7 +2603,7 @@ Headers can have its data format described from debugging info and offsets from
 it can be used to further format a number of records.
 
 Finally, the @command{btfdiff} command can be used to compare the output of
-pahole from BTF and DWARF, to make sure they produce the same results. ")
+pahole from BTF and DWARF, to make sure they produce the same results.")
     (license license:gpl2+)))
 
 (define-public fbset
@@ -4539,7 +4591,7 @@ to the in-kernel OOM killer.")
     (version "3.2.14")
     (source (origin
               (method git-fetch)
-              (uri (git-reference (url "https://github.com/gentoo/eudev")
+              (uri (git-reference (url "https://github.com/eudev-project/eudev")
                                   (commit (string-append "v" version))))
               (file-name (git-file-name name version))
               (sha256
@@ -4624,7 +4676,7 @@ to the in-kernel OOM killer.")
      (list `(,util-linux "lib") ;for blkid
            kmod))
     (outputs '("out" "static"))
-    (home-page "https://wiki.gentoo.org/wiki/Project:Eudev")
+    (home-page "https://github.com/eudev-project/eudev")
     (synopsis "Userspace device management")
     (description "Udev is a daemon which dynamically creates and removes
 device nodes from /dev/, handles hotplug events and loads drivers at boot
@@ -6691,7 +6743,7 @@ disks and SD cards.  This package provides the userland utilities.")
     (home-page (package-home-page f2fs-tools/static))
     (synopsis "Statically-linked fsck.f2fs command from f2fs-tools")
     (description "This package provides statically-linked fsck.f2fs command taken
-from the f2fs-tools package. It is meant to be used in initrds.")
+from the f2fs-tools package.  It is meant to be used in initrds.")
     (license (package-license f2fs-tools/static))))
 
 (define-public freefall
@@ -7154,9 +7206,9 @@ The following service daemons are also provided:
      (list autoconf automake libtool))
     (inputs (list pciutils rdma-core))
     (synopsis "Open Fabrics Enterprise Distribution (OFED) Performance Tests")
-    (description "This is a collection of tests written over uverbs intended for
-use as a performance micro-benchmark. The tests may be used for hardware or
-software tuning as well as for functional testing.
+    (description "This is a collection of tests written over uverbs intended
+for use as a performance micro-benchmark.  The tests may be used for hardware
+or software tuning as well as for functional testing.
 
 The collection contains a set of bandwidth and latency benchmark such as:
 @enumerate
@@ -7222,12 +7274,12 @@ from that to the system kernel's @file{/dev/random} machinery.")
     (build-system gnu-build-system)
     (arguments
      (list #:make-flags
-           #~(list (string-append "DESTDIR=" #$output)
+           #~(list "CC=gcc"
+                   (string-append "DESTDIR=" #$output)
                    (string-append "LDFLAGS=-Wl,-rpath=" #$output "/lib")
-                   "libdir=/lib"
-                   "docdir=/share/doc/cpupower"
+                   "docdir=/share/doc/cpupower" ;drop default ‘packages/’
                    "confdir=$(docdir)/examples"
-                   ;; The Makefile recommends the following changes
+                   ;; The Makefile recommends the following changes.
                    "DEBUG=false"
                    "PACKAGE_BUGREPORT=bug-guix@gnu.org")
            #:tests? #f                  ; no tests
@@ -7241,10 +7293,11 @@ from that to the system kernel's @file{/dev/random} machinery.")
                  (lambda _
                    (substitute* "Makefile"
                      (("/usr/") "/")
-                     (("/bin/(install|pwd)" _ command) command))
+                     (("/bin/(install)" _ command) command))
                    (substitute* "bench/Makefile"
                      (("\\$\\(CC\\) -o") "$(CC) $(LDFLAGS) -o")))))))
-    (native-inputs (list gettext-minimal))
+    (native-inputs (list gettext-minimal
+		         which))        ;to find gettext
     (inputs (list pciutils))
     (home-page (package-home-page linux-libre))
     (synopsis "CPU frequency and voltage scaling tools for Linux")
@@ -7583,7 +7636,7 @@ native Linux file system, and has been part of the Linux kernel since version
     (home-page
      "http://www.citi.umich.edu/projects/nfsv4/crossrealm/libnfsidmap_config.html")
     (synopsis "NFSv4 support library for name/ID mapping")
-    (description "Libnfsidmap is a library holding mulitiple methods of
+    (description "Libnfsidmap is a library holding multiple methods of
 mapping names to ids and visa versa, mainly for NFSv4.  It provides an
 extensible array of mapping functions, currently consisting of two choices:
 the default @code{nsswitch} and the experimental @code{umich_ldap}.")
@@ -7987,7 +8040,7 @@ monitoring tools for Linux.  These include @code{mpstat}, @code{iostat},
      (list #:tests? #f                  ; no tests
            #:make-flags
            #~(list (string-append "prefix=" #$output)
-                   (string-append "sysconfdir=" #$output "/etc"))
+                   (string-append "sysconfdir=" #$output "/lib"))  ;udev rule
            #:phases
            #~(modify-phases %standard-phases
                (delete 'configure)
@@ -8103,7 +8156,7 @@ interface in sysfs, which can be accomplished with the included udev rules.")
 (define-public tlp
   (package
     (name "tlp")
-    (version "1.5.0")
+    (version "1.8.0")
     (source
      (origin
        (method git-fetch)
@@ -8112,7 +8165,7 @@ interface in sysfs, which can be accomplished with the included udev rules.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0cssclk2brhwvn9dm7h5snm2svwy0c8cfr4z2cgkdkac2pfaaxw4"))))
+        (base32 "0r8r95wjb1sl5v8mli7kba2py9hc0ps915fx4lap5pg108ik9a06"))))
     (native-inputs
      (list shellcheck))
     (inputs
@@ -8142,78 +8195,63 @@ interface in sysfs, which can be accomplished with the included udev rules.")
     (arguments
      ;; XXX: The full test suite is run with "checkall" but it requires
      ;; "checkbashisms" and "perlcritic", not yet packaged in Guix.
-     `(#:test-target "shellcheck"
-       #:modules ((guix build gnu-build-system)
+     (list
+      #:make-flags
+      #~(list "TLP_CONFUSR=/etc/tlp.conf" "TLP_CONFDIR=/etc/tlp.d")
+      #:test-target "shellcheck"
+      #:modules '((guix build gnu-build-system)
                   (guix build utils)
                   (srfi srfi-1))
-       #:phases
-       (modify-phases %standard-phases
-         (delete 'configure)            ; no configure script
-         (add-before 'build 'setenv
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let ((out (assoc-ref outputs "out")))
-               (setenv "TLP_WITH_SYSTEMD" "0")
-               (setenv "TLP_NO_INIT" "1")
-               (setenv "TLP_NO_PMUTILS" "1")
-               (setenv "TLP_SBIN" (string-append out "/bin"))
-               (setenv "TLP_BATD" (string-append out "/share/tlp/bat.d"))
-               (setenv "TLP_BIN" (string-append out "/bin"))
-               (setenv "TLP_TLIB" (string-append out "/share/tlp"))
-               (setenv "TLP_FLIB" (string-append out "/share/tlp/func.d"))
-               (setenv "TLP_ULIB" (string-append out "/lib/udev"))
-               (setenv "TLP_CONFDEF"
-                       (string-append out "/share/tlp/defaults.conf"))
-               (setenv "TLP_CONFDIR" (string-append out "/etc/tlp.d"))
-               (setenv "TLP_CONFREN"
-                       (string-append out "/share/tlp/rename.conf"))
-               (setenv "TLP_ELOD"
-                       (string-append out "/lib/elogind/system-sleep"))
-               (setenv "TLP_SHCPL"
-                       (string-append out "/share/bash-completion/completions"))
-               (setenv "TLP_MAN" (string-append out "/share/man"))
-               (setenv "TLP_META" (string-append out "/share/metainfo")))))
-         (add-before 'install 'fix-installation
-           (lambda _
-             ;; Stop the Makefile from trying to create system directories.
-             (substitute* "Makefile"
-               (("\\[ -f \\$\\(_CONFUSR\\) \\]") "#")
-               (("install -d -m 755 \\$\\(_VAR\\)") "#"))))
-         (replace 'install
-           (lambda _ (invoke "make" "install-tlp" "install-man-tlp")))
-         (add-after 'install 'wrap
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (let* ((bin (string-append (assoc-ref outputs "out") "/bin"))
-                    (bin-files (find-files bin ".*")))
-               (define (bin-directory input-name)
-                 (let ((p (assoc-ref inputs input-name)))
-                   (and p (string-append p "/bin"))))
-               (define (sbin-directory input-name)
-                 (string-append (assoc-ref inputs input-name) "/sbin"))
-               (for-each (lambda (program)
-                           (wrap-program program
-                             `("PATH" ":" prefix
-                               ,(append
-                                 (filter-map bin-directory
-                                             '("bash"
-                                               "coreutils"
-                                               "dbus"
-                                               "eudev"
-                                               "grep"
-                                               "inetutils"
-                                               "kmod"
-                                               "perl"
-                                               "sed"
-                                               "usbutils"
-                                               "util-linux"
-                                               "x86-energy-perf-policy"))
-                                 (filter-map sbin-directory
-                                             '("ethtool"
-                                               "hdparm"
-                                               "iw"
-                                               "pciutils"
-                                               "rfkill"
-                                               "wireless-tools"))))))
-                         bin-files)))))))
+      #:phases
+      #~(modify-phases %standard-phases
+          (delete 'configure)           ; no configure script
+          (add-before 'build 'setenv
+            (lambda _
+              (setenv "TLP_WITH_SYSTEMD" "0")
+              (setenv "TLP_NO_INIT" "1")))
+          (add-before 'build 'fix-installation
+            (lambda _
+              ;; Stop the Makefile from trying to create system directories.
+              (substitute* "Makefile"
+                (("= /usr") (string-append "= " #$output))
+                (("= /etc") (string-append "= " #$output "/etc"))
+                (("install -d -m 755 \\$\\(_VAR\\)") "#"))))
+          (replace 'install
+            (lambda _ (invoke "make" "install-tlp" "install-man-tlp")))
+          (add-after 'install 'wrap
+            (lambda* (#:key inputs outputs #:allow-other-keys)
+              (let* ((bin (string-append (assoc-ref outputs "out") "/bin"))
+                     (bin-files (find-files bin ".*")))
+                (define (bin-directory input-name)
+                  (let ((p (assoc-ref inputs input-name)))
+                    (and p (string-append p "/bin"))))
+                (define (sbin-directory input-name)
+                  (string-append (assoc-ref inputs input-name) "/sbin"))
+                (for-each (lambda (program)
+                            (wrap-program program
+                              `("PATH" ":" prefix
+                                ,(append
+                                  (filter-map bin-directory
+                                              '("bash"
+                                                "coreutils"
+                                                "dbus"
+                                                "eudev"
+                                                "grep"
+                                                "inetutils"
+                                                "kmod"
+                                                "perl"
+                                                "sed"
+                                                "usbutils"
+                                                "util-linux"
+                                                "x86-energy-perf-policy"))
+                                  (filter-map sbin-directory
+                                              '("ethtool"
+                                                "hdparm"
+                                                "iw"
+                                                "pciutils"
+                                                "rfkill"
+                                                "wireless-tools"))))))
+                          bin-files)))))))
     (home-page "https://linrunner.de/en/tlp/tlp.html")
     (synopsis "Power management tool for Linux")
     (description "TLP is a power management tool for Linux.  It comes with
@@ -8227,7 +8265,7 @@ every time the power supply source is changed.")
 (define-public tlpui
   (package
     (name "tlpui")
-    (version "1.5.0-7")
+    (version "1.8.0")
     (source
      (origin
        (method git-fetch)
@@ -8236,17 +8274,12 @@ every time the power supply source is changed.")
              (commit (string-append "tlpui-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "07gi0i6wqjb5h0hmy7i7bjscfrf9v825xv85j7fxinxwrj42053y"))))
-    (build-system python-build-system)
+        (base32 "1q33p4gf5ii53wlgs61gghqxp3js5c45pn5nlibg2ygw069225r5"))))
+    (build-system pyproject-build-system)
     (arguments
      (list
       #:phases
       #~(modify-phases %standard-phases
-          (add-after 'unpack 'patch-setup.py
-            ;; Install data_files to $out/share instead of /usr/share.
-            (lambda _
-              (substitute* "setup.py"
-                (("/usr/") ""))))
           (add-after 'unpack 'set-absolute-locations
             (lambda* (#:key inputs #:allow-other-keys)
               (let ((defaults.conf
@@ -8272,36 +8305,28 @@ every time the power supply source is changed.")
                   (substitute* "settingshelper.py"
                     (("(command_exists = ).*" _ lead)
                      (string-append lead "True\n")))))))
-          (add-before 'check 'fix-home-directory
+          (add-after 'install 'install-desktop-file
             (lambda _
-              ;; Tests fail with "Permission denied:
-              ;; '/homeless-shelter'".
-              (setenv "HOME" "/tmp")))
-          ;; `sanity-check' phase errors out with the following
-          ;; messages: "Unable to init server: Could not connect:
-          ;; Connection refused" and "Error: cannot read user
-          ;; configuration from /etc/tlp.conf or /etc/default/tlp".
-          (delete 'sanity-check)
-          ;; Skip two failing tests (out of 10) about configuration file
-          ;; issues.
-          (add-before 'check 'skip-failing-tests
-            (lambda _
-              (substitute* "test/test_tlp_settings.py"
-                ((".*?windowxsize = 900.*") "")
-                ((".*?windowysize = 600.*") ""))))
-          (replace 'check
-            (lambda* (#:key tests? #:allow-other-keys)
-              (when tests?
-                (invoke "python" "-m" "discover"))))
-          (add-after 'install 'wrap-gi-python
+              (let ((dir (string-append #$output "/share/applications")))
+                (install-file "tlpui.desktop" dir))))
+          (add-after 'wrap 'wrap-gi-python
             (lambda _
               (let ((gi-typelib-path (getenv "GI_TYPELIB_PATH")))
                 (wrap-program (string-append #$output "/bin/tlpui")
                   `("GI_TYPELIB_PATH" ":" prefix (,gi-typelib-path)))))))))
     (native-inputs
-     (list `(,glib "bin") gobject-introspection python-discover))
+     (list `(,glib "bin")
+           gobject-introspection
+           python-poetry-core
+           python-pytest
+           python-pyyaml))
     (inputs
-     (list gtk+ pciutils python-pygobject tlp usbutils))
+     (list gtk+
+           pciutils
+           python-pygobject
+           tlp
+           usbutils))
+    (propagated-inputs (list (librsvg-for-system)))
     (home-page "https://github.com/d4nj1/TLPUI")
     (synopsis "User interface for TLP written in Python")
     (description
@@ -8708,7 +8733,7 @@ receiving to-be-logged packets from the kernel nfnetlink_log subsystem
          "0ax9959c4bapq78n13bbaibcf1gwjir3ngx8l2dh45lw9m4ha2lr"))))
     (build-system gnu-build-system)
     (outputs '("out"
-               ;; additonal non-default output plugins
+               ;; additional non-default output plugins
                "json" "pcap" "sqlite3" "pgsql" "mysql"))
     (native-inputs (list pkg-config))
     (inputs (list libnfnetlink
@@ -9247,7 +9272,7 @@ libraries, which are often integrated directly into libfabric.")
 communications interface for the True Scale family of products.  PSM users are
 enabled with mechanisms necessary to implement higher level communications
 interfaces in parallel environments.")
-    ;; Only Intel-compatable processors are supported.
+    ;; Only Intel-compatible processors are supported.
     (supported-systems '("i686-linux" "x86_64-linux"))
     (license (list license:bsd-2 license:gpl2)))) ;dual
 
@@ -9501,7 +9526,7 @@ The PSM2 API is a high-performance vendor-specific protocol that provides a
 low-level communications interface for the Intel Omni-Path family of
 high-speed networking devices.")
     (home-page "https://github.com/intel/opa-psm2")
-    ;; Only the x86_64 architecure is supported.
+    ;; Only the x86_64 architecture is supported.
     (supported-systems '("x86_64-linux"))
     (license (list license:bsd-3 license:gpl2)))) ; dual
 
@@ -9576,47 +9601,6 @@ nfnetlink_queue, nfnetlink_conntrack) and their respective users and/or
 management tools in userspace.")
     (license license:gpl2)))
 
-(define-public go-github-com-vishvananda-netlink
-  (package
-    (name "go-github-com-vishvananda-netlink")
-    (version "1.1.0")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/vishvananda/netlink")
-             (commit (string-append "v" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "1vhl30p1gx636a088ls4h6a0l8jjyfvz79fr5w0qzdrg4qg9h08h"))))
-    (build-system go-build-system)
-    (arguments
-     (list
-      ;; The tests are unsupported on all architectures except x86_64-linux:
-      ;; cannot use 0xabcdef99 (untyped int constant 2882400153) as int value
-      ;; in struct literal (overflows)
-      #:tests? (and (not (%current-target-system)) (target-x86-64?))
-      #:import-path "github.com/vishvananda/netlink"
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'disable-failing-tests
-            (lambda* (#:key tests? unpack-path #:allow-other-keys)
-              (with-directory-excursion (string-append "src/" unpack-path)
-                (substitute* (find-files "." "\\_test.go$")
-                  ;; Disable tests requiring root access.
-                  (("TestNetNsIdByFd") "OffTestNetNsIdByFd")
-                  (("TestNetNsIdByPid") "OffTestNetNsIdByPid"))))))))
-    (propagated-inputs
-     (list go-golang-org-x-sys go-github-com-vishvananda-netns))
-    (home-page "https://github.com/vishvananda/netlink")
-    (synopsis "Simple netlink library for Go")
-    (description
-     "The netlink package provides a simple netlink library for Go.  Netlink
-is the interface a user-space program in Linux uses to communicate with the
-kernel.  It can be used to add and remove interfaces, set IP addresses and
-routes, and configure IPsec.")
-    (license license:asl2.0)))
-
 (define-public libinih
   (package
     (name "libinih")
@@ -9657,6 +9641,32 @@ be small and simple, so it's good for embedded systems.  It's also more or less
 compatible with Python's ConfigParser style of .INI files, including RFC
 822-style multi-line syntax and name: value entries.")
     (license license:bsd-3)))
+
+(define-public simpleini
+  (let ((commit "6048871ea9ee0ec24be5bd099d161a10567d7dc2")
+        (revision "1"))
+    (package
+      (name "simpleini")
+      (version (git-version "4.22" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/brofield/simpleini")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1szaflnrzw1zx9v5g6mbbiaf9wfglp4n4jjq2793k9ryz3qxil9j"))))
+      (build-system cmake-build-system)
+      (arguments
+       (list #:configure-flags #~(list "-DSIMPLEINI_USE_SYSTEM_GTEST=ON")))
+      (native-inputs (list googletest))
+      (home-page "https://github.com/brofield/simpleini")
+      (synopsis "Simple API to read and write INI-style files")
+      (description
+       "SimpleIni provides a simple API to read and write INI-style
+configuration files.  It supports data files in ASCII, MBCS and Unicode.")
+      (license license:expat))))
 
 (define-public xfsprogs
   (package
@@ -9932,7 +9942,7 @@ set as @code{LD_PRELOAD} to override the C library file system functions.")
 (define-public falcosecurity-libs
   (package
     (name "falcosecurity-libs")
-    (version "0.16.0")
+    (version "0.20.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -9941,14 +9951,10 @@ set as @code{LD_PRELOAD} to override the C library file system functions.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1vzymzkfipb3bnjjd9m8ykzj0l94fm8mnpcxfm8mpxz3jbd8xnv9"))
+                "041ir9wk44v7isidwl7fzxrjvs85j637wcr7xirasd8ysxa0r4qv"))
               (patches
                (search-patches
-                "falcosecurity-libs-pkg-config.patch"
-                "falcosecurity-libs-install-pman.patch"
-                "falcosecurity-libs-libscap-pc.patch"
-                "falcosecurity-libs-shared-library-fix.patch"
-                "falcosecurity-libs-libsinsp-pkg-config.patch"))))
+                "falcosecurity-libs-shared-build.patch"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -9976,21 +9982,22 @@ set as @code{LD_PRELOAD} to override the C library file system functions.")
             (lambda _
               (delete-file-recursively
                (string-append #$output "/src")))))))
-    (native-inputs (list bpftool
-                         clang
-                         googletest
-                         pkg-config
-                         valijson))     ;header-only library
+    (native-inputs
+     (list bpftool
+           clang-18                    ;avoid stack limit exceeded build error
+           googletest
+           pkg-config
+           valijson))                   ;header-only library
     (inputs
-     (list elfutils
-           libbpf
-           libelf))
+     (list elfutils))
     (propagated-inputs
-     ;; The following inputs are in the 'Requires' field of libscap.pc and
-     ;; libsinp.pc.
+     ;; The following inputs are in the 'Requires' field of libscap.pc,
+     ;; libsinp.pc or libpman.pc.
      (list c-ares
            grpc
            jsoncpp
+           libbpf
+           libelf
            openssl
            protobuf
            uthash                       ;included in libscap headers
@@ -10054,6 +10061,39 @@ libraries are used by the @command{sysdig} command-line utility.")
 types and interfaces and translates so that the X server can use them.")
     (license license:gpl2+)))
 
+(define-public keyd
+  (package
+    (name "keyd")
+    (version "2.5.0")
+    (source
+      (origin
+        (method git-fetch)
+        (uri (git-reference
+               (url "https://github.com/rvaiya/keyd")
+               (commit (string-append "v" version))))
+        (sha256
+          (base32
+            "0nkra6lwdjhjcwj6486cgy562n4bcp98fjgl52rj8pp76i15yad7"))))
+    (arguments
+      (list #:tests? #f ; tests require root
+            #:make-flags
+            #~(list (string-append "CC=" #$(cc-for-target))
+                    "PREFIX="
+                    (string-append "DESTDIR=" #$output))
+            #:phases
+            '(modify-phases
+               %standard-phases
+               (delete 'configure)))) ; no autoconf
+    (build-system gnu-build-system)
+    (inputs (list linux-libre-headers))
+    (synopsis "Key remapping daemon for Linux")
+    (description
+      "Keyd is a keyboard remapping utility with intuitive ini configuration
+file format.  Keyd has several features, many of which are traditionally only
+found in custom keyboard firmware like QMK.")
+    (home-page "https://github.com/rvaiya/keyd")
+    (license license:expat)))
+
 (define-public pipewire
   (package
     (name "pipewire")
@@ -10094,6 +10134,7 @@ types and interfaces and translates so that the X server can use them.")
                   jack-2
                   ldacbt
                   libcamera
+                  libdrm
                   libfdk
                   libfreeaptx
                   libsndfile
@@ -10122,7 +10163,7 @@ of Linux application development.")
 (define-public wireplumber
   (package
     (name "wireplumber")
-    (version "0.5.6")
+    (version "0.5.7")
     (source
      (origin
        (method git-fetch)
@@ -10132,7 +10173,7 @@ of Linux application development.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0wcw70dsnji81cn5x0c49hrkpbwb19bj0v2n1byjc80blnapn32h"))))
+        (base32 "1hrnmz98ygaqcja0bardb5ks7k3jrvyw0j995d8311frj05097i9"))))
     (build-system meson-build-system)
     (arguments
      `(#:configure-flags '("-Dsystemd=disabled"
@@ -10165,7 +10206,7 @@ tools for managing PipeWire.")
 (define-public ell
   (package
     (name "ell")
-    (version "0.69")
+    (version "0.71")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -10174,7 +10215,7 @@ tools for managing PipeWire.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "06gsij5fsf3jgwjx1ijn9l5lyvd09007mfn8dygqnv6xk6g1bq8l"))))
+                "09s674lh2fafw7cpwldbi8cd89arbajgvhy9j5vgqg1kbn6xddwx"))))
     (build-system gnu-build-system)
     (arguments
      ;; Tests launch dbus-daemon instances that all try to bind to
@@ -10583,7 +10624,7 @@ then IP sets may be the proper tool for you.")
 (define-public liburing
   (package
     (name "liburing")
-    (version "2.3")
+    (version "2.8")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -10592,7 +10633,7 @@ then IP sets may be the proper tool for you.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1ngg5640adlinkal8b28x5snrbab9yr8jw1w539h39k4pqnsbpmw"))))
+                "1skzzdb769jm8p098k292maqycfchpz16mqm6ml8sfzkq2hfck6p"))))
     (build-system gnu-build-system)
     (arguments
      `(;; Tests are dependent on kernel version and features
@@ -11005,7 +11046,7 @@ access to the embedded controller.")
 (define-public modprobed-db
   (package
     (name "modprobed-db")
-    (version "2.46")
+    (version "2.48")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -11014,7 +11055,7 @@ access to the embedded controller.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "017w9czm31f5c7wjyrl5fy6cw7ji681jjc7s913nbc0r43j080qr"))))
+                "0jscinga32jjvy3vwl4s1pyd5fjgqhmmk010k665nhil302hzjdc"))))
     (build-system gnu-build-system)
     (arguments
      (list #:tests? #f                  ;no tests
@@ -11375,3 +11416,42 @@ Linux input convention.  Specifically, that allows you to use the D-pad
 as a gamepad.")
     (home-page "https://github.com/dkosmari/hid-wiimote-plus")
     (license license:gpl2+)))
+
+(define-public python-evemu
+  (package
+    (name "python-evemu")
+    (version "2.7.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://gitlab.freedesktop.org/libevdev/evemu")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1sxf6v2wnajj9srlkfjfymjmmp4dlq73gzjcjmaw015a3c0xl029"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:tests? #f ; would open device files
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute* "python/evemu/base.py"
+                     (("\"libevdev.so\"")
+                      (string-append "\"" (assoc-ref inputs "libevdev")
+                                     "/lib/libevdev.so\""))))))))
+    (native-inputs
+     (list asciidoc autoconf automake libtool docbook-xsl pkg-config
+           python-wrapper xmlto))
+    (inputs
+     (list libevdev))
+    (synopsis "Record and replay input device events")
+    (description "This package provides a way to record and replay device
+descriptions and events, making it possible to emulate input devices
+through the Linux kernel's input system.  Emulated devices are for most
+practical purposes indistinguishable from real devices.
+
+It provides a command line program and also a Python library.")
+    (home-page "https://www.freedesktop.org/wiki/Evemu/")
+    (license license:gpl3)))

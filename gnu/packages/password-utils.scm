@@ -96,6 +96,7 @@
   #:use-module (gnu packages golang-build)
   #:use-module (gnu packages golang-crypto)
   #:use-module (gnu packages golang-xyz)
+  #:use-module (gnu packages golang-web)
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
   #:use-module (gnu packages kerberos)
@@ -128,6 +129,83 @@
   #:use-module (gnu packages xorg)
   #:use-module (gnu packages xml))
 
+(define-public aws-vault
+  (package
+    (name "aws-vault")
+    (version "7.2.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/99designs/aws-vault")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1dqg6d2k8r80ww70afghf823z0pijha1i0a0c0c6918yb322zkj2"))))
+    (build-system go-build-system)
+    (arguments
+     (list
+      #:install-source? #f
+      #:import-path "github.com/99designs/aws-vault"
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'build 'patch-version
+            (lambda _
+              (substitute* "src/github.com/99designs/aws-vault/main.go"
+                (("var Version = \"dev\"")
+                 (string-append "var Version = \"v" #$version "\"")))))
+          (add-after 'build 'contrib
+            (lambda* (#:key import-path #:allow-other-keys)
+              (let* ((zsh-site-dir
+                      (string-append #$output "/share/zsh/site-functions"))
+                     (bash-completion-dir
+                      (string-append #$output "/share/bash-completion/completions"))
+                     (fish-completion-dir
+                      (string-append #$output "/share/fish/completions")))
+                (for-each mkdir-p (list bash-completion-dir
+                                        fish-completion-dir
+                                        zsh-site-dir))
+                (with-directory-excursion
+                    (string-append "src/" import-path "/contrib/completions")
+                  (copy-file "zsh/aws-vault.zsh"
+                             (string-append zsh-site-dir "/_aws-vault"))
+                  (copy-file "bash/aws-vault.bash"
+                             (string-append bash-completion-dir "/aws-vault"))
+                  (copy-file "fish/aws-vault.fish"
+                             (string-append fish-completion-dir "/aws-vault.fish"))))))
+          ;; aws-vault: error: add: mkdir /homeless-shelter: permission
+          ;; denied.
+          (add-before 'check 'set-home
+            (lambda _
+              (setenv "HOME" "/tmp"))))))
+    (native-inputs
+     (list go-github-com-99designs-keyring
+           go-github-com-alecthomas-kingpin-v2
+           go-github-com-aws-aws-sdk-go-v2
+           go-github-com-aws-aws-sdk-go-v2-config
+           go-github-com-aws-aws-sdk-go-v2-credentials
+           go-github-com-aws-aws-sdk-go-v2-service-iam
+           go-github-com-aws-aws-sdk-go-v2-service-sso
+           go-github-com-aws-aws-sdk-go-v2-service-ssooidc
+           go-github-com-aws-aws-sdk-go-v2-service-sts
+           go-github-com-google-go-cmp
+           go-github-com-mattn-go-isatty
+           go-github-com-mattn-go-tty
+           go-github-com-skratchdot-open-golang
+           go-golang-org-x-term
+           go-gopkg-in-ini-v1))
+    (home-page "https://github.com/99designs/aws-vault")
+    (synopsis "Vault for securely storing and accessing AWS credentials")
+    (description
+     "AWS Vault is a tool to securely store and access @acronym{Amazon Web
+Services,AWS} credentials.
+
+AWS Vault stores IAM credentials in your operating system's secure keystore and
+then generates temporary credentials from those to expose to your shell and
+applications.  It's designed to be complementary to the AWS CLI tools, and is
+aware of your profiles and configuration in ~/.aws/config.")
+    (license license:expat)))
+
 (define-public pwgen
   (package
     (name "pwgen")
@@ -151,7 +229,7 @@ human.")
 (define-public keepassxc
   (package
     (name "keepassxc")
-    (version "2.7.9")
+    (version "2.7.10")
     (source
      (origin
        (method url-fetch)
@@ -159,18 +237,18 @@ human.")
                            "/releases/download/" version "/keepassxc-"
                            version "-src.tar.xz"))
        (sha256
-        (base32 "1za6xnwnq68gswz8vh7s5wia1bdhnia11hcb7p3dl3f049gy8i1w"))))
+        (base32 "1ylxh72bpf4pzsj13j8zlxpidp6aygaikw454n228v4q81j6vrsw"))))
     (build-system qt-build-system)
     (arguments
      (list
       #:configure-flags
       #~(append
-          (list "-DWITH_XC_ALL=YES"
-                "-DWITH_XC_UPDATECHECK=NO")
-          #$(if (member (%current-system)
-                        (package-transitive-supported-systems ruby-asciidoctor))
-              #~'()
-              #~(list "-DWITH_XC_DOCS=NO")))
+         (list "-DWITH_XC_ALL=YES"
+               "-DWITH_XC_UPDATECHECK=NO")
+         #$(if (member (%current-system)
+                       (package-transitive-supported-systems ruby-asciidoctor))
+               #~'()
+               #~(list "-DWITH_XC_DOCS=NO")))
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'record-clipboard-programs
@@ -191,21 +269,27 @@ human.")
                  (string-append
                   "QString::fromUtf8(\""
                   (search-input-file inputs "bin/wl-copy")
-                  "\")")))))
+                  "\")")))
+              (substitute* "src/gui/Clipboard.cpp"
+                (("\"wl-copy\"")
+                 (format #f "~s" (search-input-file inputs "bin/wl-copy"))))))
           (replace 'check
             (lambda* (#:key tests? #:allow-other-keys)
               (when tests?
-                ;; "TestCli::testClip() Compared values are not the same".
-                ;;   Actual   (((clipboard->text()))): ""
-                ;;   Expected (QString("Password"))  : "Password"
-                (invoke "ctest" "--exclude-regex" "testcli")))))))
+                ;; Entries have recently become sorted per the locale, and
+                ;; causes testentrymodel to fail when using the C locale (see:
+                ;; https://github.com/keepassxreboot/keepassxc/issues/11813).
+                ;; testClip runs 'xclip', which hangs in the container,
+                ;; perhaps because it lacks a TTY.
+                (invoke "ctest" "--exclude-regex"
+                        "testentrymodel|testcli")))))))
     (native-inputs
      (append
-       (list qttools-5)
-       (if (member (%current-system)
-                   (package-transitive-supported-systems ruby-asciidoctor))
-         (list ruby-asciidoctor)
-         '())))
+      (list qttools-5)
+      (if (member (%current-system)
+                  (package-transitive-supported-systems ruby-asciidoctor))
+          (list ruby-asciidoctor)
+          '())))
     (inputs
      (list argon2
            botan
@@ -749,7 +833,7 @@ through the pass command.")
   (package
     (inherit password-store)
     (name "pass-age")
-    (version "1.7.4a1")
+    (version "1.7.4a2")
     (source
      (origin
        (method git-fetch)
@@ -758,7 +842,7 @@ through the pass command.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0g8x2zivid18qf1czq1yqychmbdzxzs83rg8a5b392m2rzxlrx08"))))
+        (base32 "1ap2i08zjvacd2rllrsx9bw3zz5i99bk0i5yxrssvn6w60bwjqdl"))))
     (build-system copy-build-system)
     (arguments
      '(#:modules
@@ -801,7 +885,7 @@ through the pass command.")
          ("src/completion/pass.zsh-completion"
           "/share/zsh/site-functions/_passage"))))
     (inputs
-     (list age age-keygen coreutils-minimal git-minimal
+     (list age coreutils-minimal git-minimal
            procps qrencode sed tree util-linux))
     (home-page "https://github.com/FiloSottile/passage")
     (synopsis "Encrypted password manager")
@@ -995,10 +1079,7 @@ using password-store through rofi interface:
                        (("#clibpoard_backend=xclip")
                         "clipboard_backend=wl-clipboard")
                        (("#backend=xdotool")
-                        "backend=wtype"))
-                     (substitute* "rofi-pass"
-                       (("/etc")
-                        (string-append #$output "/etc")))))
+                        "backend=wtype"))))
             ;; Use Wayland related tools instead.
             (replace 'wrap-path
               (lambda* (#:key inputs #:allow-other-keys)
@@ -1028,7 +1109,7 @@ using password-store through rofi interface:
 (define-public tessen
   (package
     (name "tessen")
-    (version "2.2.1")
+    (version "2.2.3")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1037,7 +1118,7 @@ using password-store through rofi interface:
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0v0mkdwwxpy23fm5dqspp9c77b5ifcj7fsi8xhjrkrv1vqwmh67j"))))
+                "0pxx3x50k1zi82vjvib94rar6sy5bz3s2amq4zyba6s1a8isqlcr"))))
     (build-system gnu-build-system)
     (arguments
      (list #:tests?

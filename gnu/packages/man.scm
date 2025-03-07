@@ -3,7 +3,7 @@
 ;;; Copyright © 2014 David Thompson <dthompson2@worcester.edu>
 ;;; Copyright © 2015, 2016 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2015 Alex Kost <alezost@gmail.com>
-;;; Copyright © 2015, 2016, 2020 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2015, 2016, 2020, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2017–2022 Tobias Geerinckx-Rice <me@tobias.gr>
 ;;; Copyright © 2018, 2019 Rutger Helling <rhelling@mykolab.com>
 ;;; Copyright © 2018, 2019, 2022 Marius Bakke <marius@gnu.org>
@@ -37,17 +37,20 @@
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system ruby)
   #:use-module (guix utils)
+  #:use-module (gnu packages)
   #:use-module (gnu packages base)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages curl)
   #:use-module (gnu packages dbm)
   #:use-module (gnu packages flex)
   #:use-module (gnu packages gawk)
   #:use-module (gnu packages gettext)
   #:use-module (gnu packages groff)
   #:use-module (gnu packages less)
+  #:use-module (gnu packages linux)
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pkg-config)
-  #:use-module (gnu packages linux)
+  #:use-module (gnu packages web-browsers)
   #:use-module (gnu packages xml))
 
 (define-public xmltoman
@@ -201,13 +204,16 @@ a flexible and convenient way.")
            ;; Groff is needed at build time for troff, grops, soelim, etc.
            groff))
     (inputs
-     (list gdbm
-           groff-minimal
-           less
-           libpipeline
-           libseccomp
-           util-linux
-           zstd))
+     (append
+       (list gdbm
+             groff-minimal
+             less
+             libpipeline)
+       (if (target-linux?)
+           (list libseccomp)
+           '())
+       (list util-linux
+             zstd)))
     (native-search-paths
      (list (search-path-specification
             (variable "MANPATH")
@@ -273,30 +279,47 @@ pages into HTML format.")
               (method url-fetch)
               (uri (string-append "https://mandoc.bsd.lv/snapshots/mandoc-"
                                   version ".tar.gz"))
+              (patches (search-patches "mandoc-support-zstd-compression.patch"))
               (sha256
                (base32
                 "174x2x9ws47b14lm339j6rzm7mxy1j3qhh484khscw0yy1qdbw4b"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:test-target "regress"
-       #:phases (modify-phases %standard-phases
-                  (add-before 'configure 'set-prefix
-                    (lambda* (#:key outputs #:allow-other-keys)
-                      (substitute* "configure"
-                        (("^CC=.*")
-                         (string-append "CC=" ,(cc-for-target) "\n"))
-                        (("^DEFCFLAGS=\\\\\"")
-                         "DEFCFLAGS=\"-O2 ")
-                        (("^UTF8_LOCALE=.*")      ;used for tests
-                         "UTF8_LOCALE=en_US.UTF-8\n")
-                        (("^MANPATH_(BASE|DEFAULT)=.*" _ which)
-                         (string-append "MANPATH_" which "="
-                                        "/run/current-system/profile/share/man\n"))
-                        (("^PREFIX=.*")
-                         (string-append "PREFIX=" (assoc-ref outputs "out")
-                                        "\n"))))))))
+      (list
+        #:test-target "regress"
+        #:make-flags
+        #~(list "VPATH=./zstd-src/zlibWrapper"
+                (string-join
+                  (list "CFLAGS=-DZWRAP_USE_ZSTD=1"
+                        "-I./zstd-src/zlibWrapper")
+                  " "))
+        #:phases
+        #~(modify-phases %standard-phases
+                         (add-after 'unpack 'unpack-zstd
+                           (lambda _
+                             (mkdir "zstd-src")
+                             (invoke "tar" "--strip-components=1" "-C"
+                                     "zstd-src" "-xf" #$(package-source zstd))))
+                         (add-before 'configure 'set-prefix
+                           (lambda* (#:key outputs #:allow-other-keys)
+                             (substitute*
+                               "configure"
+                               (("^CC=.*")
+                                (string-append "CC=" #$(cc-for-target) "\n"))
+                               (("^DEFCFLAGS=\\\\\"")
+                                "DEFCFLAGS=\"-O2 ")
+                               (("^UTF8_LOCALE=.*")      ;used for tests
+                                "UTF8_LOCALE=en_US.UTF-8\n")
+                               (("^MANPATH_(BASE|DEFAULT)=.*" _ which)
+                                (string-append
+                                  "MANPATH_" which "="
+                                  "/run/current-system/profile/share/man\n"))
+                               (("^PREFIX=.*")
+                                (string-append "PREFIX="
+                                               (assoc-ref outputs "out")
+                                               "\n"))))))))
     (native-inputs (list (libc-utf8-locales-for-target) perl)) ;used to run tests
-    (inputs (list zlib))
+    (inputs (list zlib (list zstd "lib")))
     (native-search-paths
      (list (search-path-specification
             (variable "MANPATH")
@@ -489,3 +512,72 @@ in C99.")
     (synopsis "Convert text to man page")
     (description "Txt2man converts flat ASCII text to man page format.")
     (license license:gpl2+)))
+
+(define-public stdman
+  ;; Stdman generates the man files from "html-book-YYYYMMDD.tar.xz" asset in
+  ;; <https://github.com/PeterFeicht/cppreference-doc> repository, which is an
+  ;; unofficial archive of <https://en.cppreference.com>.
+  ;;
+  ;; There are therefore two versions to consider: one for the tool, and one
+  ;; for the source.  Use the latter for the package as a whole, and let-bind
+  ;; the former.
+  (let ((stdman-version "2024.07.05"))
+    (package
+      (name "stdman")
+      (version "20240610")
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/jeaye/stdman")
+                      (commit stdman-version)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0h1gfw4sxic5gx073zmshg4qyz2g142ckgzyj30pk8j708mnl8pz"))))
+      (build-system gnu-build-system)
+      (arguments
+       (list #:tests? #false            ;no tests
+             #:configure-flags #~(list (string-append "--prefix=" #$output))
+             #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'unpack 'reproducible-build
+                   ;; Out of the box, executable's "version" results from
+                   ;; a call to `date'.  Since the string is going to appear
+                   ;; in every man page, refer to the documentation version.
+                   (lambda _
+                     (substitute* "Makefile.in"
+                       (("(STDMAN_VERSION=).*" _ prefix)
+                        (string-append prefix #$version "\n")))))
+                 (add-after 'unpack 'unpack-html-source
+                   (lambda _
+                     (let ((reference
+                            #$(this-package-native-input
+                               (string-append "html-book-" version ".tar.xz"))))
+                       (invoke "tar" "xvJf" reference))))
+                 (replace 'build
+                   (lambda _
+                     ;; Elinks insists on creating its configuration in HOME.
+                     (setenv "HOME" (getcwd))
+                     (invoke "make" "generate"))))))
+      (native-inputs
+       (list curl
+             elinks
+             which
+             (origin
+               (method url-fetch)
+               (uri
+                (string-append
+                 "https://github.com/PeterFeicht/cppreference-doc/"
+                 "releases/download/v" version "/"
+                 "html-book-" version ".tar.xz"))
+               (file-name (string-append "html-book-" version ".tar.xz"))
+               (sha256
+                (base32
+                 "0qa7d2bida65c00z5awa99jrwr4gvxdpc3xp9r6hkxppxaji495w")))))
+      (home-page "https://github.com/jeaye/stdman")
+      (synopsis "Formatted C++ @code{stdlib} man pages from cppreference")
+      (description
+       "Stdman is a tool that provides C++ @code{stdlib} documentation
+archived from @url{https://en.cppreference.com, cppreference} as
+Groff-formated man pages, accessible from the @command{man} command.")
+      (license license:expat))))

@@ -22,6 +22,7 @@
 ;;; Copyright © 2021 Matthew James Kraai <kraai@ftbfs.org>
 ;;; Copyright © 2021 John Kehayias <john.kehayias@protonmail.com>
 ;;; Copyright © 2022 Greg Hogan <code@greghogan.com>
+;;; Copyright © 2024, 2025 Ashish SHUKLA <ashish.is@lostca.se>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -337,6 +338,7 @@ required structures.")
                (base32
                 "0fdjmy9vfjwk2v616nan1zz6iy9i086vrh5mdcsfqxi00ckbjk2v"))))
     (build-system gnu-build-system)
+    (outputs '("out" "debug"))
     (arguments
      (list
       #:configure-flags
@@ -397,7 +399,8 @@ OpenSSL for TARGET."
              (cond ((target-hurd? target)
                     "hurd")
                    ((and (target-linux? target)
-                         (target-riscv64? target))
+                         (or (target-riscv64? target)
+                             (target-loongarch64? target)))
                     "linux64")
                    ((target-linux? target)
                     "linux")
@@ -427,6 +430,8 @@ OpenSSL for TARGET."
               ((and (target-powerpc? target)
                     (target-64bit? target))
                "ppc64")
+              ((target-loongarch64? target)
+               "loongarch64")
               ((target-riscv64? target)
                "riscv64")
               ((target-64bit? target)
@@ -668,14 +673,14 @@ kilobytes of RAM.")
 (define-public libressl
   (package
     (name "libressl")
-    (version "3.7.3")
+    (version "4.0.0")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://openbsd/LibreSSL/"
                                   "libressl-" version ".tar.gz"))
               (sha256
                (base32
-                "1csx6gfgiqr43dw23qj2mr5jbkcd99kqavwb4vbmp0hcm5bchj3r"))))
+                "1r518q11qwx9zr1niqjh4ci63x1s51gx6g8f3p3xzhxcy1aik12d"))))
     (build-system gnu-build-system)
     (arguments
      `(#:configure-flags
@@ -690,19 +695,7 @@ kilobytes of RAM.")
                        "/share/libressl-"
                        ,(package-version this-package))
         ;; Provide a TLS-enabled netcat.
-        "--enable-nc")
-
-       #:phases (modify-phases %standard-phases
-                  (replace 'check
-                    (lambda* (#:key tests? #:allow-other-keys)
-                      (when tests?
-                        ;; 'tests/tlstest.sh' started failing in 2024 due to
-                        ;; an expired test certificate.
-                        (invoke "datefudge" "2020-01-01"
-                                "make" "check"
-                                "-j" (number->string
-                                      (parallel-job-count)))))))))
-    (native-inputs (list datefudge))
+        "--enable-nc")))
     (properties
      `((release-monitoring-url . "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/")))
     (home-page "https://www.libressl.org/")
@@ -1194,23 +1187,23 @@ compatibility is also supported.")
 (define-public wolfssl
   (package
     (name "wolfssl")
-    (version "5.7.4")
+    (version "5.7.6")
     (source (origin
               (method git-fetch)
               (uri (git-reference
-                     (url "https://github.com/wolfSSL/wolfssl")
-                     (commit (string-append "v" version "-stable"))))
+                    (url "https://github.com/wolfSSL/wolfssl")
+                    (commit (string-append "v" version "-stable"))))
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0k7bdr5r9x8sb9qxvgmvhj1rb7rb1r0rap4bp82g8qbh9pa5dnzx"))))
+                "1q1sqwx6njsjbwmwr87ky0yrg2cin7ssa12gl14i8x1v35rpcxdb"))))
     (build-system gnu-build-system)
     (arguments
-     '(#:configure-flags
-       '("--enable-distro"
-         "--enable-pkcs11"
-         "--disable-examples"
-         "--enable-jobserver=no")))
+     (list #:configure-flags
+           #~(list "--enable-distro"
+                   "--enable-pkcs11"
+                   "--disable-examples"
+                   "--enable-jobserver=no")))
     (native-inputs
      (list autoconf automake libtool))
     (synopsis "SSL/TLS implementation")

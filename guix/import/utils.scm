@@ -2,12 +2,12 @@
 ;;; Copyright © 2012, 2013, 2018, 2019, 2020, 2023 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2016 Jelle Licht <jlicht@fsfe.org>
 ;;; Copyright © 2016 David Craven <david@craven.ch>
-;;; Copyright © 2017, 2019, 2020, 2022, 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2017, 2019, 2020, 2022, 2023, 2024, 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2018 Oleg Pykhalov <go.wigust@gmail.com>
 ;;; Copyright © 2019 Robert Vollmert <rob@vllmrt.net>
 ;;; Copyright © 2020 Helio Machado <0x2b3bfa0+guix@googlemail.com>
 ;;; Copyright © 2020 Martin Becze <mjbecze@riseup.net>
-;;; Copyright © 2021 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2021, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2021 Sarah Morgensen <iskarian@mgsn.dev>
 ;;; Copyright © 2021 Xinglu Chen <public@yoctocell.xyz>
 ;;; Copyright © 2022 Alice Brenon <alice.brenon@ens-lyon.fr>
@@ -37,6 +37,7 @@
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (guix utils)
   #:use-module (guix packages)
+  #:use-module (guix deprecation)
   #:use-module (guix discovery)
   #:use-module (guix build-system)
   #:use-module ((guix i18n) #:select (G_))
@@ -83,6 +84,8 @@
             chunk-lines
 
             guix-name
+
+            find-version
 
             recursive-import))
 
@@ -341,12 +344,12 @@ LENGTH characters."
                    ;; Escape single @ to prevent it from being understood as
                    ;; invalid Texinfo syntax.
                    (cut regexp-substitute/global #f "@" <> 'pre "@@" 'post)
-                   ;; Wrap camelCase or PascalCase words or text followed
-                   ;; immediately by "()" in @code{...}.
+                   ;; Wrap camelCase, PascalCase words, text followed
+                   ;; immediately by "()", or text starting with "@@" in @code{...}.
                    (lambda (word)
                      (let ((pattern
                             (make-regexp
-                             "([A-Z][a-z]+[A-Z]|[a-z]+[A-Z]|.+\\(\\))")))
+                             "((@@)?[A-Z][a-z]+[A-Z]|(@@)?[a-z]+[A-Z]|(@@)?.+\\(\\))")))
                        (match (list-matches pattern word)
                          (() word)
                          ((m . rest)
@@ -388,7 +391,8 @@ LENGTH characters."
                                      (string-suffix? "?" last))
                                last
                                (string-append last "."))
-                             (reverse rest))))))
+                             (reverse rest))))
+             (() new-words))) ;; No description in package
          (cleaned
           (string-join (map fix-word new-words))))
     ;; Use double spacing between sentences
@@ -421,7 +425,11 @@ LENGTH characters."
                    (substring synopsis 0
                               (1- (string-length synopsis))))
                   (else synopsis))))
-    (string-trim-both cleaned)))
+    ;; Escape single @ to prevent it from being understood as invalid Texinfo
+    ;; syntax.
+    (regexp-substitute/global #f "@"
+                              (string-trim-both cleaned)
+                              'pre "@@" 'post)))
 
 (define* (package-names->package-inputs names #:optional (output #f))
   "Given a list of PACKAGE-NAMES or (PACKAGE-NAME VERSION) pairs, and an
@@ -612,13 +620,23 @@ separated by PRED."
             (reverse res)
             (loop (cdr after) res))))))
 
-(define (guix-name prefix name)
-  "Return a Guix package name for a given package name."
-  (string-append prefix (string-map (match-lambda
-                                      (#\_ #\-)
-                                      (#\. #\-)
-                                      (chr (char-downcase chr)))
-                                    name)))
+(define-deprecated/alias guix-name downstream-package-name)
+
+(define* (find-version versions #:optional version partial?)
+  "Find VERSION amongst VERSIONS.  When VERSION is not provided, return the
+latest version.  When PARTIAL? is #t, VERSION is treated as a version prefix;
+e.g. finding version \"0.1\" may return \"0.1.8\" if it is the newest \"0.1\"
+prefixed version found in VERSIONS.  Return #f when VERSION could not be
+found."
+  (let ((versions (sort versions version>?)))
+    (cond
+     ((and version partial?)            ;partial version
+      (find (cut version-prefix? version <>) versions))
+     ((and version (not partial?))      ;exact version
+      (find (cut string=? version <>) versions))
+     ((not (null? versions))            ;latest version
+      (first versions))
+     (else #f))))                       ;should not happen
 
 (define (topological-sort nodes
                           node-dependencies

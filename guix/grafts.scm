@@ -1,5 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2014-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2024 David Elsing <david.elsing@posteo.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -53,7 +54,7 @@
   (origin             graft-origin)               ;derivation | store item
   (origin-output      graft-origin-output         ;string | #f
                       (default "out"))
-  (replacement        graft-replacement)          ;derivation | store item
+  (replacement        graft-replacement)    ;derivation | store item | monadic
   (replacement-output graft-replacement-output    ;string | #f
                       (default "out")))
 
@@ -100,9 +101,11 @@ are not recursively applied to dependencies of DRV."
     ;; List of store item pairs.
     (map (lambda (graft)
            (gexp
-            ((ungexp (graft-origin graft)
+            ((ungexp (with-parameters ((%graft? #f))
+                       (graft-origin graft))
                      (graft-origin-output graft))
-             . (ungexp (graft-replacement graft)
+             . (ungexp (with-parameters ((%graft? #t))
+                         (graft-replacement graft))
                        (graft-replacement-output graft)))))
          grafts))
 

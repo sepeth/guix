@@ -1,7 +1,7 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2017, 2019 Hartmut Goebel <h.goebel@crazy-compilers.com>
 ;;; Copyright © 2020, 2021 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2021 Zheng Junjie <873216071@qq.com>
+;;; Copyright © 2021, 2024, 2025 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2022 Brendan Tildesley <mail@brendan.scot>
 ;;; Copyright © 2022 Petr Hodina <phodina@protonmail.com>
 ;;;
@@ -35,12 +35,17 @@
   #:use-module (gnu packages compression)
   #:use-module (gnu packages crypto)
   #:use-module (gnu packages cups)
+  #:use-module (gnu packages fontutils)
   #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages glib) ; dbus for tests
   #:use-module (gnu packages gnome)
+  #:use-module (gnu packages gnupg)
   #:use-module (gnu packages gstreamer)
+  #:use-module (gnu packages image)
   #:use-module (gnu packages imagemagick)
+  #:use-module (gnu packages mp3)
   #:use-module (gnu packages multiprecision)
+  #:use-module (gnu packages pdf)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages kde)
   #:use-module (gnu packages kde-frameworks)
@@ -49,19 +54,20 @@
   #:use-module (gnu packages qt)
   #:use-module (gnu packages samba)
   #:use-module (gnu packages xdisorg)
-  #:use-module (gnu packages xorg))
+  #:use-module (gnu packages xorg)
+  #:use-module (gnu packages version-control))
 
 (define-public ark
   (package
     (name "ark")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kde/stable/release-service/" version
                                   "/src/ark-" version ".tar.xz"))
               (sha256
                (base32
-                "1q0fyx65gp0d1vj4jxiaswdfzi15hbfi537f3i8y277b621qp3rs"))
+                "181w855vvg08xcd7d0nmnvcdnjhp0nix23d6g5gmx9agb6ppmbdd"))
               ;; The libarchive package in Guix does not support
               ;; xar; disable related tests.
               (patches (search-patches "ark-skip-xar-test.patch"))))
@@ -167,8 +173,8 @@ well as CD-ROM images.")
       (license license:gpl3+))))
 
 (define-public basket
-  (let ((commit "e23a8b3b1198d51f770523c7fb4652750810359a")
-        (revision "1"))
+  (let ((commit "bb230be9f6fb838b02ca85c45f9a0ca244efe967")
+        (revision "2"))
     (package
       (name "basket")
       (version (git-version "2.49" revision commit))
@@ -180,10 +186,17 @@ well as CD-ROM images.")
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1i7hrrlwyzzh7mm9xc8hjix24rvy1b2cvvbkhxh9mmdbmphwdhhd"))))
+                  "0r5f48vvahhmqfsl9svnkqg83y39570pa944yb9s09h10z96d16i"))))
       (build-system qt-build-system)
-      (native-inputs (list extra-cmake-modules))
+      (arguments (list #:qtbase qtbase
+                       #:configure-flags
+                       #~(list "-DENABLE_GPG=ON"
+                               "-DENABLE_GIT=ON")))
+      (native-inputs (list extra-cmake-modules
+                           kdoctools
+                           pkg-config))
       (inputs (list breeze-icons
+                    gpgme
                     karchive
                     kcompletion
                     kconfig
@@ -191,7 +204,6 @@ well as CD-ROM images.")
                     kcoreaddons
                     kcrash
                     kdbusaddons
-                    kdoctools
                     kfilemetadata
                     kglobalaccel
                     kguiaddons
@@ -206,7 +218,9 @@ well as CD-ROM images.")
                     kwidgetsaddons
                     kwindowsystem
                     kxmlgui
-                    phonon))
+                    libgit2-1.8
+                    phonon
+                    qt5compat))
       (home-page "https://invent.kde.org/utilities/basket")
       (synopsis "Notes and to-dos organizer")
       (description "This package provides simple note taking and to-do app.")
@@ -308,7 +322,7 @@ your computer.")
 (define-public isoimagewriter
   (package
     (name "isoimagewriter")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -317,7 +331,7 @@ your computer.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1v8ggdgij503m3bm1w24840al5by7y62p8yrmhlk4g0hjacmkys7"))))
+                "0vrxki3iixa35fimsy20wv3pipp3xnkd6i13vdb4hhv8zzip320b"))))
     (build-system qt-build-system)
     (native-inputs (list extra-cmake-modules))
     (inputs (list kauth
@@ -338,14 +352,14 @@ your computer.")
 (define-public kate
   (package
     (name "kate")
-    (version "24.05.2")
+    (version "24.12.2")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://kde/stable/release-service/" version
                            "/src/kate-" version ".tar.xz"))
        (sha256
-        (base32 "085hbl6xzzihnhy8pjwdjdsrww6l1h70m4sf2s1b5c1xsnvhhkvp"))))
+        (base32 "13pqjwdc38w2yjfz757mhv7lw4r4jcm0f5wsir3vmxwl6nchh9jx"))))
     (build-system qt-build-system)
     (native-inputs
      (list extra-cmake-modules kdoctools))
@@ -440,14 +454,14 @@ Kate's features include:
 (define-public kbackup
   (package
     (name "kbackup")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kde/stable/release-service/"
                                   version "/src/kbackup-" version ".tar.xz"))
               (sha256
                (base32
-                "0s75il0hxs95sdmj3jll8rdl1n8y86qgwww15idda18yww8d0bwm"))))
+                "1c0sbplld5rqjn9g72bg98biv7r2s8zid8b9rbh2f1pxc6d6dzf5"))))
     (build-system qt-build-system)
     (native-inputs (list extra-cmake-modules))
     (inputs (list kguiaddons
@@ -479,14 +493,14 @@ drive, USB stick, etc
 (define-public kcalc
   (package
     (name "kcalc")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kde/stable/release-service/"
                                   version "/src/kcalc-" version ".tar.xz"))
               (sha256
                (base32
-                "0p1m3yv52dc2mzalk19l3zpdwpwi5jg0fib5lgb1ln71kwb07y8n"))))
+                "1ykpnq45f1s1fchb2zw9jmlac12j2qbmvgzgw44zplbffb138y0f"))))
     (build-system qt-build-system)
     (arguments (list #:qtbase qtbase))
     (native-inputs (list extra-cmake-modules kdoctools))
@@ -621,19 +635,20 @@ with support for QR scanning.")
 (define-public kfind
   (package
     (name "kfind")
-    (version "24.05.2")
+    (version "24.12.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://kde/stable/release-service/"
                                   version "/src/kfind-" version ".tar.xz"))
               (sha256
                (base32
-                "18r0fkv5dnl1l23c94igf09g71z3pk571hh1ff4df9ixajyvw43b"))))
+                "03w4119375pcjaqmnza3iz5ffggldhs3nna5m10zywm36m771kzm"))))
     (build-system qt-build-system)
     (arguments (list #:qtbase qtbase))
     (native-inputs (list extra-cmake-modules kdoctools))
     (inputs (list karchive
                   kcoreaddons
+                  kcrash
                   kfilemetadata
                   kxmlgui
                   ki18n
@@ -904,6 +919,72 @@ sentences to be re-spoken.")
     (license ;; GPL for programs, FDL for documentation
      (list license:gpl2+ license:fdl1.2+))))
 
+(define-public krename
+  (let ((commit "33b6d5eec7284d82b9d15c4ea43949b0864a2567")
+         (revision "0"))
+    (package
+      (name "krename")
+      (version (git-version "5.0.2" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://invent.kde.org/utilities/krename")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1v056qf4fd1jny0n4n0wka9j0bdx9ii4s0ljb8f2fqgpi2wj57lm"))))
+      (build-system qt-build-system)
+      (arguments
+       (list #:qtbase qtbase
+              #:configure-flags
+              #~(list "-DQT_MAJOR_VERSION=6")))
+      (native-inputs
+       (list extra-cmake-modules pkg-config))
+      (inputs
+       (list exiv2
+             freetype
+             karchive
+             kcompletion
+             kconfig
+             kcoreaddons
+             kcrash
+             ki18n
+             kiconthemes
+             kio
+             kitemviews
+             kjobwidgets
+             kjs
+             kservice
+             kwidgetsaddons
+             kxmlgui
+             podofo
+             taglib
+             qt5compat))
+      (home-page "https://userbase.kde.org/KRename")
+      (synopsis "Utility to handle specialized file renames")
+      (description "KRename is a batch file renamer by KDE.  It allows you to
+easily rename hundreds or even more files in one go.  The filenames can be
+constructed using parts of the original filename or information from the file
+metadata such as the creation date or Exif information of an image.
+
+Its features include:
+
+@itemize
+@item renaming a list of files based on a set of expressions,
+@item copying/moving a list of files to another directory,
+@item converting filenames to upper/lower case,
+@item adding numbers to filenames,
+@item finding and replacing parts of the filename,
+@item rename audio files (e.g. mp3, ogg) files based on their metadata,
+@item setting access and modification dates, permissions and file ownership,
+@item a plug-in API which allows you to extend KRename's features,
+@item renaming directories recursively,
+@item support for KFilePlugins and
+@item creating undo file.
+@end itemize")
+      (license license:gpl3+))))
+
 (define-public kronometer
   (package
     (name "kronometer")
@@ -1125,43 +1206,51 @@ remind you to take a break now and then.")
 (define-public smb4k
   (package
     (name "smb4k")
-    (version "3.2.5")
+    (version "3.2.92")
     (source
      (origin
-       (method url-fetch)
-       (uri (string-append "https://sourceforge.net/projects/smb4k/files/"
-                           version "/smb4k-" version ".tar.xz"))
+       (method git-fetch)
+       (uri (git-reference (url "https://invent.kde.org/network/smb4k")
+                           (commit version)))
+       (file-name (git-file-name name version))
        (sha256
-        (base32 "1d53yl02wrfl6wl2h4a30qiirs44qmfkfsr1kjv69fqhbqp2cszs"))))
+        (base32 "0bgiqv5jwyk68wa32yiqyl4vxcnpk3p0iw7xlsihcn4i599zwmpq"))))
     (build-system qt-build-system)
+    (arguments (list
+                #:qtbase qtbase
+                #:configure-flags #~(list "-DSMB4K_WITH_WS_DISCOVERY=ON")))
     (native-inputs
-     (list extra-cmake-modules kdoctools-5))
+     (list extra-cmake-modules kdoctools))
     (inputs
-     (list kauth-5
-           kconfig-5
-           kconfigwidgets-5
-           kcompletion-5
-           kcoreaddons-5
-           kcrash-5
-           kdbusaddons-5
-           kdnssd-5
-           ki18n-5
-           kiconthemes-5
-           kio-5
-           kjobwidgets-5
-           knotifications-5
-           knotifyconfig-5
-           ktextwidgets-5
-           kwallet-5
-           kwidgetsaddons-5
-           kwindowsystem-5
-           kxmlgui-5
+     (list breeze-icons ;; default icon set
+           kauth
+           kcompletion
+           kconfig
+           kconfigwidgets
+           kcoreaddons
+           kcrash
+           kdbusaddons
+           kdnssd
+           kdsoap-qt6
+           kdsoap-ws-discovery-client
+           ki18n
+           kiconthemes
+           kio
+           kirigami
+           kjobwidgets
+           knotifications
+           knotifyconfig
+           kstatusnotifieritem
+           ktextwidgets
+           kwallet
+           kwidgetsaddons
+           kwindowsystem
+           kxmlgui
+           libplasma
+           qtdeclarative
+           qtkeychain-qt6
            samba
-           breeze-icons ;; default icon set
-           plasma-framework
-           qtbase-5
-           qtdeclarative-5
-           solid-5))
+           solid))
     (home-page "https://apps.kde.org/smb4k/")
     (synopsis "Samba (SMB) share advanced browser")
     (description "Smb4K is an network neighborhood browser for the KDE

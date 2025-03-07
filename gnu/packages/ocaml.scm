@@ -561,7 +561,7 @@ depend: $(STDLIB_MLIS) $(STDLIB_DEPS)"))
        #:phases
        (modify-phases %standard-phases
          (delete 'configure))
-       ; some failures because of changes in OCaml's error message formating
+       ; some failures because of changes in OCaml's error message formatting
        #:tests? #f))
     (home-page "https://github.com/ocaml/ocamlbuild")
     (synopsis "OCaml build tool")
@@ -1408,7 +1408,7 @@ Knuth’s LR(1) parser construction technique.")
 (define-public binsec
   (package
     (name "binsec")
-    (version "0.8.1")
+    (version "0.10.0")
     (source
      (origin
        (method git-fetch)
@@ -1417,7 +1417,7 @@ Knuth’s LR(1) parser construction technique.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0j6lwj20jaq0702v2fqvsrax1400zqbvz5q2cmjqhvrjzcfcl0kr"))))
+        (base32 "1szfqb6rj19w2jdyaxdgy3plhgr7picijf7l4k5qq80kna2h0zm8"))))
     (build-system dune-build-system)
     (native-inputs (list gmp ocaml-qcheck ocaml-ounit2))
     (propagated-inputs (list dune-site
@@ -2874,7 +2874,7 @@ interface files.")
     (propagated-inputs
      (list ocaml-odoc))
     (home-page "https://github.com/rdicosmo/parmap")
-    (synopsis "Parallel map and fold primtives for OCaml")
+    (synopsis "Parallel map and fold primitives for OCaml")
     (description
      "Library to perform parallel fold or map taking advantage of multiple
 core architectures for OCaml programs.  Drop-in replacement for these
@@ -4831,7 +4831,7 @@ file (POSIX like) and filename.")
                 (substitute* "test/test-main/Test.ml"
                   ;; most of these tests fail because ld cannot find crti.o, but according
                   ;; to the log file, the environment variables {LD_,}LIBRARY_PATH
-                  ;; are set correctly when LD_LIBRARY_PATH is defined beforhand.
+                  ;; are set correctly when LD_LIBRARY_PATH is defined beforehand.
                   (("TestBaseCompat.tests;") "")
                   (("TestExamples.tests;") "")
                   (("TestFull.tests;") "")
@@ -6675,7 +6675,7 @@ the OCaml code.")
        (modify-phases %standard-phases
          (add-after 'unpack 'fix-test-format
            (lambda _
-             ;; Since sexplib >= 0.15, error formating has changed
+             ;; Since sexplib >= 0.15, error formatting has changed
              (substitute* "test/driver/exception_handling/run.t"
                (("\\(Failure ") "Failure("))
              (substitute* "test/base/test.ml"
@@ -6727,7 +6727,7 @@ OCaml AST in the OCaml syntax;
                         "11bkw7fgzfay8ws0piwphqip3y2lk2c9s2gil3zisnbvka92h1va"))
     (build-system dune-build-system)
     (arguments
-     ;; Tests are currenlty failing
+     ;; Tests are currently failing
      ;; (see https://github.com/janestreet/ppx_compare/issues/10)
      '(#:tests? #f))
     (propagated-inputs
@@ -8820,7 +8820,7 @@ get an precise reference of when the executable was built.")))
     (propagated-inputs (list dune-dyn ocaml-odoc))
     (synopsis "Parse ocaml compiler output into structured form")
     (description
-     "This library parses ocaml complier output and returns it as ocaml values.
+     "This library parses ocaml compiler output and returns it as ocaml values.
 This library offers no backwards compatibility guarantees.")))
 
 (define-public ocaml-chrome-trace

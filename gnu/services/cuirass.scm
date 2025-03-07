@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2016 Mathieu Lirzin <mthl@gnu.org>
-;;; Copyright © 2016-2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2016-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2017, 2020 Mathieu Othacehe <m.othacehe@gmail.com>
 ;;; Copyright © 2017 Jan Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2018, 2019 Ricardo Wurmus <rekado@elephly.net>
@@ -103,6 +103,8 @@
                     (default 60))
   (ttl              cuirass-configuration-ttl ;integer
                     (default 2592000))
+  (build-expiry     cuirass-configuration-build-expiry
+                    (default (* 4 30 24 3600)))   ;integer(seconds)
   (threads          cuirass-configuration-threads ;integer
                     (default #f))
   (parameters       cuirass-configuration-parameters ;string
@@ -136,6 +138,7 @@
         (group            (cuirass-configuration-group config))
         (interval         (cuirass-configuration-interval config))
         (ttl              (cuirass-configuration-ttl config))
+        (build-expiry     (cuirass-configuration-build-expiry config))
         (threads          (cuirass-configuration-threads config))
         (parameters       (cuirass-configuration-parameters config))
         (remote-server    (cuirass-configuration-remote-server config))
@@ -168,6 +171,12 @@
                                       (number->string ttl)
                                                  "s"))
                                '())
+                        #$@(if build-expiry
+                               (list (string-append
+                                      "--build-expiry="
+                                      (number->string build-expiry)
+                                      "s"))
+                               '())
                         #$@(if threads
                                (list (string-append
                                       "--threads="
@@ -198,6 +207,13 @@
         (documentation "Run Cuirass web interface.")
         (provision '(cuirass-web))
         (requirement '(user-processes cuirass))
+
+        ;; XXX: Respawn slowly to work around the fact that 'cuirass' is not
+        ;; ready yet (not listening to the bridge) when it gets in 'started'
+        ;; state.
+        (respawn-delay 1)
+        (respawn-limit #~'(10 . 15))
+
         (start #~(make-forkexec-constructor
                   (list (string-append #$cuirass "/bin/cuirass")
                         "web"
@@ -331,20 +347,6 @@
             (when #$remote-cache
               (chown #$remote-cache uid gid)))))))
 
-(define (cuirass-log-rotations config)
-  "Return the list of log rotations that corresponds to CONFIG."
-  (list (log-rotation
-         (files (append (list (cuirass-configuration-log-file config)
-                              (cuirass-configuration-web-log-file config))
-                        (let ((server
-                               (cuirass-configuration-remote-server config)))
-                          (if server
-                              (list (cuirass-remote-server-log-file server))
-                              '()))))
-         (frequency 'weekly)
-         (options `("rotate 40"                   ;worth keeping
-                    ,@%default-log-rotation-options)))))
-
 (define cuirass-service-type
   (service-type
    (name 'cuirass)
@@ -352,7 +354,6 @@
     (list
      (service-extension profile-service-type      ;for 'info cuirass'
                         (compose list cuirass-configuration-cuirass))
-     (service-extension rottlog-service-type cuirass-log-rotations)
      (service-extension activation-service-type cuirass-activation)
      (service-extension shepherd-root-service-type cuirass-shepherd-service)
      (service-extension account-service-type cuirass-account)
@@ -445,14 +446,6 @@ CONFIG."
                     #:log-file #$log-file))
            (stop #~(make-kill-destructor))))))
 
-(define (cuirass-remote-worker-log-rotations config)
-  "Return the list of log rotations that corresponds to CONFIG."
-  (list (log-rotation
-         (files (list (cuirass-remote-worker-log-file config)))
-         (frequency 'weekly)
-         (options `("rotate 4"                    ;don't keep too many of them
-                    ,@%default-log-rotation-options)))))
-
 (define cuirass-remote-worker-service-type
   (service-type
    (name 'cuirass-remote-worker)
@@ -460,8 +453,6 @@ CONFIG."
     (list (service-extension shepherd-root-service-type
                              cuirass-remote-worker-shepherd-service)
           (service-extension account-service-type
-                             (const %cuirass-remote-worker-accounts))
-          (service-extension rottlog-service-type
-                             cuirass-remote-worker-log-rotations)))
+                             (const %cuirass-remote-worker-accounts))))
    (description
     "Run the Cuirass remote build worker service.")))

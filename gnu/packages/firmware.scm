@@ -119,7 +119,6 @@
            #:tests? #f
            #:configure-flags
            #~'("-DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration"
-               "-DCMAKE_SYSTEM_NAME=Generic"      ;override default value
                "-DTARGET_MAGPIE=ON")
            #:phases
            #~(modify-phases %standard-phases
@@ -148,8 +147,7 @@
      (substitute-keyword-arguments
        (package-arguments ath9k-htc-ar7010-firmware)
        ((#:configure-flags flags)
-        #~'("-DCMAKE_SYSTEM_NAME=Generic"         ;override default value
-            "-DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration"
+        #~'("-DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration"
             "-DTARGET_K2=ON"))))
     (synopsis "Firmware for the Atheros AR9271 USB 802.11n NICs")
     (description
@@ -416,7 +414,7 @@ broadband modem as found, for example, on PinePhone.")
     (home-page "https://www.openfirmware.info/FCODE_suite")
     (synopsis "Utilities to process FCODE, OpenFirmware's byte code")
     (description "This is the OpenBIOS FCODE suite.  It contains a set of
-utilites used to process FCODE, OpenFirmware's byte code, consisting of:
+utilities used to process FCODE, OpenFirmware's byte code, consisting of:
 @enumerate
 @item toke - A tokenizer
 @item detok - A detokenizer
@@ -826,7 +824,7 @@ coreboot.")
        "SGABIOS provides a means for legacy PC software to communicate with an
 attached serial console as if a VGA card is attached.  It is designed to be
 inserted into a BIOS as an option ROM to provide over a serial port the display
-and input capabilites normally handled by a VGA adapter and a keyboard, and
+and input capabilities normally handled by a VGA adapter and a keyboard, and
 additionally provide hooks for logging displayed characters for later collection
 after an operating system boots.")
       (license license:asl2.0))))
@@ -1108,7 +1106,7 @@ Virtual Machines.  OVMF contains a sample UEFI firmware for QEMU and KVM.")
         ;;%current-system is a *triplet*, unlike its name would suggest.
         (string=? (%current-system) (gnu-triplet->nix-system triplet))))
   (package
-    (name (string-append "arm-trusted-firmware-" platform))
+    (name (downstream-package-name "arm-trusted-firmware-" platform))
     (version "2.12")
     (source
      (origin
@@ -1131,7 +1129,7 @@ Virtual Machines.  OVMF contains a sample UEFI firmware for QEMU and KVM.")
       #:target (and (not (native-build?)) triplet)
       #:phases
       #~(modify-phases %standard-phases
-          (replace 'configure          ;no configure script
+          (add-after 'unpack 'fix-cross-build
             ;; Fix ATF commit ffb7742125def3e0acca4c7e4d3215af5ce25a31
             (lambda _
               (unless #$(native-build?)
@@ -1140,6 +1138,7 @@ Virtual Machines.  OVMF contains a sample UEFI firmware for QEMU and KVM.")
                 (substitute* "make_helpers/build_macros.mk"
                   (("-oc") "-oc-default")
                   (("-od") "-od-default")))))
+          (delete 'configure)          ;no configure script
           (replace 'install
             (lambda _
               (for-each (lambda (file)
@@ -1171,10 +1170,10 @@ interface standards, such as:
                    license:bsd-2)))) ; libfdt
 
 (define-public arm-trusted-firmware-sun50i-a64
-  (let ((base (make-arm-trusted-firmware "sun50i_a64")))
-    (package
-      (inherit base)
-      (name "arm-trusted-firmware-sun50i-a64"))))
+  (make-arm-trusted-firmware "sun50i_a64"))
+
+(define-public arm-trusted-firmware-sun50i-h616
+  (make-arm-trusted-firmware "sun50i_h616"))
 
 (define-public arm-trusted-firmware-rk3328
   (make-arm-trusted-firmware "rk3328"))
@@ -1708,3 +1707,84 @@ default assumption for QMK firmware keymaps)."))
 privileges for flashing QMK compatible devices without needing root.  The
 rules require the group @code{plugdev} to be added to each user that needs
 this.")))
+
+(define-public senoko-chibios
+  (package
+    (name "senoko-chibios")
+    (version "2.5")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/xobs/senoko-chibios-3.git")
+                     (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1qdpxzqdh0l65rzfbrm1lqzpik3nyg8wa7k0b8b6apj2w6vsp5pv"))))
+    (build-system gnu-build-system)
+    (arguments
+     (list #:tests? #f ; no tests
+           #:make-flags #~(list "USE_VERBOSE_COMPILE=yes")
+           #:phases
+           #~(modify-phases %standard-phases
+               (delete 'configure)
+               (add-after 'unpack 'patch
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   (chdir "senoko")
+                   (substitute* "Makefile"
+                    ;; We don't have those dependencies since we delete .git
+                    ;; after checkout.
+                    ((" [$][(]CHIBIOS[)]/.git/HEAD [$][(]CHIBIOS[)]/.git/index")
+                     "")
+                    (("[$][(]shell git rev-parse HEAD[)]")
+                     ;; Uniquely identify the version.
+                     (assoc-ref outputs "out")))))
+               (replace 'install
+                 (lambda* (#:key outputs #:allow-other-keys)
+                   (let ((destination (string-append (assoc-ref outputs "out")
+                                      "/lib/firmware")))
+                     (install-file "build/senoko.elf" destination)
+                     (install-file "build/senoko.hex" destination)))))))
+    (synopsis "Firmware for Novena battery or passthrough board")
+    (description "This package provides the firmware for the Novena battery
+or passthrough board.")
+    (supported-systems '("armhf-linux")) ; actually cortex-m3
+    (home-page "https://github.com/xobs/senoko-chibios-3/")
+    (license license:gpl3+)))
+
+(define-public firmware-senoko
+  (package
+    (name "firmware-senoko")
+    (version "2.6")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/novena-next/firmware-senoko.git")
+                     (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "10d6bgqajl0w17xydjv2x22n5m9d1xsjb09r430nakc1v6gn52d5"))))
+    (build-system copy-build-system)
+    (arguments
+     (list #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch
+                 (lambda* (#:key inputs #:allow-other-keys)
+                     (substitute* "update-senoko"
+                      (("^fw=/lib/firmware/senoko.hex")
+                       (string-append "fw="
+                                      (assoc-ref inputs "senoko-chibios")
+                                      "/lib/firmware/senoko.hex")))
+                     (patch-shebang "update-senoko"))))
+           #:install-plan
+           ''(("update-senoko" "bin/")
+              ("update-senoko.1" "share/man/man1/"))))
+    (inputs
+     (list senoko-chibios))
+    (synopsis "Firmware flasher for Novena battery or passthrough board")
+    (description "This package provides a way to update the Novena battery or
+passthrough board firmware on a Novena.")
+    (supported-systems '("armhf-linux"))
+    (home-page "https://github.com/novena-next/firmware-senoko")
+    (license license:bsd-3)))

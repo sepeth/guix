@@ -275,31 +275,39 @@ exported."
                            (lambda (port)
                              (set-port-encoding! port "UTF-8")
                              (display "\
-HOME_ENVIRONMENT=$HOME/.guix-home
+# NOTE: Set HOME_ENVIRONMENT before sourcing (home-shell-profile-service-type ensures
+# ~/.profile does)
 GUIX_PROFILE=\"$HOME_ENVIRONMENT/profile\"
-PROFILE_FILE=\"$HOME_ENVIRONMENT/profile/etc/profile\"
+PROFILE_FILE=\"$GUIX_PROFILE/etc/profile\"
 [ -f $PROFILE_FILE ] && . $PROFILE_FILE
 
+case $GUIX_LOCPATH in
+  *$GUIX_PROFILE/lib/locale*) ;;
+  *) export GUIX_LOCPATH=$GUIX_PROFILE/lib/locale:$GUIX_LOCPATH ;;
+esac
 case $XDG_DATA_DIRS in
-  *$HOME_ENVIRONMENT/profile/share*) ;;
-  *) export XDG_DATA_DIRS=$HOME_ENVIRONMENT/profile/share:$XDG_DATA_DIRS ;;
+  *$GUIX_PROFILE/share*) ;;
+  *) export XDG_DATA_DIRS=$GUIX_PROFILE/share:$XDG_DATA_DIRS ;;
 esac
 case $MANPATH in
-  *$HOME_ENVIRONMENT/profile/share/man*) ;;
-  *) export MANPATH=$HOME_ENVIRONMENT/profile/share/man:$MANPATH
+  *$GUIX_PROFILE/share/man*) ;;
+  *) export MANPATH=$GUIX_PROFILE/share/man:$MANPATH
 esac
 case $INFOPATH in
-  *$HOME_ENVIRONMENT/profile/share/info*) ;;
-  *) export INFOPATH=$HOME_ENVIRONMENT/profile/share/info:$INFOPATH ;;
+  *$GUIX_PROFILE/share/info*) ;;
+  *) export INFOPATH=$GUIX_PROFILE/share/info:$INFOPATH ;;
 esac
 case $XDG_CONFIG_DIRS in
-  *$HOME_ENVIRONMENT/profile/etc/xdg*) ;;
-  *) export XDG_CONFIG_DIRS=$HOME_ENVIRONMENT/profile/etc/xdg:$XDG_CONFIG_DIRS ;;
+  *$GUIX_PROFILE/etc/xdg*) ;;
+  *) export XDG_CONFIG_DIRS=$GUIX_PROFILE/etc/xdg:$XDG_CONFIG_DIRS ;;
 esac
 case $XCURSOR_PATH in
-  *$HOME_ENVIRONMENT/profile/share/icons*) ;;
-  *) export XCURSOR_PATH=$HOME_ENVIRONMENT/profile/share/icons:$XCURSOR_PATH ;;
+  *$GUIX_PROFILE/share/icons*) ;;
+  *) export XCURSOR_PATH=$GUIX_PROFILE/share/icons:$XCURSOR_PATH ;;
 esac
+
+# Keep the shell environment clean.
+unset GUIX_PROFILE PROFILE_FILE
 
 " port)
                              (display
@@ -431,7 +439,7 @@ activation.")))
                                    (format #f "/run/user/~a" (getuid))))
               (flag-file-path (string-append
                                xdg-runtime-dir "/on-first-login-executed")))
-         ;; XDG_RUNTIME_DIR dissapears on logout, that means such trick
+         ;; XDG_RUNTIME_DIR disappears on logout, that means such trick
          ;; allows to launch on-first-login script on first login only
          ;; after complete logout/reboot.
          (if (file-exists? xdg-runtime-dir)

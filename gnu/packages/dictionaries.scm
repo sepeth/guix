@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2014-2016, 2021, 2024 Ludovic Courtès <ludo@gnu.org>
-;;; Copyright © 2016, 2017, 2018, 2020-2023 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2016-2018, 2020-2023, 2025 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2016 Sou Bunnbu <iyzsong@gmail.com>
 ;;; Copyright © 2017, 2018, 2019, 2021 Nicolas Goaziou <mail@nicolasgoaziou.fr>
 ;;; Copyright © 2018, 2019, 2020 Tobias Geerinckx-Rice <me@tobias.gr>
@@ -119,14 +119,14 @@ acronyms distributed as an info document.")
 (define-public gcide
   (package
     (name "gcide")
-    (version "0.53")
+    (version "0.54")
     (source (origin
               (method url-fetch)
               (uri (string-append
                     "mirror://gnu/gcide/gcide-" version ".tar.xz"))
               (sha256
                (base32
-                "17rigzfmih5i1z5s5v1hdr1jw8rngf40768kblnh5kp19ncbvb6k"))))
+                "0hhxqlkgp3kkin4pqzfgfd24ckai29sm9dw8qc6icnqp6rpnyh92"))))
     (build-system copy-build-system)
     (arguments
      '(#:install-plan
@@ -410,22 +410,24 @@ intelligible and easily correctable.")
         (base32 "17jwcgc3jdp41rvxqi7zdsysfpjgzqq4z1l345qwffp1an6yaaqk"))))
     (build-system cmake-build-system)
     (arguments
-     `(#:configure-flags '("-DBUILD_TESTS=YES")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'build 'build-lang
-           (lambda _
-             (invoke "make" "lang")))
-         (add-before 'check 'pre-check
-           (lambda _
-             (setenv "HOME" (getcwd))
-             #t)))))
+     (list
+      #:configure-flags
+      #~(list "-DBUILD_TESTS=YES"
+              ;; https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1078404
+              "-DCMAKE_CXX_FLAGS=-fpermissive")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'build 'build-lang
+            (lambda _
+              (invoke "make" "lang")))
+          (add-before 'check 'pre-check
+            (lambda _
+              (setenv "HOME" (getcwd)))))))
     (native-inputs
-     `(("gettext" ,gettext-minimal)
-       ("pkg-config" ,pkg-config)
-
-       ;; For tests.
-       ("jq" ,jq)))
+     (list gettext-minimal
+           pkg-config
+           ;; For tests.
+           jq))
     (inputs
      (list glib ncurses readline zlib))
     (home-page "https://dushistov.github.io/sdcv/")

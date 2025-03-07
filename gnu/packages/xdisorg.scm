@@ -52,7 +52,7 @@
 ;;; Copyright © 2021 ikasero <ahmed@ikasero.com>
 ;;; Copyright © 2021 Felix Gruber <felgru@posteo.net>
 ;;; Copyright © 2021 jgart <jgart@dismail.de>
-;;; Copyright © 2022 John Kehayias <john.kehayias@protonmail.com>
+;;; Copyright © 2022, 2024 John Kehayias <john.kehayias@protonmail.com>
 ;;; Copyright © 2022 Jai Vetrivelan <jaivetrivelan@gmail.com>
 ;;; Copyright © 2022 Derek Chuank <derekchuank@outlook.com>
 ;;; Copyright © 2022, 2023 Wamm K. D. <jaft.r@outlook.com>
@@ -65,6 +65,8 @@
 ;;; Copyright © 2024 Igor Goryachev <igor@goryachev.org>
 ;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
 ;;; Copyright © 2024 Spencer Peters <spencerpeters@protonmail.com>
+;;; Copyright © 2024 Jakob Kirsch <jakob.kirsch@web.de>
+;;; Copyright © 2025 Evgeny Pisemsky <mail@pisemsky.site>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -89,6 +91,7 @@
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
   #:use-module (guix build-system scons)
   #:use-module (guix download)
   #:use-module (guix gexp)
@@ -147,6 +150,7 @@
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-check)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages sphinx)
   #:use-module (gnu packages tex)
@@ -237,7 +241,7 @@ command line, without displaying a keyboard at all.")
 (define-public aquamarine
   (package
     (name "aquamarine")
-    (version "0.4.3")
+    (version "0.7.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -246,14 +250,14 @@ command line, without displaying a keyboard at all.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0x1zz1ywchs0awkjkvdgskgqnp6pz5lqwmgr8g0zc0i7inhyg1p3"))))
+                "0vzbhz3mpln6ikg15cawr3ji3yiv86lxcy23gm4c0bdpr3hq7mcm"))))
     (build-system cmake-build-system)
     (arguments
      (list #:cmake cmake-3.30
            ;; TODO: Figure out what's expected in the test environment.
            #:tests? #f))
     (native-inputs
-     (list gcc-13 hyprwayland-scanner pkg-config))
+     (list gcc-14 hyprwayland-scanner pkg-config))
     (inputs
      (list eudev
            hwdata
@@ -835,7 +839,7 @@ rasterisation.")
 (define-public libdrm
   (package
     (name "libdrm")
-    (version "2.4.123")
+    (version "2.4.124")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -843,7 +847,7 @@ rasterisation.")
                     version ".tar.xz"))
               (sha256
                (base32
-                "17mpmp59icp8vaa47dz9gdpdh583kigq47p9a07lp9s9l5kqbfd2"))))
+                "0yd37j3c1qz9gmwvv7vwqgss8aiizypsg8hn9fpsyjnac4zjjdmc"))))
     (build-system meson-build-system)
     (arguments
      (list #:configure-flags
@@ -888,6 +892,29 @@ including drivers for chipsets produced by 3DFX, AMD (formerly ATI), Intel
 and Matrox.")
     (license license:x11)))
 
+(define-public libdrm-armada-novena
+  (package
+    (name "libdrm-armada-novena")
+    (version "2.0.4")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/novena-next/libdrm-armada.git")
+                     (commit (string-append "novena/" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0d770rxn1zzndzxxh9bcmn2p9yapvmyam0rvyjhv5ngq527ykm4p"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     (list pkg-config automake autoconf libtool))
+    (inputs
+     (list libdrm))
+    (synopsis "libdrm for i.MX6 graphics")
+    (description "This package provides an accelerated X server library for
+i.MX6.")
+    (home-page "https://github.com/novena-next/libdrm-armada")
+    (license license:gpl2+)))
 
 (define-public mtdev
   (package
@@ -2099,7 +2126,7 @@ Extensions, Shortcuts, File browser mode and Custom Color Themes.")
 (define-public rofi
   (package
     (name "rofi")
-    (version "1.7.5")
+    (version "1.7.8")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://github.com/davatorium/rofi/"
@@ -2107,7 +2134,7 @@ Extensions, Shortcuts, File browser mode and Custom Color Themes.")
                                   version "/rofi-" version ".tar.xz"))
               (sha256
                (base32
-                "138c4bl60p7namsb2pk8q5cdlxbdkli7zny192vk5jv5s5kczzya"))
+                "0pk5a38rhci6mm0p9zjrmb7ixczhbdwqirw840h682rf9660mn9a"))
               (snippet
                #~(begin
                    ;; Delete pre-generated files.
@@ -2125,18 +2152,18 @@ Extensions, Shortcuts, File browser mode and Custom Color Themes.")
            `(,glib "bin")
            pkg-config))
     (inputs
-     (list cairo
-           glib
-           libjpeg-turbo
+     (list libjpeg-turbo
            (librsvg-for-system)
            libxcb
            libxkbcommon
-           pango
            startup-notification
            xcb-util
            xcb-util-cursor
+           xcb-util-keysyms
            xcb-util-wm
            xcb-util-xrm))
+    (propagated-inputs
+     (list cairo glib pango))           ;in Requires.private of rofi.pc
     (native-search-paths
      ;; This is where rofi will search for plugins by default.
      (list (search-path-specification
@@ -2164,7 +2191,7 @@ by name.")
     (package
       (inherit rofi)
       (name "rofi-wayland")
-      (version "1.7.5+wayland3")
+      (version "1.7.8+wayland1")
       (source (origin
                 (method url-fetch)
                 (uri (string-append "https://github.com/lbonn/rofi"
@@ -2172,7 +2199,7 @@ by name.")
                                     "/rofi-" version ".tar.xz"))
                 (sha256
                  (base32
-                  "11xiksh3m7yf3270kqf1jranlfh9q6rr8i99jvx4ak4azn4pwhpw"))))
+                  "0wr6qdyd9wkgqaa4vq8czz4fd2shngbw83b2ll284ahm3mwhq2da"))))
       (build-system meson-build-system)
       (inputs
        (modify-inputs (package-inputs base)
@@ -2186,7 +2213,7 @@ wayland support."))))
 (define-public rofi-calc
   (package
     (name "rofi-calc")
-    (version "2.1.0")
+    (version "2.3.0")
     (source
      (origin
        (method git-fetch)
@@ -2196,7 +2223,7 @@ wayland support."))))
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "021z7hwvdcs3g7icyp6xhry0xlq29gg1288hg2kzyzqq4l2irxdi"))))
+         "041i50rbk7cdbrmn43hz4kx4ijdzff4pw1jv2symwfn07z9a6f30"))))
     (build-system gnu-build-system)
     (arguments
      (list
@@ -2419,10 +2446,10 @@ program for X11.  It was designed to be fast, tiny and scriptable in any languag
     (home-page "https://github.com/vixus0/xftwidth")
     (synopsis "Calculator for determining pixel widths of displayed text using Xft fonts")
     (description "xftwidth is a small C program for calculating the pixel
-widths of displayed text using Xft fonts. It is especially useful in scripts
+widths of displayed text using Xft fonts.  It is especially useful in scripts
 for displaying text in graphical panels, menus, popups, and notification
-windows generated using dzen. These scripts are often used in conjunction with
-minimalistic tiling window managers such as herbstluftwm and bspwm.")
+windows generated using dzen.  These scripts are often used in conjunction
+with minimalistic tiling window managers such as herbstluftwm and bspwm.")
     (license license:expat)))
 
 (define-public xcb-util-xrm
@@ -2681,6 +2708,43 @@ terminal) to unlock the computer.  It is an alternative to @command{vlock -an},
 written to overcome vlock's limitations regarding hibernate and suspend.")
     (home-page "https://github.com/xyb3rt/physlock")
     (license license:gpl2+)))
+
+(define-public python-pyclip
+  (package
+    (name "python-pyclip")
+    (version "0.7.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/spyoungtech/pyclip")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "10q698snlid09jmlvsqlljj2r0w6cixncjcgbhnjqp7w0hva8wyj"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-before 'check 'start-xorg-server
+            (lambda _
+              (system "Xvfb :1 &")
+              (setenv "DISPLAY" ":1"))))))
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel
+           xorg-server-for-tests))
+    (propagated-inputs
+     (list wl-clipboard
+           xclip))
+    (home-page "https://github.com/spyoungtech/pyclip")
+    (synopsis "Cross-platform clipboard module for Python")
+    (description
+     "This library implements cross-platform clipboard utilities supporting
+both binary and text data.")
+    (license license:asl2.0)))
 
 (define-public python-pyperclip
   (package
@@ -3147,7 +3211,7 @@ support such as Xfce.")
     (synopsis "Wallpaper setting utility for X")
     (description
      "The xwallpaper utility allows you to set image files as your X
-wallpaper. JPEG, PNG, and XPM file formats are supported.
+wallpaper.  JPEG, PNG, and XPM file formats are supported.
 
 The wallpaper is also advertised to programs which support semi-transparent
 backgrounds.")
@@ -3530,7 +3594,7 @@ desktop notifications.")
 (define-public wofi
   (package
     (name "wofi")
-    (version "1.3")
+    (version "1.4.1")
     (source (origin
               (method hg-fetch)
               (uri (hg-reference
@@ -3539,7 +3603,7 @@ desktop notifications.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1k6b46n0vwdqrr6rfps0n8hghcgivnc42gc7z61phhjgf08j64qv"))))
+                "1z2pmmwq2h3lfsvdazjiz9s3978rcqan7dqdk5iwk4sz2m96irv9"))))
     (build-system meson-build-system)
     (arguments
      (list #:glib-or-gtk? #t))
@@ -3685,7 +3749,7 @@ This package is the fork of hsetroot by Hyriand.")
 (define-public hyprcursor
   (package
     (name "hyprcursor")
-    (version "0.1.10")
+    (version "0.1.11")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3694,10 +3758,10 @@ This package is the fork of hsetroot by Hyriand.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1rdn03ln7pqcwp8h4nmi7nc489q8y25dd3v4paq8ykvwzhvs3a1n"))))
+                "0k050802bpgdn1hnrfgadxs54hx0zak3y3jzbjnsb69i6ayydr1c"))))
     (build-system cmake-build-system)
     (arguments (list #:tests? #f))      ;TODO: No themes currently packaged.
-    (native-inputs (list gcc-13 pkg-config))
+    (native-inputs (list gcc-14 pkg-config))
     (inputs (list cairo hyprlang (librsvg-for-system) libzip tomlplusplus))
     (home-page "https://standards.hyprland.org/hyprcursor/")
     (synopsis "Cursor theme format")
@@ -3708,7 +3772,7 @@ This package is the fork of hsetroot by Hyriand.")
 (define-public hyprpicker
   (package
     (name "hyprpicker")
-    (version "0.4.1")
+    (version "0.4.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3717,7 +3781,7 @@ This package is the fork of hsetroot by Hyriand.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "11r06c62dqj81r27qhf36f3smnjyk3vz8naa655m8khv4qqvmvc2"))))
+                "1jnncnsrb8h3driryj27mnamh5fqs0sys6xmfwsyg4qx3dgb6s89"))))
     (build-system cmake-build-system)
     (arguments
      (list #:tests? #f                  ;No tests.
@@ -3729,7 +3793,7 @@ This package is the fork of hsetroot by Hyriand.")
                      (("wl-copy" cmd)
                       (search-input-file
                        inputs (string-append "bin/" cmd)))))))))
-    (native-inputs (list gcc-13 hyprwayland-scanner pkg-config))
+    (native-inputs (list gcc-14 hyprwayland-scanner pkg-config))
     (inputs
      (list cairo
            hyprutils

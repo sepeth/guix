@@ -10,6 +10,7 @@
 ;;; Copyright © 2023 Simon South <simon@simonsouth.net>
 ;;; Copyright © 2024 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2024 Jakob Kirsch <jakob.kirsch@web.de>
+;;; Copyright © 2025 Zheng Junjie <873216071@qq.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -36,6 +37,8 @@
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system cmake)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
+  #:use-module (guix build-system qt)
   #:use-module (gnu packages)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages algebra)
@@ -66,6 +69,7 @@
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages readline)
@@ -74,9 +78,8 @@
   #:use-module (gnu packages version-control))
 
 (define-public abc
-
- (let ((commit "707442e0915dd7fdbfc5742b04ef16429373075a")
-       (revision "3"))
+ (let ((commit "d5e1a5d445f68bdb4895bb735b9568e5f4738c13")
+       (revision "4"))
   (package
     (name "abc")
     (version (git-version "0.0" revision commit))
@@ -88,7 +91,7 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "04wi0917cp9j9vsbmi00sb7914qspkz2d1113mkgjmmql6mq9gch"))))
+                "0b3qdljcr7dznqr3zxihx9vp6ng6a6pnaqhasblc03rnpp83y1w4"))))
     (build-system gnu-build-system)
     (inputs
      (list readline))
@@ -152,40 +155,45 @@ For synthesis, the compiler generates netlists in the desired format.")
 (define-public yosys
   (package
     (name "yosys")
-    (version "0.48")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://github.com/YosysHQ/yosys")
-                    (commit (string-append "v" version))))
-              (sha256
-               (base32
-                "1y5yrmw8b5l2s70451rcy83h0kavdjrsavwvxff3nrgqi3q4r1sc"))
-              (file-name (git-file-name name version))))
+    (version "0.50")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/YosysHQ/yosys")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32 "13fmxsg668fqggq4jyflhd5js2m8r52gb407mfqzcqzq59129gmz"))
+       (file-name (git-file-name name version))))
     (build-system gnu-build-system)
     (arguments
      (list
       #:test-target "test"
-      #:make-flags #~(list (string-append "CC=" #$(cc-for-target))
-                           (string-append "CXX=" #$(cxx-for-target))
-                           (string-append "PREFIX=" #$output))
+      #:make-flags
+      #~(list (string-append "CC="
+                             #$(cc-for-target))
+              (string-append "CXX="
+                             #$(cxx-for-target))
+              (string-append "PREFIX="
+                             #$output))
       #:phases
       #~(modify-phases %standard-phases
           (add-before 'configure 'fix-paths
             (lambda* (#:key inputs #:allow-other-keys)
               (substitute* "backends/smt2/smtio.py"
                 (("\\['z3")
-                 (string-append "['" (search-input-file inputs "bin/z3"))))
+                 (string-append "['"
+                                (search-input-file inputs "bin/z3"))))
               (substitute* "kernel/fstdata.cc"
                 (("vcd2fst")
                  (search-input-file inputs "bin/vcd2fst")))
               (substitute* "kernel/driver.cc"
                 (("^#include \"libs/cxxopts/include/cxxopts.hpp\"")
                  "#include <cxxopts.hpp>"))
-              (substitute* '("passes/cmds/show.cc"
-                             "passes/cmds/viz.cc")
+              (substitute* '("passes/cmds/show.cc" "passes/cmds/viz.cc")
                 (("exec xdot")
-                 (string-append "exec " (search-input-file inputs "bin/xdot")))
+                 (string-append "exec "
+                                (search-input-file inputs "bin/xdot")))
                 (("dot -")
                  (string-append (search-input-file inputs "bin/dot") " -"))
                 (("fuser")
@@ -210,34 +218,53 @@ For synthesis, the compiler generates netlists in the desired format.")
           (add-after 'install 'wrap
             (lambda* (#:key inputs #:allow-other-keys)
               (wrap-program (string-append #$output "/bin/yosys-witness")
-                `("GUIX_PYTHONPATH" ":" prefix (,(getenv "GUIX_PYTHONPATH")))))))))
-    (native-inputs
-     (list bison
-           cxxopts                      ;header-only library
-           flex
-           gawk             ;for the tests and "make" progress pretty-printing
-           iverilog         ;for the tests
-           pkg-config
-           python
-           tcl))                        ;tclsh for the tests
-    (inputs
-     (list abc
-           bash-minimal
-           graphviz
-           gtkwave
-           libffi
-           psmisc
-           python
-           python-click
-           readline
-           tcl
-           xdot
-           z3
-           zlib))
+                `("GUIX_PYTHONPATH" ":" prefix
+                  (,(getenv "GUIX_PYTHONPATH")))))))))
+    (native-inputs (list bison
+                         cxxopts ;header-only library
+                         flex
+                         gawk ;for the tests and "make" progress pretty-printing
+                         iverilog ;for the tests
+                         pkg-config
+                         python
+                         tcl)) ;tclsh for the tests
+    (inputs (list abc
+                  bash-minimal
+                  graphviz
+                  gtkwave
+                  libffi
+                  psmisc
+                  python
+                  python-click
+                  readline
+                  tcl
+                  xdot
+                  z3
+                  zlib))
     (home-page "https://yosyshq.net/yosys/")
     (synopsis "FPGA Verilog RTL synthesizer")
     (description "Yosys synthesizes Verilog-2005.")
     (license license:isc)))
+
+(define-public yosys-clang
+  (package
+    (inherit yosys)
+    (name "yosys-clang")
+    (arguments
+     (substitute-keyword-arguments (package-arguments yosys)
+       ((#:make-flags _ #f)
+        #~(list "CC=clang"
+                "CXX=clang++"
+                (string-append "PREFIX=" #$output)))
+       ((#:phases phases)
+        #~(modify-phases #$phases
+            (replace 'configure
+              (lambda* (#:key make-flags #:allow-other-keys)
+                (apply invoke "make" "config-clang" make-flags)))))))
+    (inputs
+     (modify-inputs (package-inputs yosys)
+       (append clang)))
+    (synopsis "FPGA Verilog RTL synthesizer (Clang variant)")))
 
 (define-public icestorm
   (let ((commit "2bc541743ada3542c6da36a50e66303b9cbd2059")
@@ -337,9 +364,10 @@ Includes the actual FTDI connector.")
              pybind11
              python
              qtbase-5
+             qtwayland-5
              qtimgui
              yosys))
-      (build-system cmake-build-system)
+      (build-system qt-build-system)
       (arguments
        (list
         #:configure-flags
@@ -379,48 +407,6 @@ Includes the actual FTDI connector.")
 FPGA place and route tool.")
       (home-page "https://github.com/YosysHQ/nextpnr")
       (license license:expat))))
-
-(define-public arachne-pnr
-  (let ((commit "840bdfdeb38809f9f6af4d89dd7b22959b176fdd")
-        (revision "2"))
-   (package
-    (name "arachne-pnr")
-    (version (string-append "0.0-" revision "-" (string-take commit 9)))
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                     (url "https://github.com/YosysHQ/arachne-pnr")
-                     (commit commit)))
-              (file-name (git-file-name name version))
-              (sha256
-                (base32
-                   "1dqvjvgvsridybishv4pnigw9gypxh7r7nrqp9z9qq92v7c5rxzl"))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:test-target "test"
-       #:make-flags
-       (list (string-append "DESTDIR=" (assoc-ref %outputs "out"))
-             (string-append "ICEBOX=" (string-append
-                                       (assoc-ref %build-inputs "icestorm")
-                                       "/share/icebox")))
-       #:phases (modify-phases %standard-phases
-       (replace 'configure
-         (lambda* (#:key outputs inputs #:allow-other-keys)
-           (substitute* '("./tests/fsm/generate.py"
-                          "./tests/combinatorial/generate.py")
-             (("#!/usr/bin/python") "#!/usr/bin/python2"))
-           #t)))))
-    (inputs
-     (list icestorm))
-    (native-inputs
-     `(("git" ,git)  ; for determining its own version string
-       ("yosys" ,yosys) ; for tests
-       ("perl" ,perl) ; for shasum
-       ("python-2" ,python-2))) ; for tests
-    (home-page "https://github.com/YosysHQ/arachne-pnr")
-    (synopsis "Place-and-Route tool for FPGAs")
-    (description "Arachne-PNR is a Place-and-Route Tool For FPGAs.")
-    (license license:gpl2))))
 
 (define-public gtkwave
   (package
@@ -501,34 +487,60 @@ constructed by a Python program.")
 a hardware description and verification language.")
     (license license:lgpl2.1+)))
 
+(define-public python-vunit
+  (package
+    (name "python-vunit")
+    (version "4.7.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/VUnit/vunit")
+             (commit (string-append "v" version))
+             (recursive? #t)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0s7j5bykbv34wgnxy5cl4zp6g0caidvzs8pd9yxjq341543xkjwm"))))
+    (build-system python-build-system)
+    (arguments
+     '(#:tests? #f))                ;XXX: requires setuptools_scm >= 2.0.0, <3
+    (propagated-inputs (list python python-colorama))
+    (home-page "https://vunit.github.io")
+    (synopsis "Unit testing framework for VHDL/SystemVerilog")
+    (description
+     "VUnit features the functionality needed to realize continuous and
+automated testing of HDL code.")
+
+    ;; According to 'LICENSE.rst', VUnit itself is under MPL but two
+    ;; subdirectories are under ASL.
+    (license (list license:mpl2.0 license:asl2.0))))
+
 (define-public nvc
   (package
     (name "nvc")
-    (version "1.14.0")
+    (version "1.15.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
-                     (url "https://github.com/nickg/nvc.git")
-                     (commit (string-append "r" version))))
-              (file-name (string-append name "-" version "-checkout"))
+                    (url "https://github.com/nickg/nvc")
+                    (commit (string-append "r" version))))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "1b71j8bps9zirvxhycrc9fhbr3f89si6h064xnly7gq06ggnv8n5"))))
+                "1hqkgwkvflha1fpch13byb8clwa97n6z1d9a2d34cqzsjrzkdx0k"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:out-of-source? #t
-       #:configure-flags
-       '("--enable-vhpi")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'clean-up
-           (lambda _
-             (delete-file "autogen.sh"))))))
+     (list #:out-of-source? #t
+           #:configure-flags #~(list "--enable-vhpi")
+           #:phases #~(modify-phases %standard-phases
+                        (add-after 'unpack 'clean-up
+                          (lambda _
+                            (delete-file "autogen.sh"))))))
     (native-inputs
      (list automake
            autoconf
            flex
-           gnu-gettext
+           gettext-minimal
            libtool
            pkg-config
            which
@@ -671,7 +683,7 @@ hardware designs in Verilog.")
 (define-public openfpgaloader
   (package
     (name "openfpgaloader")
-    (version "0.12.1")
+    (version "0.13.1")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -680,7 +692,7 @@ hardware designs in Verilog.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0r4dxryhfa1brhyh4z5ixmr7bvcqf3p8b339k6vrmmqnwy497548"))))
+                "1p5qvr0bq27rp7f20ysjml7zy4bbwjx3s4yd5qjsg4b01mw4hbiq"))))
     (build-system cmake-build-system)
     (native-inputs
      (list pkg-config))
@@ -697,3 +709,31 @@ hardware designs in Verilog.")
 to an FPGA.")
     (home-page "https://trabucayre.github.io/openFPGALoader")
     (license license:asl2.0)))
+
+(define-public python-hdlmake
+  (let ((commit "3cb248fdad601c579b59fd7c194402871209bc54")
+        (revision "0"))
+    (package
+      (name "python-hdlmake")
+      (version (git-version "3.3" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://ohwr.org/project/hdl-make")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "08ivnhxyp44agmifqb4pjbxj23p43qqcg73s2y2z1hqk2six3fdx"))))
+      (build-system pyproject-build-system)
+      (arguments
+       `(#:tests? #f))
+      (native-inputs (list python-setuptools python-wheel))
+      (propagated-inputs (list python-six))
+      (home-page "https://ohwr.org/projects/hdl-make")
+      (synopsis "Generate multi-purpose makefiles for HDL projects")
+      (description
+       "Hdlmake helps manage and share @acronym{HDL, hardware description
+language} code by automatically finding file dependencies, writing synthesis
+and simulation Makefiles.")
+      (license license:gpl3+))))

@@ -30,6 +30,7 @@
 ;;; Copyright © 2023 Juliana Sims <juli@incana.org>
 ;;; Copyright © 2023 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2024 jgart <jgart@dismail.de>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -62,6 +63,7 @@
   #:use-module (gnu packages crypto)
   #:use-module (gnu packages kerberos)
   #:use-module (gnu packages libffi)
+  #:use-module (gnu packages lsof)
   #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages password-utils)
   #:use-module (gnu packages pkg-config)
@@ -72,7 +74,7 @@
   #:use-module (gnu packages python-compression)
   #:use-module (gnu packages python-web)
   #:use-module (gnu packages python-xyz)
-  #:use-module (gnu packages rust)
+  #:use-module (gnu packages rust-apps)
   #:use-module (gnu packages swig)
   #:use-module (gnu packages time)
   #:use-module (gnu packages tls)
@@ -385,7 +387,7 @@ requires = ['setuptools']
 
 [metadata]
 name = blake3
-version = '~a'
+version = ~a
 
 [options]
 packages = find:
@@ -446,19 +448,33 @@ blake3, a cryptographic hash function.")
          "1yxqfb5131wahjyw9pxz03bq476rcfx62s6k53xx4cqbzzgdaqkq"))))
     (build-system pyproject-build-system)
     (arguments
-     (list #:phases
-           #~(modify-phases %standard-phases
-               (add-after 'unpack 'adjust-test
-                 (lambda _
-                   ;; Newer PyOpenSSL no longer separates extensions with
-                   ;; newline (this can be removed for >1.3.0).
-                   (substitute* "test/test_certauth.py"
-                     (("7334\\\\n, DNS")
-                      "7334, DNS")))))))
+     (list
+      #:test-flags
+      #~(list "-k" (string-join
+                    (list
+                     ;; Those tests uses PKCS12, which has been removed in
+                     ;; pyopenssl 23.3.0:
+                     "not test_custom_not_before_not_after"
+                     "test_ca_cert_in_mem"
+                     ;; Those tests try to download certificates:
+                     "test_file_wildcard"
+                     "test_file_wildcard_subdomains"
+                     "test_in_mem_parent_wildcard_cert"
+                     "test_in_mem_parent_wildcard_cert_at_tld"
+                     "test_in_mem_parent_wildcard_cert_2")
+                    " and not "))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'adjust-test
+            (lambda _
+              ;; Newer PyOpenSSL no longer separates extensions with
+              ;; newline (this can be removed for >1.3.0).
+              (substitute* "test/test_certauth.py"
+                (("7334\\\\n, DNS") "7334, DNS")))))))
     (propagated-inputs
      (list python-pyopenssl python-tldextract))
     (native-inputs
-     (list python-pytest-cov))
+     (list python-pytest-cov python-setuptools python-wheel))
     (home-page "https://github.com/ikreymer/certauth")
     (synopsis "Certificate authority creation tool")
     (description "This package provides a small library, built on top of
@@ -519,20 +535,18 @@ is used by the Requests library to verify HTTPS requests.")
 (define-public python-cryptography-vectors
   (package
     (name "python-cryptography-vectors")
-    (version "42.0.5")
+    (version "44.0.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "cryptography_vectors" version))
        (sha256
         (base32
-         "1lcflcvv0xjz5cyvf33iav1vd91qzjvl4w7h4qaxlcnbn3ixap2h"))))
+         "1aw06msy65rs27yxfp4xlwfq432ny1af5cx8s7zsbfa5div2hqhh"))))
     (build-system pyproject-build-system)
     (arguments (list #:tests? #f))  ; No tests included.
     (native-inputs
-     (list python-flit-core
-           python-setuptools
-           python-wheel))
+     (list python-flit-core))
     (home-page "https://github.com/pyca/cryptography")
     (synopsis "Test vectors for the cryptography package")
     (description
@@ -543,44 +557,73 @@ is used by the Requests library to verify HTTPS requests.")
 (define-public python-cryptography
   (package
     (name "python-cryptography")
-    (version "42.0.5")
+    (version "44.0.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "cryptography" version))
        (sha256
         (base32
-         "1qdz0yk5smi0dnywbxmanccwizilmnzgbbihjpmpgm6zjpn7xq3g"))))
-    (build-system pyproject-build-system)
+         "00is2nzcl2pyhr90llga5mnbw3rvakn75rq10x1r6hhb6i7q6knd"))
+       (snippet
+        #~(begin (use-modules (guix build utils))
+                 (for-each delete-file
+                           (find-files "." "Cargo\\.lock$"))
+                 (substitute* "pyproject.toml"
+                   (("locked = true") "offline = true"))))))
+    (build-system cargo-build-system)
     (arguments
      (list
-      #:phases #~(modify-phases %standard-phases
-                   (add-after 'unpack 'disable-rust-extension-build
-                     (lambda _
-                       ;; The Rust extension is built separately as
-                       ;; 'python-cryptography-rust', so there's no need
-                       ;; to build it here.
-                       (substitute* "pyproject.toml"
-                         (("\\s+\\\"setuptools-rust.*") ""))))
-                   (add-before 'check 'symlink-rust-library
-                     (lambda* (#:key inputs outputs #:allow-other-keys)
-                       (symlink (search-input-file
-                                 inputs "lib/libcryptography_rust.so")
-                                (string-append (site-packages inputs outputs)
-                                               "/cryptography/hazmat/bindings/"
-                                               "_rust.abi3.so")))))))
-
+      #:imported-modules `(,@%cargo-build-system-modules
+                           ,@%pyproject-build-system-modules)
+      #:modules '((guix build cargo-build-system)
+                  ((guix build pyproject-build-system) #:prefix py:)
+                  (guix build utils))
+      #:cargo-inputs
+      (list rust-asn1-0.20
+            rust-cc-1
+            rust-cfg-if-1
+            rust-foreign-types-0.3
+            rust-foreign-types-shared-0.1
+            rust-once-cell-1
+            rust-openssl-0.10
+            rust-openssl-sys-0.9
+            rust-pem-3
+            rust-pyo3-0.23
+            rust-self-cell-1)
+      #:install-source? #false
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'configure 'dont-vendor-self
+            (lambda* (#:key vendor-dir #:allow-other-keys)
+              ;; Don't keep the whole tarball in the vendor directory
+              (delete-file-recursively
+               (string-append vendor-dir "/cryptography-" #$version ".tar.zst"))))
+          (replace 'build
+            (assoc-ref py:%standard-phases 'build))
+          (delete 'check)
+          (add-after 'install 'check
+            (lambda* (#:key tests? inputs outputs #:allow-other-keys)
+              (when tests?
+                (py:add-installed-pythonpath inputs outputs)
+                (invoke "python" "-m" "pytest" "tests"))))
+          (replace 'install
+            (assoc-ref py:%standard-phases 'install)))))
     (native-inputs
      (list python-certifi
+           python-cffi
+           python-click
            python-cryptography-vectors
-           python-iso8601
+           python-mypy
            python-pretend
-           python-pytest                ;for subtests
+           python-pytest
            python-pytest-benchmark
-           python-pytest-subtests
+           python-pytest-cov
+           python-pytest-randomly
+           python-pytest-xdist
            python-setuptools
            python-wheel))
-    (inputs (list python-cryptography-rust))
+    (inputs (list maturin openssl python-wrapper))
     (propagated-inputs (list python-cffi))
     (home-page "https://github.com/pyca/cryptography")
     (synopsis "Cryptographic recipes and primitives for Python")
@@ -593,74 +636,18 @@ ciphers, message digests and key derivation functions.")
     ;; Distributed under either BSD-3 or ASL2.0
     (license (list license:bsd-3 license:asl2.0))))
 
-;;; This is the Rust component of the python-cryptography library, extracted
-;;; as a separate package to ease the Rust build.
-(define-public python-cryptography-rust
-  (package
-    (inherit python-cryptography)
-    (name "python-cryptography-rust")
-    (build-system cargo-build-system)
-    (arguments
-     (list
-      #:modules '((guix build cargo-build-system)
-                  (guix build utils)
-                  (srfi srfi-1)
-                  (ice-9 match))
-      #:install-source? #f
-      ;; As seen in noxfile.py
-      #:cargo-test-flags ''("--release" "--no-default-features")
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-after 'unpack 'chdir
-            (lambda _
-              (chdir "src/rust")))
-          (replace 'unpack-rust-crates
-            ;; This is to avoid the non-crate source from being erroneously
-            ;; unpacked by this phase, causing an error.
-            (lambda* (#:key inputs #:allow-other-keys #:rest args)
-              (apply (assoc-ref %standard-phases 'unpack-rust-crates)
-                     (append args
-                             (list #:inputs (alist-delete "source" inputs))))))
-          (replace 'configure
-            (lambda* (#:key inputs #:allow-other-keys #:rest args)
-              (apply (assoc-ref %standard-phases 'configure)
-                     (append args
-                             (list #:inputs (alist-delete "source" inputs))))))
-          (add-after 'install 'install-shared-library
-            (lambda _
-              (install-file "target/release/libcryptography_rust.so"
-                            (string-append #$output "/lib")))))
-      #:cargo-inputs
-      `(("rust-asn1" ,rust-asn1-0.15)
-        ("rust-cc" ,rust-cc-1)
-        ("rust-cfg-if" ,rust-cfg-if-1)
-        ("rust-foreign-types" ,rust-foreign-types-0.3)
-        ("rust-foreign-types-shared" ,rust-foreign-types-shared-0.1)
-        ("rust-once-cell" ,rust-once-cell-1)
-        ("rust-openssl" ,rust-openssl-0.10)
-        ("rust-openssl-sys" ,rust-openssl-sys-0.9)
-        ("rust-pem" ,rust-pem-3)
-        ("rust-pyo3" ,rust-pyo3-0.20)
-        ("rust-self-cell" ,rust-self-cell-1))))
-    (native-inputs (list pkg-config python python-cffi))
-    ;; XXX: Adding rust-openssl-sys-0.9 is needed because #:cargo-inputs
-    ;; doesn't honor propagated-inputs.
-    (inputs (list python rust-openssl-sys-0.9))
-    (propagated-inputs '())
-    (synopsis "Core implementation of the Cryptography Python library")))
-
 (define-public python-pyopenssl
   (package
     (name "python-pyopenssl")
-    (version "24.1.0")
+    (version "24.3.0")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "pyOpenSSL" version))
+       (uri (pypi-uri "pyopenssl" version))
        (sha256
         (base32
-         "0vqsyji1q4vhd5yxlzks0z6va62knq64mxhfdjhz3yaxmazx9gna"))))
-    (build-system python-build-system)
+         "0dmv720kn5ws7bs1rkn59qmhzv5wxkkgriampi34g0vxawcs1xs9"))))
+    (build-system pyproject-build-system)
     (arguments
      (list
       #:phases
@@ -671,15 +658,19 @@ ciphers, message digests and key derivation functions.")
                 ;; PyOpenSSL runs tests against a certificate with a fixed
                 ;; expiry time.  To ensure successful builds in the future,
                 ;; set the time to roughly the release date.
-                (invoke "faketime" "2024-03-09" "pytest" "-vv" "-k"
+                (invoke "faketime" "2024-07-20" "pytest" "-vv" "-k"
                         ;; This test tries to look up certificates from
                         ;; the compiled-in default path in OpenSSL, which
                         ;; does not exist in the build environment.
                         "not test_fallback_default_verify_paths ")))))))
     (propagated-inputs (list python-cryptography))
     (inputs (list openssl))
-    (native-inputs (list libfaketime python-pretend python-pytest
-                         python-pytest-rerunfailures))
+    (native-inputs
+     (list libfaketime
+           python-pretend
+           python-pytest
+           python-pytest-rerunfailures
+           python-wheel))
     (home-page "https://github.com/pyca/pyopenssl")
     (synopsis "Python wrapper module around the OpenSSL library")
     (description "PyOpenSSL is a high-level wrapper around a subset of the
@@ -981,14 +972,14 @@ protocol (Javascript Object Signing and Encryption).")
 (define-public python-pycryptodome
   (package
     (name "python-pycryptodome")
-    (version "3.15.0")
+    (version "3.21.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "pycryptodome" version))
        (sha256
         (base32
-         "1f0qc0ns3ppybkr7wi66gsl5wfkcx1fdklmh3362nn84spddsdci"))
+         "15vjyjy686kgm4fnpwlah1wvxxy0wvr4q5vnp1iygnlv8q6pwy7p"))
        (modules '((guix build utils)))
        (snippet pycryptodome-unbundle-tomcrypt-snippet)))
     (build-system python-build-system)
@@ -1043,7 +1034,7 @@ PyCryptodome variants, the other being python-pycryptodomex.")
        (method url-fetch)
        (uri (pypi-uri "pycryptodomex" version))
        (sha256
-        (base32 "1vf0xbsqvcp4k3cl8cmxrlij9a88hajw6d3z0jhd3c5d5nxz2hbk"))
+        (base32 "0v4y03ha7rm9kdcv9fkrmc94425z3q3mq1nn5p1jbpc1ag80nb92"))
        (modules '((guix build utils)))
        (snippet pycryptodome-unbundle-tomcrypt-snippet)))
     (description
@@ -1349,41 +1340,28 @@ Password-Authenticated Key Exchange algorithm.")
 (define-public python-txtorcon
   (package
     (name "python-txtorcon")
-    (version "23.0.0")
+    (version "24.8.0")
     (source (origin
               (method url-fetch)
               (uri (pypi-uri "txtorcon" version))
               (sha256
                (base32
-                "09a3k4g90pvs0q006ighka7xic39nnnk9bfrka23g4b8cynzy982"))))
-    (build-system python-build-system)
-    (arguments
-     (list #:phases #~(modify-phases %standard-phases
-                        (add-before 'check 'disable-failing-tests
-                          (lambda _
-                            ;; These tests fail
-                            (substitute* "test/test_router.py"
-                              (("\\W+def test_countrycode\\(self\\):" all)
-                               (string-append
-                                "    from unittest import skip as _skip\n"
-                                "    @_skip('Fails during Guix build')\n" all))
-                              (("\\W+def test_get_location_private\\(self\\):"
-                                all)
-                               (string-append
-                                "    @_skip('Fails during Guix build')\n" all)))
-                            ;; This test errors out
-                            (substitute* "test/test_util.py"
-                              (("\\W+def test_real_addr\\(self\\):" all)
-                               (string-append
-                                "    @_skip('Fails during Guix build')\n" all))))))))
-    (propagated-inputs (list python-automat
-                             python-idna
-                             python-incremental
-                             python-pyopenssl
-                             python-service-identity
-                             python-twisted
-                             python-zope-interface))
-    (native-inputs (list python-mock))
+                "1l4ajw4h7nay4vmllh6cs7zh3hnh8vj4yvgfnq3m734wil9ikzmy"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
+    (inputs
+     (list lsof))
+    (propagated-inputs
+     (list python-automat
+           python-idna
+           python-incremental
+           python-pyopenssl
+           python-service-identity
+           python-twisted
+           python-zope-interface))
     (home-page "https://github.com/meejah/txtorcon")
     (synopsis "Twisted-based Tor controller client")
     (description "This package provides a Twisted-based Tor controller client,
@@ -1807,3 +1785,23 @@ against (name, birthdate, etc.)
 in different situations.
 @end enumerate")
     (license license:expat)))
+
+(define-public python-pydes
+  (package
+    (name "python-pydes")
+    (version "2.0.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pyDes" version))
+       (sha256
+        (base32 "04lh71f47y04vspfrdrq6a0hn060ibxvdp5z1pcr0gmqs8hqxaz2"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-setuptools python-wheel))
+    (home-page "http://twhiteman.netfirms.com/des.html")
+    (synopsis
+     "Pure python implementation of the DES and TRIPLE DES encryption algorithms")
+    (description
+     "This package provides a pure Python implementation of the DES and
+TRIPLE DES encryption algorithms.")
+    (license license:public-domain)))

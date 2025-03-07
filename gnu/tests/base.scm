@@ -57,7 +57,6 @@
             %test-linux-libre-5.15
             %test-linux-libre-5.10
             %test-linux-libre-5.4
-            %test-linux-libre-4.19
             %test-halt
             %test-root-unmount
             %test-cleanup
@@ -577,6 +576,15 @@ functionality tests, using the given KERNEL.")
   (test-basic-os))
 
 ;; Ensure the LTS kernels are up to snuff, too.
+(define %test-linux-libre-6.12
+  (test-basic-os linux-libre-6.12))
+
+(define %test-linux-libre-6.6
+  (test-basic-os linux-libre-6.6))
+
+(define %test-linux-libre-6.1
+  (test-basic-os linux-libre-6.1))
+
 (define %test-linux-libre-5.15
   (test-basic-os linux-libre-5.15))
 
@@ -585,9 +593,6 @@ functionality tests, using the given KERNEL.")
 
 (define %test-linux-libre-5.4
   (test-basic-os linux-libre-5.4))
-
-(define %test-linux-libre-4.19
-  (test-basic-os linux-libre-4.19))
 
 
 ;;;

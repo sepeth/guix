@@ -29,7 +29,7 @@
 ;;; Copyright © 2022 muradm <mail@muradm.net>
 ;;; Copyright © 2022 Attila Lendvai <attila@lendvai.name>
 ;;; Copyright © 2022 Arun Isaac <arunisaac@systemreboot.net>
-;;; Copyright © 2022, 2023, 2024 David Elsing <david.elsing@posteo.net>
+;;; Copyright © 2022-2025 David Elsing <david.elsing@posteo.net>
 ;;; Copyright © 2022-2024 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2022, 2023, 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2022 Antero Mejr <antero@mailbox.org>
@@ -41,6 +41,8 @@
 ;;; Copyright © 2023-2024 Paul A. Patience <paul@apatience.com>
 ;;; Copyright © 2024 dan <i@dan.games>
 ;;; Copyright © 2024 Peepo Froggings <peepofroggings@tutanota.de>
+;;; Copyright © 2024 Jakob Kirsch <jakob.kirsch@web.de>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 
 ;;; This file is part of GNU Guix.
 ;;;
@@ -74,6 +76,7 @@
   #:use-module (guix gexp)
   #:use-module (gnu packages)
   #:use-module (gnu packages assembly)
+  #:use-module (gnu packages audio)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages base)
   #:use-module (gnu packages bdw-gc)
@@ -95,6 +98,7 @@
   #:use-module (gnu packages gl)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gtk)
+  #:use-module (gnu packages image)
   #:use-module (gnu packages libevent)
   #:use-module (gnu packages libffi)
   #:use-module (gnu packages libunwind)
@@ -114,6 +118,7 @@
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages web)
+  #:use-module (gnu packages webkit)
   #:use-module (gnu packages xdisorg)
   #:use-module (gnu packages xml)
   #:use-module (gnu packages xorg)
@@ -162,8 +167,8 @@ easy to use API.")
       (license license:expat))))
 
 (define-public asmjit
-  (let ((commit "062e69ca81defa35eb0ee15f7412f49a0dad3cdb")
-        (revision "1"))
+  (let ((commit "cfc9f813cc6ccda63cad872edb32b38e0662bedb")
+        (revision "2"))
     (package
       (name "asmjit")
       (version (git-version "0.0.0" revision commit))
@@ -176,7 +181,7 @@ easy to use API.")
            (commit commit)))
          (file-name (git-file-name name version))
          (sha256
-          (base32 "0lcwqzbv2628g3c7sflkwagyh49lp471px8bhg7lr77w9y94srqq"))))
+          (base32 "0lxkfg0b2bc2la0cvs5658a26mb00zlir4n0jkzzlg97l0jrbwpv"))))
       (build-system cmake-build-system)
       (arguments
        (list #:configure-flags #~(list "-DASMJIT_TEST=TRUE")))
@@ -191,6 +196,33 @@ code is generated or executed.  It also provides an optional register
 allocator that makes it easy to generate complex code without a significant
 development effort.")
       (license license:zlib))))
+
+(define-public asyncplusplus
+  (package
+    (name "asyncplusplus")
+    (version "1.2")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/Amanieu/asyncplusplus")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0iswbh7y46kn412c52af0n8bc4fplm3y94yh10n2lchispzar72j"))
+              (modules '((guix build utils)))
+              (snippet
+               ;; Fix install location of cmake files.
+               '(substitute* "CMakeLists.txt"
+                  (("DESTINATION cmake")
+                    "DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake")))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #f)) ;no tests
+    (home-page "https://github.com/Amanieu/asyncplusplus")
+    (synopsis "Concurrency framework for C++11")
+    (description "Async++ is a concurrency framework for C++11.")
+    (license license:expat)))
 
 (define-public biblesync
   (package
@@ -255,6 +287,28 @@ navigation, and handling of incoming packets.")
 This project is maintained by Kitware in support of ITK, the Insight
 Segmentation and Registration Toolkit.")
   (license license:asl2.0)))
+
+(define-public cpp-utilities
+  (package
+    (name "cpp-utilities")
+    (version "5.27.3")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/Martchus/cpp-utilities")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "1nm6d87j11jc5617qk58a81ajxgrncr7xsf4dkyscrygi2n3dbgz"))))
+    (build-system cmake-build-system)
+    (home-page "https://github.com/Martchus/cpp-utilities/")
+    (synopsis "Useful C++ classes and routines")
+    (description
+     "This package provides useful C++ classes and routines such as argument
+parser, IO and conversion utilities.")
+    (license license:gpl2+)))
 
 (define-public range-v3
   (package
@@ -604,31 +658,61 @@ enabled in different parts of your code.")
 (define-public xsimd
   (package
     (name "xsimd")
-    (version "9.0.1")
+    (version "11.0.0")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/QuantStack/xsimd")
+             (url "https://github.com/xtensor-stack/xsimd")
              (commit version)))
        (sha256
-        (base32 "1fcy0djwpwvls6yqxqa82s4l4gvwkqkr8i8bibbb3dm0lqvhnw52"))
+        (base32 "148wylv88vp31rz7l357ch7k0l50apfk4x31qdqk9y4d2hj6ld3f"))
        (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
-     `(#:configure-flags (list "-DBUILD_TESTS=ON")
-       #:test-target "xtest"))
+     (list
+      #:configure-flags #~(list "-DBUILD_TESTS=ON")
+      #:test-target "xtest"))
     (native-inputs
-     (list googletest))
+     (list doctest
+           googletest))
     (home-page "https://github.com/xtensor-stack/xsimd")
     (synopsis "C++ wrappers for SIMD intrinsics and math implementations")
     (description
-     "xsimd provides a unified means for using @acronym{SIMD, single instruction
-multiple data} features for library authors.  Namely, it enables manipulation of
-batches of numbers with the same arithmetic operators as for single values.
-It also provides accelerated implementation of common mathematical functions
-operating on batches.")
+     "xsimd provides a unified means for using @acronym{SIMD, single
+instruction multiple data} features for library authors.  Namely, it enables
+manipulation of batches of numbers with the same arithmetic operators as for
+single values.  It also provides accelerated implementation of common
+mathematical functions operating on batches.")
     (license license:bsd-3)))
+
+(define-public icecream-cpp
+  ;; Last release was in 2020.
+  (let ((commit "95c8b91c2214be76a2847cd4ab37dccd9250ed77")
+        (revision "0"))
+    (package
+      (name "icecream-cpp")
+      (version (git-version "0.3.1" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/renatoGarcia/icecream-cpp")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "0zw4aj5xs13grf7qj6f33dq7md9hn5i9mf6kz66b5jsx2fly6xxs"))))
+      (build-system cmake-build-system)
+      (arguments
+       (list #:configure-flags #~(list "-DBUILD_TESTING=ON")))
+      (native-inputs (list boost catch2))
+      (home-page "https://github.com/renatoGarcia/icecream-cpp")
+      (synopsis "C++ library for @code{printf} debugging")
+      (description
+       "IceCream-Cpp is a C++ library for @code{printf} debugging.  It is
+inspired by the @url{https://github.com/gruns/icecream, Python library} of the
+same name.")
+      (license license:expat))))
 
 (define-public google-highway
   (package
@@ -665,10 +749,42 @@ operating on batches.")
 library for SIMD (Single Instruction, Multiple Data) with runtime dispatch.")
     (license license:asl2.0)))
 
+(define-public hyprgraphics
+  (package
+    (name "hyprgraphics")
+    (version "0.1.2")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/hyprwm/hyprgraphics")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (modules '((guix build utils)))
+              (snippet #~(substitute* "CMakeLists.txt" (("libjxl_cms") "")))
+              (sha256
+               (base32
+                "1ah29rrxhkds4wmw0n1id9ibg1xjqg3n54n40b0qas1y9jiqbbak"))))
+    (build-system cmake-build-system)
+    (native-inputs (list gcc-14 pkg-config))
+    (arguments (list #:cmake cmake-3.30))
+    (inputs (list cairo
+                  hyprutils
+                  libjpeg-turbo
+                  libjxl
+                  libwebp
+                  pixman
+                  spng))
+    (home-page "https://wiki.hyprland.org/Hypr-Ecosystem/hyprgraphics/")
+    (synopsis "Hyprland graphics/resource utilities")
+    (description
+     "Hyprgraphics is a small C++ library with graphics/resource related
+utilities used across the hypr* ecosystem.")
+    (license license:bsd-3)))
+
 (define-public hyprlang
   (package
     (name "hyprlang")
-    (version "0.5.3")
+    (version "0.6.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -677,7 +793,7 @@ library for SIMD (Single Instruction, Multiple Data) with runtime dispatch.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0yvfrz3hdyxzhngzhr0bgc5279ra5fv01hbfi6pdj84pz0lpaw02"))))
+                "18f8vlg5ypw35gyi8gy0wqh5jvg1q67qywrb750bx8pk9gi1agx2"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -690,7 +806,7 @@ library for SIMD (Single Instruction, Multiple Data) with runtime dispatch.")
                  (string-append
                   "set(PKG_CONFIG_EXECUTABLE " #$(pkg-config-for-target) ")\n"
                   all))))))))
-    (native-inputs (list gcc-13 pkg-config))
+    (native-inputs (list gcc-14 pkg-config))
     (inputs (list hyprutils))
     (home-page "https://wiki.hyprland.org/Hypr-Ecosystem/hyprlang/")
     (synopsis "Official implementation library for hypr config language")
@@ -702,7 +818,7 @@ language used in Hyprland.")
 (define-public hyprutils
   (package
     (name "hyprutils")
-    (version "0.2.3")
+    (version "0.5.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -711,7 +827,7 @@ language used in Hyprland.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "01dh24rf62gb6xm32f7mfv6wx0dxprr1q9y73hvv7xanrjyia2zn"))))
+                "1w6967kid21zczxsvwfls8ql65gnc6fr4sx856viw9l4f3855wad"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -1024,31 +1140,26 @@ for C++17.")
 (define-public xtl
   (package
     (name "xtl")
-    (version "0.7.5")
-    (source (origin
-              (method git-fetch)
-              (uri
-               (git-reference
-                (url "https://github.com/QuantStack/xtl")
-                (commit version)))
-              (sha256
-               (base32
-                "1llfy6pkzqx2va74h9xafjylyvw6839a843mqc05n6x6wll5bkam"))
-              (file-name (git-file-name name version))))
-    (native-inputs
-     (list doctest googletest nlohmann-json))
+    (version "0.7.7")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/xtensor-stack/xtl")
+             (commit version)))
+       (sha256
+        (base32 "1b42mjxchinsf2ylbvhyypfysg5sfphxqby53vlg82wvr23rijkz"))
+       (file-name (git-file-name name version))))
+    (build-system cmake-build-system)
     (arguments
      (list
-      #:configure-flags
-      #~(list "-DBUILD_TESTS=ON")
-      #:phases
-      #~(modify-phases %standard-phases
-          (replace 'check
-            (lambda _
-              (with-directory-excursion "test"
-                (invoke "./test_xtl")))))))
-    (home-page "https://github.com/QuantStack/xtl")
-    (build-system cmake-build-system)
+      #:configure-flags #~(list "-DBUILD_TESTS=ON")
+      #:test-target "xtest"))
+    (native-inputs
+     (list doctest
+           googletest
+           nlohmann-json))
+    (home-page "https://github.com/xtensor-stack/xtl")
     (synopsis "C++ template library providing some basic tools")
     (description "xtl is a C++ header-only template library providing basic
 tools (containers, algorithms) used by other QuantStack packages.")
@@ -1215,7 +1326,7 @@ tools:
   ;; header
   (package
     (name "cpp-httplib")
-    (version "0.16.0")
+    (version "0.18.5")
     (source
      (origin
        (method git-fetch)
@@ -1223,7 +1334,7 @@ tools:
              (url "https://github.com/yhirose/cpp-httplib")
              (commit (string-append "v" version))))
        (sha256
-        (base32 "0n4ribq7c6lqj0hn50pdvy7wml62fqbgrgysb038fq1qc6xyw3np"))
+        (base32 "1jc31n4xdrknal4i1dvf8j6j9kafpczi0w5gbbi89xlir9dgm5kp"))
        (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
@@ -1259,7 +1370,7 @@ tools:
                 "TooManyRedirectTest" "UrlWithSpace"
                 "YahooRedirectTest" "YahooRedirectTest")))))))
     (native-inputs
-     (list googletest python))
+     (list curl googletest python))
     (inputs
      (list brotli openssl zlib))
     (home-page "https://github.com/yhirose/cpp-httplib")
@@ -1688,6 +1799,44 @@ Google's C++ code base.")
 a zero-dependency C++ header-only parser combinator library for creating
 parsers according to a Parsing Expression Grammar (PEG).")
     (license license:expat)))
+
+(define-public lexy
+  ;; Bug fixes since last release.
+  (let ((commit "34d2adf74a2b25b6bdd760a3bbb931f3fd5e60cd")
+        (revision "0"))
+    (package
+      (name "lexy")
+      (version (git-version "2022.12.1" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/foonathan/lexy")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32 "1ywcy3wdmqjj5z1w64hk0dwf8iv6p62s48m7l6vn881hfzc8hcxz"))))
+      (build-system cmake-build-system)
+      (arguments
+       (list #:configure-flags #~(list "-DLEXY_BUILD_DOCS=OFF") ; needs Hugo
+             #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'unpack 'fix-dependencies
+                   (lambda _
+                     (substitute* "tests/CMakeLists.txt"
+                       (("^message\\(STATUS \"Fetching doctest\"\\).*") "")
+                       (("^include\\(FetchContent\\).*") "")
+                       (("^FetchContent_Declare\\(doctest .*") "")
+                       (("^FetchContent_MakeAvailable\\(doctest\\)")
+                        "find_package(doctest REQUIRED)")
+                       (("^(target_link_libraries\\(lexy_test_base .*) doctest\\)"
+                         _ prefix)
+                        (string-append prefix ")"))))))))
+      (native-inputs (list doctest))
+      (home-page "https://lexy.foonathan.net/")
+      (synopsis "C++ parser combinator library")
+      (description "lexy is a parser combinator library for C++17 and later.")
+      (license license:boost1.0))))
 
 (define-public psascan
   (package
@@ -3129,6 +3278,60 @@ queues, resource pools, strings, etc.
 @end itemize")
       (license license:zlib))))
 
+(define-public juce
+  (package
+    (name "juce")
+    (version "8.0.6")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/juce-framework/JUCE")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1n2w571wc7fl178x5ynxiaxvhjvqskfwnd0x295yzr6vpc35a1mv"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #f                  ;no test suite
+           #:configure-flags #~(list "-DJUCE_TOOL_INSTALL_DIR=bin")
+           #:phases
+           #~(modify-phases %standard-phases
+               (add-after 'unpack 'patch-paths
+                 (lambda* (#:key inputs #:allow-other-keys)
+                   (substitute*
+                       (find-files "." "jucer_ProjectExport_CodeBlocks.h$")
+                     (("/usr/include/freetype2")
+                      (search-input-directory inputs "/include/freetype2")))
+                   (substitute*
+                       (find-files "." "juce_linux_Fonts.cpp$")
+                     (("fonts\\.conf\" };")
+                      (string-append
+                       "fonts.conf\"\n\""
+                       (search-input-file inputs "/etc/fonts/fonts.conf")
+                       "\"\n};"))))))))
+    (native-inputs
+     (list alsa-lib
+           curl
+           jack-1
+           libx11
+           pkg-config
+           webkitgtk-with-libsoup2))
+    (inputs (list fontconfig freetype libjpeg-turbo libpng))
+    (home-page "https://juce.com")
+    (synopsis "C++ application framework for audio plugins and plugin hosts")
+    (description
+     "JUCE is a C++ application framework for creating applications including
+VST, VST3, AU, AUv3, AAX and LV2 audio plug-ins and plug-in hosts.")
+    (license
+     (list license:asl2.0  ;for Oboe and AudioUnitSDK
+           license:bsd-3   ;for FLAC, Ogg Vorbis and OpenGL Extension Wrangler
+           license:expat   ;for Mesa 3-D graphics and jucer icons
+           license:gpl3    ;for JUCE and VST3 SDK
+           license:ijg     ;for jpeglib
+           license:isc     ;for LV2 SDK
+           license:zlib)))) ;for pngLib, zlib and Box2D
+
 (define-public ftxui
   (package
     (name "ftxui")
@@ -3498,3 +3701,123 @@ system to prevent more bugs.")
      "Ada is a fast and spec-compliant URL parser written in C++.
 Specification for URL parser can be found from the WHATWG website.")
     (license license:gpl3+)))
+
+(define-public tclap
+  (package
+    (name "tclap")
+    (version "1.4.0-rc2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "mirror://sourceforge/" name "/" name "-" version
+                           ".tar.bz2"))
+       (sha256
+        (base32 "1xy5q78ff7z22gnia320qlaf0mawv2m02rl6b7dawxy4mmdwwlna"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (replace 'check
+                     (lambda* (#:key tests? parallel-tests? #:allow-other-keys)
+                       (if tests?
+                           (invoke "ctest" "-j"
+                                   (if parallel-tests?
+                                       (number->string (parallel-job-count))
+                                       "1"))
+                           (format #t "test suite not run~%")))))))
+    (native-inputs (list python))
+    (home-page "https://sourceforge.net/p/tclap/discussion/")
+    (synopsis "Templatized Command Line Argument Parser")
+    (description
+     "This is a simple C++ library that facilitates parsing command line
+arguments in a type independent manner.")
+    (license license:expat)))
+
+(define-public aklomp-base64
+  (package
+    (name "aklomp-base64")
+    (version "0.5.2")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/aklomp/base64.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0xc541vhq44d9i1vf5hyrznqd1kyad9qbvsghcfr17pk1xyqv1kl"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list #:tests? #t
+           #:phases
+           #~(modify-phases %standard-phases
+               (replace 'check
+                 (lambda* (#:key tests? parallel-tests? #:allow-other-keys)
+                   (if tests?
+                       (invoke "ctest" "-VV" "--build-config" "Release" "--output-on-failure")
+                       (format #t "test suite not run~%")))))
+
+           #:configure-flags
+           #~(append
+              (list "-DBASE64_BUILD_TESTS=ON"
+                    "-DCMAKE_BUILD_TYPE=Release")
+              (let ((system #$(or (%current-target-system)
+                                  (%current-system))))
+                (cond
+                 ;; ARM 64-bit (aarch64)
+                 ((string-prefix? "aarch64-" system)
+                  (list
+                   "-DCMAKE_C_FLAGS=-march=armv8-a"
+                   "-DNEON64_CFLAGS= "
+                   "-DBASE64_WITH_NEON64=ON"
+                   "-DBASE64_WITH_AVX2=OFF"
+                   "-DBASE64_WITH_SSSE3=OFF"
+                   "-DBASE64_WITH_SSE41=OFF"
+                   "-DBASE64_WITH_SSE42=OFF"
+                   "-DBASE64_WITH_AVX=OFF"
+                   "-DBASE64_WITH_AVX512=OFF"))
+                 ;; ARM 32-bit (armhf)
+                 ((string-prefix? "armhf-" system)
+                  (list
+                   "-DCMAKE_C_FLAGS=-march=armv7 -mfpu=neon"
+                   "-DNEON32_CFLAGS=-march=armv7 -mfpu=neon"
+                   "-DBASE64_WITH_NEON32=ON"
+                   "-DBASE64_WITH_AVX2=OFF"
+                   "-DBASE64_WITH_SSSE3=OFF"
+                   "-DBASE64_WITH_SSE41=OFF"
+                   "-DBASE64_WITH_SSE42=OFF"
+                   "-DBASE64_WITH_AVX=OFF"
+                   "-DBASE64_WITH_AVX512=OFF"))
+                 ;; x86_64 (with all extensions except AVX512).
+                 ((string-prefix? "x86_64-" system)
+                  (list
+                   "-DAVX2_CFLAGS=-mavx2"
+                   "-DSSSE3_CFLAGS=-mssse3"
+                   "-DSSE41_CFLAGS=-msse4.1"
+                   "-DSSE42_CFLAGS=-msse4.2"
+                   "-DAVX_CFLAGS=-mavx"
+                   "-DBASE64_WITH_AVX512=OFF"))
+                 ;; i686 (32-bit x86, limited extensions)
+                 ((string-prefix? "i686-" system)
+                  (list
+                   "-DSSE41_CFLAGS=-msse4.1"
+                   "-DSSE42_CFLAGS=-msse4.2"
+                   "-DBASE64_WITH_AVX=OFF"
+                   "-DBASE64_WITH_AVX2=OFF"
+                   "-DBASE64_WITH_AVX512=OFF"))
+                 (else
+                  (list
+                   "-DBASE64_WITH_AVX2=OFF"
+                   "-DBASE64_WITH_SSSE3=OFF"
+                   "-DBASE64_WITH_SSE41=OFF"
+                   "-DBASE64_WITH_SSE42=OFF"
+                   "-DBASE64_WITH_AVX=OFF"
+                   "-DBASE64_WITH_AVX512=OFF"
+                   "-DBASE64_WITH_NEON32=OFF"
+                   "-DBASE64_WITH_NEON64=OFF")))))))
+    (synopsis "Fast base64 stream encoder/decoder")
+    (description "This package provides a base64 stream encoder/decoder
+written in C99.")
+    (properties `((tunable? . #t)))
+    (home-page "https://github.com/aklomp/base64")
+    (license license:bsd-2)))

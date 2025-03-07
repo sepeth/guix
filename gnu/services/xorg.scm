@@ -165,9 +165,7 @@
         ;; Libinput is the new thing and is recommended over evdev/synaptics:
         ;; <http://who-t.blogspot.fr/2015/01/xf86-input-libinput-compatibility-with.html>.
         xf86-input-libinput
-
         xf86-input-evdev
-        xf86-input-keyboard
         xf86-input-mouse))
 
 (define %default-xorg-fonts
@@ -1293,7 +1291,7 @@ argument.")))
                          ;; the corresponding line in /etc/profile.
                          "XCURSOR_PATH=/run/current-system/profile/share/icons"
                          (string-append
-                          "GDK_PIXBUF_MODULE_FILE="
+                          "GUIX_GDK_PIXBUF_MODULE_FILES="
                           #$gnome-shell "/" #$%gdk-pixbuf-loaders-cache-file)
                          (string-append
                           "GDM_WAYLAND_SESSION="

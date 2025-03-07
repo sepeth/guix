@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2015, 2017, 2019, 2020, 2021, 2023 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2015, 2017, 2019, 2020, 2021, 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2016 Lukas Gradl <lgradl@openmailbox.org>
 ;;; Copyright © 2016 David Craven <david@craven.ch>
 ;;; Copyright © 2016, 2019, 2020, 2022 Marius Bakke <marius@gnu.org>
@@ -20,7 +20,7 @@
 ;;; Copyright © 2024 Paul A. Patience <paul@apatience.com>
 ;;; Copyright © 2024 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2024 Wilko Meyer <w@wmeyer.eu>
-;;; Copyright © 2024 David Elsing <david.elsing@posteo.net>
+;;; Copyright © 2024, 2025 David Elsing <david.elsing@posteo.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -51,6 +51,7 @@
   #:use-module (guix build-system meson)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system qt)
   #:use-module (gnu packages)
   #:use-module (gnu packages autotools)
   #:use-module (gnu packages base)
@@ -68,7 +69,9 @@
   #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-check)
   #:use-module (gnu packages python-science)
-  #:use-module (gnu packages python-xyz))
+  #:use-module (gnu packages python-xyz)
+  #:use-module (gnu packages qt)
+  #:use-module (gnu packages time))
 
 (define-public avro-cpp-1.9
   (package
@@ -422,6 +425,48 @@ that implements both the msgpack and msgpack-rpc specifications.")
     (inputs
      `(("lua" ,lua-5.2)))))
 
+(define-public libcsv
+  (package
+    (name "libcsv")
+    (version "3.0.3")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "mirror://sourceforge/libcsv/libcsv/libcsv-"
+                                  version "/libcsv-" version ".tar.gz"))
+              (sha256
+               (base32
+                "1r6pxdxrc3vfil1f9ng1dblm82asdqz6hkz7dj4vkkh3p0f47h6r"))))
+    (build-system gnu-build-system)
+    (home-page "http://sourceforge.net/projects/libcsv/")
+    (synopsis "CSV parser and writer library")
+    (description
+     "This package provides a C library for parsing and writing CSV data.")
+    (license license:lgpl2.1+)))
+
+(define-public qtcsv
+  (package
+    (name "qtcsv")
+    (version "1.7")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/iamantony/qtcsv")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1c9i93kr7wvpr01i4wixi9mf991nd3k2adg5fy0vxwwlvvc7dgdw"))))
+    (build-system qt-build-system)
+    (arguments
+     (list #:qtbase qtbase
+           #:test-target "tests"))
+    (home-page "https://github.com/iamantony/qtcsv")
+    (synopsis "Library for reading and writing CSV files in Qt")
+    (description
+     "@code{qtcsv} is a library for reading and writing
+@acronym{CSV,comma-seperated values} files in Qt.")
+    (license license:expat)))
+
 (define-public libscfg
   (package
     (name "libscfg")
@@ -704,7 +749,7 @@ RPC system.  Think JSON, except binary.  Or think Protocol Buffers, except faste
 (define-public python-msgspec
   (package
     (name "python-msgspec")
-    (version "0.16.0")
+    (version "0.18.6")
     (source (origin
               ;; There are no tests in the PyPI tarball.
               (method git-fetch)
@@ -719,7 +764,7 @@ RPC system.  Think JSON, except binary.  Or think Protocol Buffers, except faste
                   (delete-file "msgspec/atof_consts.h")))
               (sha256
                (base32
-                "09q567klcv7ly60w9lqip2ffyhrij100ky9igh3p3vqwbml33zb3"))))
+                "0akq8lc3547i0j67dpnq1si3dvdc51r4f66dka2h7mq6c4zxq3fn"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -847,6 +892,25 @@ style and key ordering are kept, so you can diff the source.")
 @code{ruamel.yaml} derived from libyaml.")
     (license license:expat)))
 
+(define-public python-strictyaml
+  (package
+    (name "python-strictyaml")
+    (version "1.7.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "strictyaml" version))
+       (sha256
+        (base32 "01y4hrakk1psdj6ir5k70apqkjjipvja0c40pbfvahmbzjjm9y12"))))
+    (build-system pyproject-build-system)
+    (propagated-inputs (list python-dateutil python-ruamel.yaml))
+    (native-inputs (list python-setuptools python-wheel))
+    (home-page "https://pypi.org/project/strictyaml/")
+    (synopsis "Strict, typed YAML parser")
+    (description "StrictYAML is a type-safe YAML parser that parses and
+validates a restricted subset of the YAML specification.")
+    (license license:expat)))
+
 (define-public python-cbor
   (package
     (name "python-cbor")
@@ -926,7 +990,7 @@ game development and other performance-critical applications.")
 (define-public flatbuffers-next
   (package
     (inherit flatbuffers)
-    (version "24.3.25")
+    (version "24.12.23")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -935,7 +999,7 @@ game development and other performance-critical applications.")
               (file-name (git-file-name "flatbuffers" version))
               (sha256
                (base32
-                "0q066x1h0x9225aj25jv40gxgz46yvwmiqc2g6q06mkkg1144kxq"))))))
+                "01g64kmjw8dfhj12j5fgyx70avix9p1ml4w25lm726dixmpq9gp8"))))))
 
 (define-public python-flatbuffers
   (package
@@ -1036,3 +1100,41 @@ support libraries.")
 C++11.  It provides a simple validation API that allows loading JSON Schemas,
 and validate documents loaded by one of several supported parser libraries.")
     (license license:bsd-2)))
+
+(define-public libvarlink
+  (package
+    (name "libvarlink")
+    (version "24")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/varlink/libvarlink")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "098jw9h48p2py6lwxyjrlzvv9zqvqgfsxc4pddfsviab65n9n5gw"))))
+    (build-system meson-build-system)
+    (native-inputs
+     (list python-minimal
+           glibc-utf8-locales)) ;needed for unit tests
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (add-after 'unpack 'patch-/bin/sh
+                     (lambda _
+                       (substitute* "lib/meson.build"
+                         (("/bin/sh")
+                          (which "sh")))))
+                   (add-after 'unpack 'patch-/usr/bin/env
+                     (lambda _
+                       (substitute* "varlink-wrapper.py"
+                         (("/usr/bin/env")
+                          (which "env"))))))))
+    (home-page "https://varlink.org/")
+    (synopsis "Varlink C IPC library and command line tool")
+    (description
+     "This package provides the C implementation of the varlink
+interface description protocol and its associated command line tool")
+    (license license:asl2.0)))
+

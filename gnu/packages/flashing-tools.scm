@@ -38,6 +38,7 @@
   #:use-module (guix build-system go)
   #:use-module (guix build-system meson)
   #:use-module (guix build-system python)
+  #:use-module (guix build-system qt)
   #:use-module (guix download)
   #:use-module (guix gexp)
   #:use-module (guix git-download)
@@ -76,15 +77,15 @@
 (define-public flashrom
   (package
     (name "flashrom")
-    (version "1.3.0")
+    (version "1.5.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
                     "https://download.flashrom.org/releases/flashrom-v"
-                    version ".tar.bz2"))
+                    version ".tar.xz"))
               (sha256
                (base32
-                "08wn2j5vxzzvigflrjypgxxzjp32c76bshrlkzki5l6cad226lx0"))))
+                "14v2bd46wyz46bvsxr3zx2wacqbqzi4w4pk50giar7nldq3lp4qz"))))
     (build-system meson-build-system)
     (inputs (list bash-minimal dmidecode pciutils libusb libftdi libjaylink))
     (native-inputs (list cmocka pkg-config))
@@ -93,13 +94,14 @@
            #~'("-Dprogrammer=all")
            #:phases
            #~(modify-phases %standard-phases
-               (add-after 'install 'wrap-program
+               (add-after 'unpack 'fix-path
                  (lambda* (#:key inputs #:allow-other-keys)
-                   (let ((flashrom (string-append #$output "/sbin/flashrom")))
-                     (wrap-program flashrom
-                       `("PATH" ":" prefix
-                         (,(dirname (search-input-file
-                                     inputs "/sbin/dmidecode")))))))))))
+                   (substitute* "dmi.c"
+                     (("(dmidecode)( 2>/dev/null)" _ command suffix)
+                      (string-append
+                       (search-input-file
+                        inputs (in-vicinity "sbin" command))
+                       suffix))))))))
     (home-page "https://flashrom.org/")
     (synopsis "Identify, read, write, erase, and verify ROM/flash chips")
     (description
@@ -352,7 +354,7 @@ RK3036, RK3066, RK312X, RK3168, RK3188, RK3288, RK3368.")
               (sha256
                (base32
                 "1ygn4snvcmi98rgldgxf5hwm7zzi1zcsihfvm6awf9s6mpcjzbqz"))))
-    (build-system cmake-build-system)
+    (build-system qt-build-system)
     (arguments
      `(#:build-type "Release"
        #:tests? #f                      ; no tests
@@ -375,7 +377,7 @@ RK3036, RK3066, RK312X, RK3168, RK3188, RK3288, RK3368.")
                (install-file "libpit/libpit.a" lib)
                #t))))))
     (inputs
-     (list libusb qtbase-5 zlib))
+     (list libusb qtbase-5 qtwayland-5 zlib))
     (home-page "https://glassechidna.com.au/heimdall/")
     (synopsis "Flash firmware onto Samsung mobile devices")
     (description "@command{heimdall} is a tool suite used to flash firmware (aka

@@ -192,14 +192,14 @@ highlighting your own code that seemed comprehensible when you wrote it.")
 (define-public global                             ; a global variable
   (package
     (name "global")
-    (version "6.6.13")
+    (version "6.6.14")
     (source (origin
              (method url-fetch)
              (uri (string-append "mirror://gnu/global/global-"
                                  version ".tar.gz"))
              (sha256
               (base32
-               "0yrl0dkwp24ddnb2jnirc6a9qrh1z2l1r0fraiwgf0fs62bk8pwl"))))
+               "085kihqvl26q275dvp2a8b4xalb5mxmn31mnbgl95lmfd05zvrzn"))))
     (build-system gnu-build-system)
     (arguments
      (list #:configure-flags
@@ -1048,7 +1048,7 @@ Readline library.")
     (home-page "https://cscope.sourceforge.net")
     (synopsis "Tool for browsing source code")
     (description
-     "Cscope is a text screen based source browsing tool. Although it is
+     "Cscope is a text screen based source browsing tool.  Although it is
 primarily designed to search C code (including lex and yacc files), it can
 also be used for C++ code.
 

@@ -31,7 +31,7 @@
 ;;; Copyright © 2023, 2024 Zheng Junjie <873216071@qq.com>
 ;;; Copyright © 2024 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
-;;; Copyright © 2024 Ashish SHUKLA <ashish.is@lostca.se>
+;;; Copyright © 2024, 2025 Ashish SHUKLA <ashish.is@lostca.se>
 ;;; Copyright © 2024 Artyom V. Poptsov <poptsov.artyom@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
@@ -606,7 +606,7 @@ as existing hashing techniques, with provably negligible risk of collisions.")
 (define-public oniguruma
   (package
     (name "oniguruma")
-    (version "6.9.5-rev1")
+    (version "6.9.10")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://github.com/kkos/"
@@ -618,7 +618,7 @@ as existing hashing techniques, with provably negligible risk of collisions.")
                                   "/onig-" version ".tar.gz"))
               (sha256
                (base32
-                "17m92k1n6bvza6m35fpd5g36zwpwm3hfz3478iwj5bvj2sfq8g6k"))))
+                "01gwd7bkhwl2rdqbfq109vlzznic2pygz3dnhrzykr2rw9dgqp1a"))))
     (build-system gnu-build-system)
     (arguments '(#:configure-flags '("--disable-static")))
     (home-page "https://github.com/kkos/oniguruma")
@@ -703,7 +703,8 @@ runs Word\".")
     (synopsis "MS-Word to TeX or plain text converter")
     (description "@command{catdoc} extracts text from MS-Word files, trying to
 preserve as many special printable characters as possible.  It supports
-everything up to Word-97. Also supported are MS Write documents and RTF files.
+everything up to Word-97.  Also supported are MS Write documents and RTF
+files.
 
 @command{catdoc} does not preserve complex word formatting, but it can
 translate some non-ASCII characters into TeX escape codes.  It's goal is to
@@ -1264,7 +1265,7 @@ OpenDocument presentations (*.odp).")
     (home-page "https://bibutils.sourceforge.io/")
     (synopsis "Convert between various bibliography formats")
     (description "This package provides converters for various bibliography
-formats (e.g. Bibtex, RIS, ...) using a common XML intermediate.")
+formats (e.g. Bibtex, RIS, etc.) using a common XML intermediate.")
     (license license:gpl2)))
 
 (define-public goawk
@@ -1495,9 +1496,7 @@ of a Unix terminal to HTML code.")
 (define-public vale
   (package
     (name "vale")
-    ;; Newer versions requires <github.com/smacker/go-tree-sitter> which is
-    ;; quite a large project to pack.
-    (version "3.4.2")
+    (version "3.9.4")
     (source
      (origin
        (method git-fetch)
@@ -1505,49 +1504,35 @@ of a Unix terminal to HTML code.")
              (url "https://github.com/errata-ai/vale")
              (commit (string-append "v" version))))
        (sha256
-        (base32 "15f8ggh7hpfmfpszl9qkdfz19kds6gg6x5dgcqy0v6jrcsdbgpgp"))
-       (file-name (git-file-name name version))
-       (modules '((guix build utils)))
-       (snippet
-        #~(begin
-            ;; Module name has been changed upstream.
-            (substitute* (find-files "." "\\.go$")
-              (("github.com/antonmedv/expr") "github.com/expr-lang/expr"))))))
+        (base32 "009gyrn2mi7bg10v6mqrr6c6ii5l2vbhs7mvh7g4xxgqhaqzpbhp"))
+       (file-name (git-file-name name version))))
     (build-system go-build-system)
     (arguments
      (list
+      #:go go-1.23
       #:install-source? #f
       #:embed-files #~(list ".*\\.gob")
       #:import-path "github.com/errata-ai/vale/cmd/vale"
       #:unpack-path "github.com/errata-ai/vale"
+      ;; Disable tests requring network access: Get
+      ;; "https://raw.githubusercontent.com/errata-ai/styles/master/library.json":
+      ;; dial tcp: lookup raw.githubusercontent.com on [::1]:53: read udp
+      ;; [::1]:52621->[::1]:53: read: connection refused.
+      #:test-flags
+      #~(list "-skip" (string-join
+                       (list "TestLibrary"
+                             "TestNoPkgFound"
+                             "TestSymlinkFixture")
+                       "|"))
+      #:test-subdirs
+      #~(list "../../...") ; test whole libary, starting from import-path
       #:phases
       #~(modify-phases %standard-phases
-          ;; Disable tests requring network access: Get
-          ;; "https://raw.githubusercontent.com/errata-ai/styles/master/library.json":
-          ;; dial tcp: lookup raw.githubusercontent.com on [::1]:53:
-          ;; read udp [::1]:52621->[::1]:53: read: connection refused.
-          (add-after 'unpack 'disable-failing-tests
-            (lambda* (#:key tests? unpack-path #:allow-other-keys)
-              (with-directory-excursion (string-append "src/" unpack-path)
-                (substitute* (find-files "." "\\_test.go$")
-                  (("TestLibrary") "OffTestLibrary")
-                  (("TestLocalComplete") "OffTestLocalComplete")
-                  (("TestLocalDir") "OffTestLocalDir")
-                  (("TestLocalOnlyStyles") "OffTestLocalOnlyStyles")
-                  (("TestLocalZip") "OffTestLocalZip")
-                  (("TestNoPkgFound") "OffTestNoPkgFound")
-                  (("TestV3Pkg") "OffTestV3Pkg")))))
-          ;; XXX: Workaround for go-build-system's lack of Go modules
-          ;; support.
-          (replace 'check
-            (lambda* (#:key tests? unpack-path #:allow-other-keys)
-              (when tests?
-                (with-directory-excursion (string-append "src/" unpack-path)
-                  (setenv "HOME" "/tmp")
-                  (invoke "go" "test" "-v" "./..."))))))))
+          (add-before 'check 'pre-check
+            (lambda _
+              (setenv "HOME" "/tmp"))))))
     (native-inputs
-     (list go-github-com-masterminds-sprig-v3
-           go-github-com-adrg-strutil
+     (list go-github-com-adrg-strutil
            go-github-com-adrg-xdg
            go-github-com-bmatcuk-doublestar-v4
            go-github-com-d5-tengo-v2
@@ -1555,16 +1540,20 @@ of a Unix terminal to HTML code.")
            go-github-com-errata-ai-regexp2
            go-github-com-expr-lang-expr
            go-github-com-gobwas-glob
+           go-github-com-jdkato-go-tree-sitter-julia
            go-github-com-jdkato-twine
-           go-github-com-karrick-godirwalk
-           go-github-com-mholt-archiver-v3
+           go-github-com-masterminds-sprig-v3
            go-github-com-mitchellh-mapstructure
            go-github-com-niklasfasching-go-org
            go-github-com-olekukonko-tablewriter
            go-github-com-otiai10-copy
+           go-github-com-pelletier-go-toml-v2
            go-github-com-pterm-pterm
            go-github-com-remeh-sizedwaitgroup
+           go-github-com-smacker-go-tree-sitter
            go-github-com-spf13-pflag
+           go-github-com-stretchr-testify
+           go-github-com-tomwright-dasel-v2
            go-github-com-yuin-goldmark
            go-golang-org-x-exp
            go-golang-org-x-net
@@ -1658,7 +1647,7 @@ JSON for post-processing
 (define-public miller
   (package
     (name "miller")
-    (version "6.12.0")
+    (version "6.13.0")
     (source
      (origin
        (method git-fetch)
@@ -1667,7 +1656,7 @@ JSON for post-processing
              (commit (go-version->git-ref version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "195lgayq5z7ndag3w495fs618pkrhz426kg0kp3s5sa68vr1madp"))))
+        (base32 "1w8ibmywsr9jsmmqrcvc0j7fx5vkdbwamizn4vim9xys807kmjsj"))))
     (build-system go-build-system)
     (arguments
      (list

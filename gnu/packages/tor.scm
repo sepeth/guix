@@ -13,6 +13,8 @@
 ;;; Copyright © 2021-2023 Danial Behzadi <dani.behzi@ubuntu.com>
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2022 Jim Newsome <jnewsome@torproject.org>
+;;; Copyright © 2025 Danial Behzadi <dani.behzi@ubuntu.com>
+;;; Copyright © 2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -64,14 +66,14 @@
 (define-public tor
   (package
     (name "tor")
-    (version "0.4.8.13")
+    (version "0.4.8.14")
     (source (origin
              (method url-fetch)
              (uri (string-append "https://dist.torproject.org/tor-"
                                  version ".tar.gz"))
              (sha256
               (base32
-               "0a5sdx70fanhghlzcal6csyc4xzbwr322mys88whp0m2hz1jdbwv"))))
+               "043dlq2b794ifr8ks1crrrcds53pc9567xsqp17ar6ids7gf2ish"))))
     (build-system gnu-build-system)
     (arguments
      (list #:configure-flags
@@ -131,7 +133,7 @@ web browsers, instant messaging clients, remote login, and other
 applications based on the TCP protocol.
 
 This package is the full featured @code{tor} which is needed for running
-relays, bridges or directory authorities. If you just want to access the Tor
+relays, bridges or directory authorities.  If you just want to access the Tor
 network or to setup an onion service you may install @code{tor-client}
 instead.")
     (license license:bsd-3)))
@@ -438,46 +440,53 @@ Potential client and exit connections are scrubbed of sensitive information.")
 (define-public tractor
   (package
     (name "tractor")
-    (version "4.1.1")
+    (version "5.0.0")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "traxtor" version))
        (sha256
         (base32
-         "1542g6alycwlmvndxcijzn4d5lgycmxxb78gqd8qwgm9kw0fnr3q"))))
+         "0is50z3v0mw9am31zizblq5ai30vz83qp6qsdingbn7f7cqzldmh"))))
     (build-system pyproject-build-system)
     (native-inputs
-     (list python-setuptools python-wheel
+     (list python-pytest
+           python-setuptools
+           python-wheel
            (list glib "bin")))       ; for glib-compile-schemas.
     (inputs
      (list python-fire
-           python-psutil
            python-pygobject
+           python-pysocks
            python-requests
            python-stem
            python-termcolor))
     (arguments
      (list
-      #:tests? #f                   ; no test suite.
+      #:test-flags
+      #~(list "-k" (string-join
+                    (list "not test_local"
+                          "test_network"
+                          "test_obfs"
+                          "test_stop_do")
+                    " and not "))
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'install 'install-man-page
             (lambda _
               (let ((man1 (string-append #$output "/share/man/man1")))
-                (install-file "tractor/man/tractor.1" man1))))
+                (install-file "data/tractor.1" man1))))
           (add-after 'install 'install-bash-completion
             (lambda _
-              (mkdir "bash-completion")
-              (rename-file "tractor/tractor-completion"
-                           "bash-completion/tractor")
               (let ((bash-completion
-                      (string-append #$output "/share/bash-completion/completions")))
-                (install-file "bash-completion/tractor" bash-completion))))
+                     (string-append #$output "/share/bash-completion/completions")))
+                (install-file "data/completion/bash/tractor" bash-completion))))
           (add-after 'install 'install-gschema
             (lambda _
               (let ((schemas (string-append #$output "/share/glib-2.0/schemas")))
-                (install-file "tractor/tractor.gschema.xml" schemas)))))))
+                (install-file "src/tractor/tractor.gschema.xml" schemas)
+                ;; The following line is needed for packages having tractor as input.
+                (invoke "glib-compile-schemas" schemas)))))))
     (home-page "https://framagit.org/tractor")
     (synopsis "Setup an onion routing proxy")
     (description

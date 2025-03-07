@@ -7,6 +7,8 @@
 ;;; Copyright © 2023 Simon Tournier <zimon.toutoune@gmail.com>
 ;;; Copyright © 2023, 2024 Efraim Flashner <efraim@flashner.co.il>
 ;;; Copyright © 2023, 2024 David Elsing <david.elsing@posteo.net>
+;;; Copyright © 2024 Maxim Cournoyer <maxim.cournoyer@gmail.com>
+;;; Copyright © 2025 Herman Rimm <herman@rimm.ee>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -155,6 +157,7 @@ use in an 'inputs' field of a package definition."
 
   (map (match-lambda
          ((input version) (make-input input version))
+         ((? blank? comment) comment)
          (input (make-input input #f)))
        names))
 
@@ -193,11 +196,16 @@ and LICENSE."
   (define (format-inputs inputs)
     (map
      (match-lambda
-      ((name version yanked)
-       (list (crate-name->package-name name)
-             (if yanked
-                 (string-append version "-yanked")
-                 (version->semver-prefix version)))))
+      ((name missing version yanked)
+       (let ((input (list (crate-name->package-name name)
+                          (if yanked
+                              (string-append version "-yanked")
+                              (version->semver-prefix version)))))
+         (if missing
+             (comment
+               (string-append ";; " (string-join input "-") "\n")
+               #f)
+             input))))
      inputs))
 
   (let* ((port (http-fetch (crate-uri name version)))
@@ -214,7 +222,10 @@ and LICENSE."
                    (source (origin
                              (method url-fetch)
                              (uri (crate-uri ,name version))
-                             (file-name (string-append name "-" version ".tar.gz"))
+                             (file-name
+                               ,@(if yanked?
+                                     `((string-append name "-" version "-yanked.tar.gz"))
+                                     `((string-append name "-" version ".tar.gz"))))
                              (sha256
                               (base32
                                ,(bytevector->nix-base32-string (port-sha256 port))))))
@@ -268,8 +279,9 @@ and LICENSE."
               (loop curr remaining)
               (loop next remaining))))))
 
-(define (max-crate-version-of-semver semver-range range)
-  "Returns a <crate-version> of the highest version within the semver range."
+(define (max-crate-version-of-semver semver-range versions)
+  "Returns the <crate-version> of the highest version found in VERSIONS that
+satisfies SEMVER-RANGE."
 
   (define (crate->semver crate)
     (string->semver (crate-version-number crate)))
@@ -277,7 +289,7 @@ and LICENSE."
   (min-element
    (filter (lambda (crate)
              (semver-range-contains? semver-range (crate->semver crate)))
-           range)
+           versions)
    (lambda args
      (apply semver>? (map crate->semver args)))))
 
@@ -287,9 +299,35 @@ and LICENSE."
             (not (crate-version-yanked? entry)))
           (crate-versions crate)))
 
+(define (find-package-version name range allow-yanked?)
+  "Find the latest existing package that fulfills the SemVer RANGE.  If
+ALLOW-YANKED? is #t, include packages marked as yanked at a lower
+priority."
+  (set! range (string->semver-range range))
+  (let loop ((packages (find-packages-by-name
+                         (crate-name->package-name name)))
+             (semver #f)
+             (yanked? #f))
+    (match packages
+      ((pkg packages ...)
+       (let ((pkg-yanked? (assoc-ref (package-properties pkg)
+                                    'crate-version-yanked?)))
+         (if (or allow-yanked? (not pkg-yanked?))
+             (let ((pkg-semver (string->semver (package-version pkg))))
+               (if (and (or (not semver)
+                            (and yanked? (not pkg-yanked?))
+                            (and (eq? yanked? pkg-yanked?)
+                                 (semver>? pkg-semver semver)))
+                        (semver-range-contains? range pkg-semver))
+                   (loop packages pkg-semver pkg-yanked?)
+                   (loop packages semver yanked?)))
+             (loop packages semver yanked?))))
+      (() (and semver (list (semver->string semver) yanked?))))))
+
 (define* (crate->guix-package
           crate-name
-          #:key version include-dev-deps? allow-yanked? #:allow-other-keys)
+          #:key version include-dev-deps? allow-yanked? mark-missing?
+          #:allow-other-keys)
   "Fetch the metadata for CRATE-NAME from crates.io, and return the
 `package' s-expression corresponding to that package, or #f on failure.
 When VERSION is specified, convert it into a semver range and attempt to fetch
@@ -313,32 +351,6 @@ look up the development dependencs for the given crate."
          (or version
              (crate-latest-version crate))))
 
-  ;; Find the highest existing package that fulfills the semver <range>.
-  ;; Packages previously marked as yanked take lower priority.
-  (define (find-package-version name range)
-    (let* ((semver-range (string->semver-range range))
-           (version
-            (min-element
-             (filter (match-lambda ((semver yanked)
-                                    (and
-                                     (or allow-yanked? (not yanked))
-                                     (semver-range-contains? semver-range semver))))
-                     (map (lambda (pkg)
-                            (let ((version (package-version pkg)))
-                              (list
-                                (string->semver version)
-                                (assoc-ref (package-properties pkg)
-                                           'crate-version-yanked?))))
-                          (find-packages-by-name
-                           (crate-name->package-name name))))
-             (match-lambda* (((semver1 yanked1) (semver2 yanked2))
-                             (or (and yanked1 (not yanked2))
-                                 (and (eq? yanked1 yanked2)
-                                      (semver<? semver1 semver2))))))))
-      (and (not (eq? #f version))
-           (match-let (((semver yanked) version))
-             (list (semver->string semver) yanked)))))
-
   ;; Find the highest version of a crate that fulfills the semver <range>.
   ;; If no matching non-yanked version has been found and allow-yanked? is #t,
   ;; also consider yanked packages.
@@ -353,14 +365,15 @@ look up the development dependencs for the given crate."
                                             (crate-versions crate))))))
 
   ;; If no non-yanked existing package version was found, check the upstream
-  ;; versions.  If a non-yanked upsteam version exists, use it instead,
+  ;; versions.  If a non-yanked upstream version exists, use it instead,
   ;; otherwise use the existing package version, provided it exists.
-  (define (dependency-name+version+yanked dep)
+  (define (dependency-name+missing+version+yanked dep)
     (let* ((name (crate-dependency-id dep))
                  (req (crate-dependency-requirement dep))
-                 (existing-version (find-package-version name req)))
+                 (existing-version
+                  (find-package-version name req allow-yanked?)))
       (if (and existing-version (not (second existing-version)))
-          (cons name existing-version)
+          (cons* name #f existing-version)
           (let* ((crate (lookup-crate* name))
                  (ver (find-crate-version crate req)))
             (if existing-version
@@ -370,14 +383,15 @@ look up the development dependencs for the given crate."
                         (begin
                           (warning (G_ "~A: version ~a is no longer yanked~%")
                                    name (first existing-version))
-                          (cons name existing-version))
+                          (cons* name #f existing-version))
                         (list name
+                              #f
                               (crate-version-number ver)
                               (crate-version-yanked? ver)))
                     (begin
                       (warning (G_ "~A: using existing version ~a, which was yanked~%")
                                name (first existing-version))
-                      (cons name existing-version)))
+                      (cons* name #f existing-version)))
                 (begin
                   (unless ver
                     (leave (G_ "~A: no version found for requirement ~a~%") name req))
@@ -385,6 +399,7 @@ look up the development dependencs for the given crate."
                       (warning (G_ "~A: imported version ~a was yanked~%")
                                name (crate-version-number ver)))
                   (list name
+                        mark-missing?
                         (crate-version-number ver)
                         (crate-version-yanked? ver))))))))
 
@@ -396,14 +411,14 @@ look up the development dependencs for the given crate."
   ;; sort and map the dependencies to a list containing
   ;; pairs of (name version)
   (define (sort-map-dependencies deps)
-    (sort (map dependency-name+version+yanked
+    (sort (map dependency-name+missing+version+yanked
                deps)
-          (match-lambda* (((name _ _) ...)
+          (match-lambda* (((name _ _ _) ...)
                           (apply string-ci<? name)))))
 
-  (define (remove-yanked-info deps)
+  (define (remove-missing+yanked-info deps)
     (map
-     (match-lambda ((name version yanked)
+     (match-lambda ((name missing version yanked)
                     (list name version)))
      deps))
 
@@ -434,8 +449,8 @@ look up the development dependencs for the given crate."
                           #:license (and=> (crate-version-license version*)
                                            string->license))
          (append
-          (remove-yanked-info cargo-inputs)
-          (remove-yanked-info cargo-development-inputs))))
+          (remove-missing+yanked-info cargo-inputs)
+          (remove-missing+yanked-info cargo-development-inputs))))
       (values #f '())))
 
 (define* (crate-recursive-import
@@ -467,7 +482,7 @@ look up the development dependencs for the given crate."
       ((name _ ...) name))))
 
 (define (crate-name->package-name name)
-  (guix-name "rust-" name))
+  (downstream-package-name "rust-" name))
 
 
 
@@ -478,25 +493,34 @@ look up the development dependencs for the given crate."
 (define crate-package?
   (url-predicate crate-url?))
 
-(define* (import-release package #:key (version #f))
-  "Return an <upstream-source> for the latest release of PACKAGE. Optionally
-include a VERSION string to fetch a specific version."
+(define* (import-release package #:key version partial-version?)
+  "Return an <upstream-source> for the latest release of PACKAGE.  Optionally
+include a VERSION string to fetch a specific version, which may be a partial
+prefix when PARTIAL-VERSION? is #t."
   (let* ((crate-name (guix-package->crate-name package))
          (crate      (lookup-crate crate-name))
-         (version    (or version
-                         (let ((max-crate-version
-                                 (max-crate-version-of-semver
-                                   (string->semver-range
-                                     (string-append "^" (package-version package)))
-                                   (nonyanked-crate-versions crate))))
-                           (and=> max-crate-version
-                                  crate-version-number)))))
-    (if version
-        (upstream-source
-         (package (package-name package))
-         (version version)
-         (urls (list (crate-uri crate-name version))))
-        #f)))
+         (versions (delay (nonyanked-crate-versions crate)))
+         (find-max-minor-patch-version (lambda (base-version)
+                                         (max-crate-version-of-semver
+                                          (string->semver-range
+                                           (string-append
+                                            "^" base-version))
+                                          (force versions))))
+         (version (cond
+                   ((and version partial-version?) ;partial version
+                    (and=> (find-max-minor-patch-version version)
+                           crate-version-number))
+                   ((and version (not partial-version?)) ;exact version
+                    version)
+                   (else                ;latest version
+                    (and=> (find-max-minor-patch-version
+                            (package-version package))
+                           crate-version-number)))))
+    (and version
+         (upstream-source
+          (package (package-name package))
+          (version version)
+          (urls (list (crate-uri crate-name version)))))))
 
 (define %crate-updater
   (upstream-updater

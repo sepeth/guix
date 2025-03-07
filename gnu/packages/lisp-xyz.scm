@@ -23,7 +23,7 @@
 ;;; Copyright © 2020-2024 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2021, 2022 Aurora <rind38@disroot.org>
 ;;; Copyright © 2021 Matthew James Kraai <kraai@ftbfs.org>
-;;; Copyright © 2021-2024 André A. Gomes <andremegafone@gmail.com>
+;;; Copyright © 2021-2025 André A. Gomes <andremegafone@gmail.com>
 ;;; Copyright © 2021, 2022, 2023 Cage <cage-dev@twistfold.it>
 ;;; Copyright © 2021 Cameron Chaparro <cameron@cameronchaparro.com>
 ;;; Copyright © 2021, 2024 Charles Jackson <charles.b.jackson@protonmail.com>
@@ -45,6 +45,7 @@
 ;;; Copyright © 2024 Carlo Zancanaro <carlo@zancanaro.id.au>
 ;;; Copyright © 2024 Nik Gaffney <nik@fo.am>
 ;;; Copyright © 2024 Grigory Shepelev <shegeley@gmail.com>
+;;; Copyright © 2025 Junker <dk@junkeria.club>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -126,6 +127,7 @@
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages statistics)
   #:use-module (gnu packages tcl)
+  #:use-module (gnu packages texinfo)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages version-control)
   #:use-module (gnu packages video)
@@ -688,7 +690,7 @@ internationalizing Common Lisp programs.
 One important aspect of internationalization is of course the language used in
 error messages, documentation strings, etc.  But with this project we provide
 tools for all other aspects of internationalization as well, including dates,
-weight, temperature, names of physical quantitites, etc.")
+weight, temperature, names of physical quantities, etc.")
       (license license:bsd-2))))
 
 (define-public cl-acclimation
@@ -696,6 +698,35 @@ weight, temperature, names of physical quantitites, etc.")
 
 (define-public ecl-acclimation
   (sbcl-package->ecl-package sbcl-acclimation))
+
+(define-public sbcl-ecclesia
+  (let ((commit "605debb6f28f120243da66c281274011e292ce46"))
+    (package
+      (name "sbcl-ecclesia")
+      (version (git-version "0.0.0" "0" commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/s-expressionists/Ecclesia")
+               (commit commit)))
+         (file-name (git-file-name name version))
+         (sha256
+          (base32
+           "0lmy03lqk82301b86pli9qd6493q6fr7vd5h29j4gwc778awbmf5"))))
+      (build-system asdf-build-system/sbcl)
+      (inputs (list sbcl-acclimation))
+      (home-page "https://github.com/s-expressionists/Ecclesia")
+      (synopsis "Utilities for parsing Lisp code")
+      (description "This library contains utilities for parsing Common Lisp
+code.")
+      (license license:bsd-2))))
+
+(define-public cl-ecclesia
+  (sbcl-package->cl-source-package sbcl-ecclesia))
+
+(define-public ecl-ecclesia
+  (sbcl-package->ecl-package sbcl-ecclesia))
 
 (define-public sbcl-acl-compat
   ;; There does not seem to be proper releases.
@@ -904,8 +935,17 @@ within your Lisp program, so you don't need to invoke a separate tool.")
          (sha256
           (base32 "0pdj779j3nwzn8f1661vf00rrjrbks1xgiq0rvwjw6qyxsfqfnl9"))))
       (build-system asdf-build-system/sbcl)
+      (arguments
+       (list #:phases
+             #~(modify-phases %standard-phases
+                 (add-after 'build 'build-doc
+                   (lambda _
+                     (with-directory-excursion "doc"
+                       (invoke "make" "info")
+                       (install-file "alexandria.info"
+                                     (string-append #$output "/share/info"))))))))
       (native-inputs
-       (list sbcl-rt))
+       (list sbcl-rt texinfo))
       (synopsis "Collection of portable utilities for Common Lisp")
       (description
        "Alexandria is a collection of portable utilities.  It does not contain
@@ -918,7 +958,15 @@ portable between implementations.")
   (sbcl-package->cl-source-package sbcl-alexandria))
 
 (define-public ecl-alexandria
-  (sbcl-package->ecl-package sbcl-alexandria))
+  (let ((pkg (sbcl-package->ecl-package sbcl-alexandria)))
+    (package
+      (inherit pkg)
+      (outputs '("out"))
+      (arguments
+       (substitute-keyword-arguments (package-arguments pkg)
+         ((#:phases phases)
+          `(modify-phases ,phases
+             (delete 'build-doc))))))))
 
 (define-public sbcl-alexandria-plus
   (let ((commit "adafb09838a84895bedb119f8253b89b6a04a2c5")
@@ -3853,7 +3901,7 @@ REPL for the terminal.")
      (synopsis "Circularly readable streams for Common Lisp")
      (description
       "Circular-Streams allows you to read streams circularly by wrapping real
-streams. Once you reach end-of-file of a stream, it's file position will be
+streams.  Once you reach end-of-file of a stream, its file position will be
 reset to 0 and you're able to read it again.")
      (license license:llgpl))))
 
@@ -5972,7 +6020,7 @@ joysticks, and other such HID devices.")
        "This is a system for two dimensional computational geometry for Common Lisp.
 
 Note: the system assumes exact rational arithmetic, so no floating point
-coordinates are allowed. This is not checked when creating geometric
+coordinates are allowed.  This is not checked when creating geometric
 objects.")
       ;; The .asd says BSD-style but the LICENSE.txt is expat.
       (license license:expat))))
@@ -6311,8 +6359,8 @@ and running graph algorithms.")
       (description
        "These common lisp sources contain two variants of the Nelder-Mead
 algorithm.  The original algorithm and a provably convergent, reliable variant
-by A. Bürmen et al, called the
-@acronym{GRNMA, Grid Restrained Nelder Mead Algorithm}.")
+by A. Bürmen et al, called the @acronym{GRNMA, Grid Restrained Nelder Mead
+Algorithm}.")
       (home-page "https://github.com/quil-lang/cl-grnm")
       (license license:expat))))
 
@@ -7167,7 +7215,7 @@ similar to that provided by @command{yason} or @command{st-json}.")
       (description "
 This package provides a JSON
 Pointer (@url{https://tools.ietf.org/html/rfc6901,RFC6901}) implementation for
-Common Lisp.  This libary aims to be independent from any JSON libraries (as much
+Common Lisp.  This library aims to be independent from any JSON libraries (as much
 as possible).")
       (license license:expat))))
 
@@ -7409,7 +7457,7 @@ format.")
       (native-inputs
        (list sbcl-lift))
       (arguments
-       `(#:tests? #f ; FIXME: Tests get stuck indefinitly
+       `(#:tests? #f ; FIXME: Tests get stuck indefinitely
          #:phases
          (modify-phases %standard-phases
            (add-after 'unpack 'fix-paths
@@ -8559,8 +8607,8 @@ pure Common Lisp.")
          ((#:tests? _ #f) #f))))))
 
 (define-public sbcl-cl-pdf
-  (let ((commit "ee904a118a0f060279ad9d253a3e8e3997609213")
-        (revision "3"))
+  (let ((commit "0a1cd33b658c7101766781c534455d4d9e5972bf")
+        (revision "4"))
     (package
       (name "sbcl-cl-pdf")
       (version (git-version "2.0.0" revision commit))
@@ -8572,7 +8620,7 @@ pure Common Lisp.")
                (commit commit)))
          (file-name (git-file-name "cl-pdf" version))
          (sha256
-          (base32 "0j7hbqv6yzrgx0inqinpw8h22728l53ccciw6iymzz4g92j9fzlq"))))
+          (base32 "1x88fvk3kxi3k6a84iajb6myw67z8n3plfidq8d4c26ymiz0kvfm"))))
       (build-system asdf-build-system/sbcl)
       (inputs
        (list sbcl-iterate sbcl-zpb-ttf))
@@ -9375,6 +9423,46 @@ to serve as a building block for such an interface.")
 (define-public ecl-cl-rmath
   (sbcl-package->ecl-package sbcl-cl-rmath))
 
+(define-public sbcl-cl-semver
+  (let ((commit "b125d2c49ea6d370302dde73a6e0841c0e928184")
+        (revision "0"))
+    (package
+      (name "sbcl-cl-semver")
+      (version (git-version "0.0.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/cldm/cl-semver")
+               (commit commit)))
+         (file-name (git-file-name "cl-semver" version))
+         (sha256
+          (base32 "1zlcn7lrpvjiixgqm4yxnqqwak1hxfmxmchkpvrly41yhl586ril"))))
+      (build-system asdf-build-system/sbcl)
+      (native-inputs (list sbcl-stefil))
+      (inputs
+       (list sbcl-alexandria
+             sbcl-esrap
+             sbcl-named-readtables))
+      (home-page "https://github.com/cldm/cl-semver")
+      (synopsis "Semantic version handling in Common Lisp")
+      (description
+       "This package provides a Common Lisp implementation of the semantic
+versioning specification: @url{http://semver.org}.")
+      (license license:expat))))
+
+(define-public ecl-cl-semver
+  (let ((pkg (sbcl-package->ecl-package sbcl-cl-semver)))
+    (package
+      (inherit pkg)
+      (arguments
+       (substitute-keyword-arguments (package-arguments pkg)
+         ;; TODO: https://github.com/cldm/cl-semver/issues/9
+         ((#:tests? _ #f) #f))))))
+
+(define-public cl-semver
+  (sbcl-package->cl-source-package sbcl-cl-semver))
+
 (define-public sbcl-cl-setlocale
   (let ((commit "f660d07dac72bc3e99caae1c6c8a789991e2694c")
         (revision "0"))
@@ -9990,9 +10078,9 @@ rendering of the XML Infoset.")
                        "cl-syntax-annot"
                        "cl-syntax-interpol")))
     (home-page "https://github.com/m2ym/cl-syntax")
-    (synopsis "Reader Syntax Coventions for Common Lisp and SLIME")
+    (synopsis "Reader Syntax Conventions for Common Lisp and SLIME")
     (description
-     "CL-SYNTAX provides Reader Syntax Coventions for Common Lisp and SLIME.")
+     "CL-SYNTAX provides Reader Syntax Conventions for Common Lisp and SLIME.")
     (license license:llgpl)))
 
 (define-public cl-syntax
@@ -12458,7 +12546,7 @@ based on code from chapter 24 of the book @emph{Practical Common Lisp}.")
 (define-public sbcl-command-line-args
   (package
     (name "sbcl-command-line-args")
-    (version "0.1.1")
+    (version "0.1.3")
     (source
      (origin
        (method git-fetch)
@@ -12467,7 +12555,7 @@ based on code from chapter 24 of the book @emph{Practical Common Lisp}.")
              (commit (string-append "v" version))))
        (file-name (git-file-name "cl-command-line-args" version))
        (sha256
-        (base32 "140xnz2v0v3hfg3dp2fhidw8ns6lxd3a5knm07wqdp48ksg119wy"))))
+        (base32 "1vzybqnqwrfl8b708h8wx8xsm1ml5c3r0lcx23615hb4p800iagf"))))
     (build-system asdf-build-system/sbcl)
     (arguments
      '(#:asd-systems '("whereiseveryone.command-line-args")))
@@ -12490,7 +12578,13 @@ interface is meant to be easy and non-intrusive.")
   (sbcl-package->cl-source-package sbcl-command-line-args))
 
 (define-public ecl-command-line-args
-  (sbcl-package->ecl-package sbcl-command-line-args))
+  (let ((pkg (sbcl-package->ecl-package sbcl-command-line-args)))
+    (package
+      (inherit pkg)
+      (arguments
+       (substitute-keyword-arguments (package-arguments pkg)
+         ;; The tests only work on SBCL.
+         ((#:tests? _ #f) #f))))))
 
 (define-public sbcl-command-line-arguments
   (let ((commit "fbac862fb01c0e368141204f3f639920462c23fe")
@@ -13525,11 +13619,11 @@ interface for MySQL, PostgreSQL and SQLite.")
   (sbcl-package->ecl-package sbcl-dbi))
 
 (define-public sbcl-dbus
-  (let ((commit "24b452df3a45ca5dc95015500f34baad175c981a")
-        (revision "1"))
+  (let ((commit "8bba6a0942232e9d7fa915b33bbe32dfedc5abb9")
+        (revision "2"))
     (package
       (name "sbcl-dbus")
-      (version (git-version "20190408" revision commit))
+      (version (git-version "20231105" revision commit))
       (home-page "https://github.com/death/dbus")
       (source
        (origin
@@ -13537,10 +13631,10 @@ interface for MySQL, PostgreSQL and SQLite.")
          (uri (git-reference
                (url home-page)
                (commit commit)))
-         (file-name (git-file-name name version))
+         (file-name (git-file-name "cl-dbus" version))
          (sha256
           (base32
-           "0fw2q866yddbf23nk9pxphm9gsasx35vjyss82xzvndnjmzlqfl5"))))
+           "1y880074m9g0swxrzpbplmkdxc6r62gzyigglf4x2i0zyss3gf65"))))
       (build-system asdf-build-system/sbcl)
       (inputs
        (list sbcl-alexandria
@@ -14450,7 +14544,7 @@ coloured printing via @code{cl-ansi-text} and readline completion.")
        `(("metatilities-base" ,sbcl-metatilities-base)))
       (arguments
        ;; NOTE: (Sharlatan-20210106222900+0000) Circular dependencies and failing
-       ;; test suites. lift-standard.config contains referances to deprecated
+       ;; test suites. lift-standard.config contains references to deprecated
        ;; functionality.
        ;; See https://github.com/hraban/dynamic-classes/issues/2
        `(#:tests? #f))
@@ -16540,6 +16634,37 @@ Heap.")
 
 (define-public ecl-funds
   (sbcl-package->ecl-package sbcl-funds))
+
+(define-public sbcl-fuzzy-match
+  (let ((commit "e46ca41ef4641461f7be006782e3cfdcf73ba98a")
+        (revision "1"))
+    (package
+      (name "sbcl-fuzzy-match")
+      (version (git-version "0.1" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/vindarel/fuzzy-match")
+               (commit commit)))
+         (file-name (git-file-name "cl-fuzzy-match" version))
+         (sha256
+          (base32 "1lawndmzkl6f9sviy7ngn2s3xkc4akp8l505kvpslaz6qq0ayyqv"))))
+      (build-system asdf-build-system/sbcl)
+      (inputs (list sbcl-cl-str
+                    sbcl-mk-string-metrics))
+      (home-page "https://github.com/vindarel/fuzzy-match")
+      (synopsis "Common Lisp library for fuzzy matching")
+      (description
+       "From a string input and a list of candidates, return the most relevant
+candidates first.")
+      (license license:expat))))
+
+(define-public cl-fuzzy-match
+  (sbcl-package->cl-source-package sbcl-fuzzy-match))
+
+(define-public ecl-fuzzy-match
+  (sbcl-package->ecl-package sbcl-fuzzy-match))
 
 (define-public sbcl-fxml
   ;; No release.
@@ -19821,7 +19946,7 @@ BTCPay, Paypal, and Stripe.")
         sbcl-cl-ppcre))
       (home-page "https://github.com/cxxxr/lisp-preprocessor")
       (synopsis "Common Lisp embedded template engine")
-      (description "This package provices an embedded template engine for Common Lisp.")
+      (description "This package provides an embedded template engine for Common Lisp.")
       (license license:expat))))
 
 (define-public cl-lisp-preprocessor
@@ -22382,7 +22507,7 @@ testing and installation.
 
 @itemize
 @item Simple way to fetch Git submodules and “do the right thing” for
-setup. This may effectively supersede Quicklisp. A benefit of using Git
+setup.  This may effectively supersede Quicklisp.  A benefit of using Git
 submodules over the default Quicklisp distribution is improved
 reproducibility.
 @item Test helpers, like distinction between offline and online tests, or
@@ -24800,7 +24925,7 @@ server over a socket.
 
 @code{POSTMODERN} itself is a wrapper around these packages and provides higher
 level functions, a very simple data access object that can be mapped directly to
-database tables and some convient utilities.  It then tries to put all these
+database tables and some convenient utilities.  It then tries to put all these
 things together into a convenient programming interface")
     (home-page "https://marijnhaverbeke.nl/postmodern/")
     (license license:zlib)))
@@ -26851,7 +26976,7 @@ C Library.")
       (synopsis "Utility kit for CL-SDL2")
       (description
        "This is a utility kit for @code{cl-sdl2} that provides something similar to
-GLUT. However, it's also geared at being useful for \"real\" applications or
+GLUT.  However, it's also geared at being useful for \"real\" applications or
 games.")
       (license license:expat))))
 
@@ -27441,11 +27566,11 @@ running into parallelism problems when having to change directory.")
   (sbcl-package->ecl-package sbcl-simple-inferiors))
 
 (define-public sbcl-simple-matrix
-  (let ((commit "76b1df400cc38e21677b7b6dac659fbf627d4571")
+  (let ((commit "549113a853f09b2d2983497ee92f8fea7a8195ed")
         (revision "0"))
     (package
       (name "sbcl-simple-matrix")
-      (version (git-version "1.2" revision commit))
+      (version (git-version "1.4" revision commit))
       (source
        (origin
          (method git-fetch)
@@ -27454,7 +27579,7 @@ running into parallelism problems when having to change directory.")
                (commit commit)))
          (file-name (git-file-name "cl-simple-matrix" version))
          (sha256
-          (base32 "0f9flha00p1px1bj84wk7alfss1qnr434w1dp075sq04rk0hm4md"))))
+          (base32 "1f454mvr1zypcjijfddplsv0k1pa7p5n05pblxvjljszdxxf27g8"))))
       (build-system asdf-build-system/sbcl)
       (native-inputs (list sbcl-fiveam))
       (synopsis "Matrix library for Common Lisp")
@@ -27834,12 +27959,12 @@ processes that doesn't run under Emacs.  Lisp processes created by
     (synopsis "SLIme-based TEst runner for FiveAM and Parachute Tests")
     (description
      "Slite interactively runs your Common Lisp tests (currently only FiveAM
-and Parachute are supported). It allows you to see the summary of test
+and Parachute are supported).  It allows you to see the summary of test
 failures, jump to test definitions, rerun tests with debugger all from inside
 Emacs.
 
 In order to work, this also requires the slite Common Lisp system to be
-present. See the code@{*cl-slite packages}.")))
+present.  See the @code{*cl-slite packages}.")))
 
 (define-public sbcl-slot-extra-options
   (let ((commit "29517d980325cd63744f1acf4cfe5c8ccec2b318"))
@@ -29903,6 +30028,36 @@ backtrace portably.")
 (define-public ecl-trivial-backtrace
   (sbcl-package->ecl-package sbcl-trivial-backtrace))
 
+(define-public sbcl-trivial-battery
+  (let ((commit "318c9da88b4d11d3f33062e0fd09be660a383404")
+        (revision "1"))
+    (package
+      (name "sbcl-trivial-battery")
+      (version (git-version "0.1.0" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/pokepay/trivial-battery")
+               (commit commit)))
+         (file-name (git-file-name "cl-trivial-battery" version))
+         (sha256
+          (base32 "12ni2502v9gjszhjsh0aai08cm64gl8g815xghdjhcf7y34ffl2b"))))
+      (build-system asdf-build-system/sbcl)
+      (inputs (list sbcl-split-sequence))
+      (home-page "https://github.com/pokepay/trivial-battery")
+      (synopsis "Trivial library for getting the battery information")
+      (description
+       "This package provides a Common Lisp library for getting the battery
+information.")
+      (license license:bsd-2))))
+
+(define-public cl-trivial-battery
+  (sbcl-package->cl-source-package sbcl-trivial-battery))
+
+(define-public ecl-trivial-battery
+  (sbcl-package->ecl-package sbcl-trivial-battery))
+
 (define-public sbcl-trivial-benchmark
   (let ((commit "1fbc8d15f09ed8aa426bc73956b8b7c9b2668802")
         (revision "2"))
@@ -31045,7 +31200,7 @@ the return type of a function.")
   (package
     (inherit (sbcl-package->ecl-package sbcl-type-i))
     (arguments
-     ;; The tests get stuck indefinitly
+     ;; The tests get stuck indefinitely
      '(#:tests? #f))))
 
 (define-public sbcl-type-r
@@ -31405,7 +31560,7 @@ shader functions, written with @code{Shadow}.")
          (sha256
           (base32 "16mcqpzwrz808p9n3wwl99ckg3hg7yihw08y1i4l7c92aldbkasq"))))
       (build-system asdf-build-system/sbcl)
-      (home-page "https://github.com/hankhero/cl-json")
+      (home-page "https://github.com/libre-man/unix-opts")
       (synopsis "Unix-style command line options parser")
       (description
        "This is a minimalistic parser of command line options.  The main
@@ -31786,24 +31941,24 @@ of octave or matlab.")
 (define-public ecl-vgplot
   (sbcl-package->ecl-package sbcl-vgplot))
 
-(define-public sbcl-virality
-  (let ((commit "cdc19cca9b028f0c30d14ed8b3e51359dd46069a")
-        (revision "1"))
+(define-public sbcl-colony
+  (let ((commit "54d020e80192e325311feffa1ecb00f02416541a")
+        (revision "0"))
     (package
-      (name "sbcl-virality")
-      (version (git-version "0.3.0" revision commit))
+      (name "sbcl-colony")
+      (version (git-version "0.1.0" revision commit))
       (source
        (origin
          (method git-fetch)
          (uri (git-reference
-               (url "https://github.com/bufferswap/ViralityEngine")
+               (url "https://github.com/colonyengine/colony")
                (commit commit)))
-         (file-name (git-file-name "cl-virality" version))
+         (file-name (git-file-name "cl-colony" version))
          (sha256
-          (base32 "1s25aapkqcr8fxi0i9wjw0n4jax7r4a9d9wflpr3sqz2vgrg2lz6"))))
+          (base32 "0wgjr2ss7j42pzx4vx9l9c82i7b1h6ph9b7gi4b1ipjv7bv0ncf5"))))
       (build-system asdf-build-system/sbcl)
       (arguments
-       `(#:asd-systems '("virality"
+       `(#:asd-systems '("colony"
                          "vorigin"
                          "vorigin.test"
                          "vshadow"
@@ -31821,6 +31976,7 @@ of octave or matlab.")
                          delete-file
                          (find-files "."
                                      "^xXx-SYSTEM-NAME-xXx\\.asd$")))))))
+      (native-inputs (list sbcl-parachute))
       (inputs
        (list sbcl-3b-bmfont
              sbcl-babel
@@ -31844,27 +32000,27 @@ of octave or matlab.")
              sbcl-static-vectors
              sbcl-trivial-features
              sbcl-varjo))
-      (home-page "https://github.com/bufferswap/ViralityEngine")
+      (home-page "https://github.com/colonyengine/colony")
       (synopsis "Component-based game engine written in Common Lisp")
       (description
-       "Virality Engine provides a system and workflow that helps describe the
+       "Colony provides a system and workflow that helps describe the
 elements needed to write 2D or 3D games.  It was designed with several domain
 specific languages that make it easier to describe, manipulate, and use assets
 commonly found in game making.  Such assets include (but are not limited to)
 textures, materials, shader programs, and scene trees of actors that are
-available for instantiation.  Virality Engine also knows how to accept input
+available for instantiation.  Colony Engine also knows how to accept input
 from keyboards and most joysticks and gamepads.
 
 The component system is a hybrid model between an ECS and an object model.  The
 components are defined similar to CLOS defclass, and regular generic methods
 can be used with them.  Components are added to Actors which represent game
 concepts like players, scenery, effects, etc.  We define a component protocol
-invoked by Virality Engine to move your components to the next state and
+invoked by Colony Engine to move your components to the next state and
 render them each frame.")
       (license license:expat))))
 
-(define-public cl-virality
-  (sbcl-package->cl-source-package sbcl-virality))
+(define-public cl-colony
+  (sbcl-package->cl-source-package sbcl-colony))
 
 (define-public sbcl-vom
   (let ((commit "1aeafeb5b74c53741b79497e0ef4acf85c92ff24")
@@ -32831,3 +32987,40 @@ compression/decompression using bindings to the libzstd C library.")
 
 (define-public ecl-zstd
   (sbcl-package->ecl-package sbcl-zstd))
+
+(define-public sbcl-cl-transducers
+  (package
+    (name "sbcl-cl-transducers")
+    (version "1.3.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/fosskers/cl-transducers")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0p7fqkmv0rfi5d7mmm9600qpix003bqr7as148pk157s1d44vncg"))))
+    (build-system asdf-build-system/sbcl)
+    (arguments
+     '(#:asd-systems '("transducers" "transducers/jzon" "transducers/fset")))
+    (native-inputs
+     (list sbcl-cl-str
+           sbcl-parachute))
+    (inputs
+     (list sbcl-fset
+           sbcl-jzon
+           sbcl-trivia))
+    (home-page "https://fosskers.github.io/cl-transducers/")
+    (synopsis "Data source processing for Common Lisp via transducers")
+    (description
+     "Transducers are an ergonomic and extremely memory-efficient way to
+process a data source.  Data source refers to simple collections like lists or
+vectors, but also potentially large files or generators of infinite data.")
+    (license license:mpl2.0)))
+
+(define-public cl-transducers
+  (sbcl-package->cl-source-package sbcl-cl-transducers))
+
+(define-public ecl-cl-transducers
+  (sbcl-package->ecl-package sbcl-cl-transducers))

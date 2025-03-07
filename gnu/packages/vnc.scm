@@ -159,7 +159,7 @@
            libsodium
            spice-gtk                    ; for spice plugin
            telepathy-glib
-           vte                          ; for st plugin
+           vte/gtk+-3                   ; for st plugin
            wayland
            webkitgtk-for-gtk3           ; for www plugin
            libx11
@@ -177,7 +177,7 @@ RDP, VNC, SPICE, NX, XDMCP, SSH and EXEC network protocols are supported.")
 (define-public tigervnc-client
   (package
     (name "tigervnc-client")
-    (version "1.14.0")
+    (version "1.14.1")
     (source
      (origin
        (method git-fetch)
@@ -185,7 +185,7 @@ RDP, VNC, SPICE, NX, XDMCP, SSH and EXEC network protocols are supported.")
              (url "https://github.com/TigerVNC/tigervnc")
              (commit (string-append "v" version))))
        (sha256
-        (base32 "1nj34l9yy7ij7i52sdrgvjjxbhhwbszg9pwh5bc03c8ihgzma1af"))
+        (base32 "1n6slj7i93gvf0ji4mb3azycv3c4wqzfd7zlx9260b79jv8jvsln"))
        (file-name (git-file-name name version))))
     (build-system cmake-build-system)
     (arguments
@@ -202,7 +202,7 @@ RDP, VNC, SPICE, NX, XDMCP, SSH and EXEC network protocols are supported.")
            gnutls
            libjpeg-turbo
            ;;ffmpeg                     ;TODO: add this for h264 encoding
-           fltk
+           fltk-1.3
            linux-pam
            libx11
            libxext

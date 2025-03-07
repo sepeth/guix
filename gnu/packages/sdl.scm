@@ -16,6 +16,7 @@
 ;;; Copyright © 2022 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2023 Evgeny Pisemsky <mail@pisemsky.site>
 ;;; Copyright © 2023, 2024 dan <i@dan.games>
+;;; Copyright © 2025 Zheng Junjie <873216071@qq.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -145,6 +146,40 @@ provide low level access to audio, keyboard, mouse, joystick, and graphics
 hardware.")
     (home-page "https://libsdl.org/")
     (license license:bsd-3)))
+
+(define-public sdl3
+  (package
+    (inherit sdl2)
+    (name "sdl3")
+    (version "3.2.0")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/libsdl-org/SDL")
+                    (commit (string-append "release-" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "11hrhvf74in0amdrmhcf11ll48pxqbidyqawr9hx2cgdwlzdjll1"))))
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f                       ;no check target
+      #:configure-flags
+      #~(list "-DSDL_SHARED=ON"
+              "-DSDL_ALSA_SHARED=OFF"
+              "-DSDL_PULSEAUDIO_SHARED=OFF"
+              "-DSDL_X11_SHARED=OFF"
+              "-DSDL_WAYLAND_SHARED=OFF"
+              "-DSDL_KMSDRM=ON"
+              "-DSDL_KMSDRM_SHARED=OFF"
+              (string-append
+               "-DCMAKE_INSTALL_RPATH="
+               (string-join
+                (list
+                 (string-append #$(this-package-input "eudev") "/lib")
+                 (string-append #$(this-package-input "vulkan-loader") "/lib"))
+                ";")))))))
 
 (define-public sdl12-compat
   (package

@@ -1,6 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2021 Andrew Tropin <andrew@trop.in>
-;;; Copyright © 2022, 2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2022, 2024-2025 Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -21,8 +21,10 @@
   #:use-module (gnu home services)
   #:use-module (gnu home services symlink-manager)
   #:use-module (gnu home services shells)
+  #:use-module (gnu home services shepherd)
   #:use-module (gnu home services xdg)
   #:use-module (gnu home services fontutils)
+  #:use-module (gnu home services admin)
   #:use-module (gnu services)
   #:use-module (guix records)
   #:use-module (guix diagnostics)
@@ -43,7 +45,9 @@
 
             home-environment-with-provenance
 
-            home-generation-base))
+            home-generation-base
+
+            %base-home-services))
 
 ;;; Comment:
 ;;;
@@ -67,13 +71,19 @@
                                 this-home-environment)))
 
   (services           home-environment-user-services
-                      (default '())
+                      (default %base-home-services)
                       (sanitize validate-service-list))
 
   (location           home-environment-location            ; <location>
                       (default (and=> (current-source-location)
                                       source-properties->location))
                       (innate)))
+
+(define %base-home-services
+  ;; Non-essential but useful services to have by default.
+  (list (service home-log-rotation-service-type)
+        (service home-shepherd-timer-service-type)
+        (service home-shepherd-transient-service-type)))
 
 (define (home-environment-default-essential-services he)
   "Return the list of essential services for home environment."

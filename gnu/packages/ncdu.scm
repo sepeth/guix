@@ -1,7 +1,7 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2014 John Darrington <jmd@gnu.org>
 ;;; Copyright © 2018–2021 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2022-2024 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2022-2025 Efraim Flashner <efraim@flashner.co.il>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -20,8 +20,11 @@
 
 (define-module (gnu packages ncdu)
   #:use-module (gnu packages)
+  #:use-module (gnu packages bash)
+  #:use-module (gnu packages compression)
   #:use-module (gnu packages ncurses)
-  #:use-module (gnu packages perl)
+  #:use-module (gnu packages pkg-config)
+  #:use-module (gnu packages zig)
   #:use-module (guix licenses)
   #:use-module (guix packages)
   #:use-module (guix download)
@@ -36,16 +39,23 @@
   ;; yet, so we'll keep both for just a little longer.
   (package
     (name "ncdu")
-    (version "1.20")
+    (version "1.21")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://dev.yorhel.nl/download/ncdu-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "0wlmpq8gzcl1fim8jba3g0q0bbn4jcrbkns2n95kfwmy3a2bpqjz"))))
+                "19h1jvgiw7dvpxlhg6sqzc1c8gjkaj7z9girc255gkkbnjlx7558"))))
     (build-system gnu-build-system)
-    (inputs (list ncurses))
+    (arguments
+     (list #:configure-flags
+           ;; Configure default shell for spawning shell when $SHELL is not set
+           #~(list (string-append "--with-shell="
+                                  #$(this-package-input "bash-minimal")
+                                  "/bin/sh"))))
+    (native-inputs (list pkg-config))
+    (inputs (list bash-minimal ncurses))
     (synopsis "Ncurses-based disk usage analyzer")
     (description
      "Ncdu is a disk usage analyzer with an ncurses interface, aimed to be
@@ -60,29 +70,22 @@ ncurses installed.")
   (package
     (inherit ncdu-1)
     (name "ncdu")
-    (version "2.2.2")
+    (version "2.7")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://dev.yorhel.nl/download/ncdu-"
                                   version ".tar.gz"))
               (sha256
                (base32
-                "14zrmcxnrczamqjrib99jga05ixk0dzfav3pd6s1h8vm9q121nch"))
-              (modules '((guix build utils)))
-              (snippet
-               #~(begin
-                   ;; Delete a pregenerated man page.  We'll build it ourselves.
-                   (delete-file "ncdu.1")))))
+                "001hp47g45rlmbirg85cqflfg049xhdf5d0xjp7m565vl8acq65j"))))
     (build-system zig-build-system)
     (arguments
-     (list
-       #:phases
-       #~(modify-phases %standard-phases
-           (delete 'validate-runpath)
-           (add-after 'build 'build-manpage
-             (lambda _
-               (invoke "make" "doc"))))))
-    (native-inputs (list perl))
+     (list #:install-source? #f
+           #:zig-release-type "safe"
+           #:zig-build-flags
+           #~(list "-Dpie")))
+    (inputs (list ncurses `(,zstd "lib")))
+    (native-inputs (list pkg-config))
     (properties `((tunable? . #t)))))
 
 (define-public ncdu-2

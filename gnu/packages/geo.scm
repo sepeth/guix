@@ -3,7 +3,7 @@
 ;;; Copyright © 2016 Alex Griffin <a@ajgrf.com>
 ;;; Copyright © 2017, 2018 Björn Höfling <bjoern.hoefling@bjoernhoefling.de>
 ;;; Copyright © 2018–2021 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2018, 2023, 2024 Ricardo Wurmus <rekado@elephly.net>
+;;; Copyright © 2018, 2023-2025 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2018, 2019 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2018 Joshua Sierles, Nextjournal <joshua@nextjournal.com>
 ;;; Copyright © 2018, 2019, 2020, 2021 Julien Lepiller <julien@lepiller.eu>
@@ -14,7 +14,7 @@
 ;;; Copyright © 2020, 2022 Marius Bakke <marius@gnu.org>
 ;;; Copyright © 2020 Christopher Baines <mail@cbaines.net>
 ;;; Copyright © 2020–2024 Felix Gruber <felgru@posteo.net>
-;;; Copyright © 2021, 2023, 2024 Sharlatan Hellseher <sharlatanus@gmail.com>
+;;; Copyright © 2021, 2023-2025 Sharlatan Hellseher <sharlatanus@gmail.com>
 ;;; Copyright © 2021, 2023, 2024 Vinicius Monego <monego@posteo.net>
 ;;; Copyright © 2021 Clément Lassieur <clement@lassieur.org>
 ;;; Copyright © 2021, 2022 Nikolay Korotkiy <sikmir@disroot.org>
@@ -24,6 +24,10 @@
 ;;; Copyright © 2022 Denis 'GNUtoo' Carikli <GNUtoo@cyberdimension.org>
 ;;; Copyright © 2024 Wilko Meyer <w@wmeyer.eu>
 ;;; Copyright © 2024 Jonathan Brielmaier <jonathan.brielmaier@web.de>
+;;; Copyright © 2025 Mattia Bunel <mattia.bunel@ehess.fr>
+;;; Copyright © 2025 Andreas Enge <andreas@enge.fr>
+;;; Copyright © 2025 Lars Bilke <lars.bilke@ufz.de>
+;;; Copyright © 2025 Nicolas Graves <ngraves@ngraves.fr>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -70,6 +74,7 @@
   #:use-module (gnu packages boost)
   #:use-module (gnu packages build-tools)
   #:use-module (gnu packages c)
+  #:use-module (gnu packages certs)
   #:use-module (gnu packages check)
   #:use-module (gnu packages cmake)
   #:use-module (gnu packages compression)
@@ -79,6 +84,7 @@
   #:use-module (gnu packages cran)
   #:use-module (gnu packages databases)
   #:use-module (gnu packages datastructures)
+  #:use-module (gnu packages digest)
   #:use-module (gnu packages docbook)
   #:use-module (gnu packages documentation)
   #:use-module (gnu packages elf)
@@ -92,6 +98,10 @@
   #:use-module (gnu packages gl)
   #:use-module (gnu packages glib)
   #:use-module (gnu packages gnome)
+  #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-check)
+  #:use-module (gnu packages golang-web)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages gps)
   #:use-module (gnu packages graphics)
   #:use-module (gnu packages graphviz)
@@ -477,7 +487,7 @@ topology functions.")
 (define-public gnome-maps
   (package
     (name "gnome-maps")
-    (version "46.10")
+    (version "46.12")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnome/sources/" name "/"
@@ -485,7 +495,7 @@ topology functions.")
                                   name "-" version ".tar.xz"))
               (sha256
                (base32
-                "1br1ak0cwvvv8rszj9ffyvir7qcbxys940ygy22dzzn2l2byw9az"))))
+                "09af1kk63h4ks6kv3sixfmjxkfy0qbi2iym6q5ahcsfjp12d3qc4"))))
     (build-system meson-build-system)
     (arguments
      (list
@@ -859,6 +869,53 @@ projections.")
                    ;; cmake/*
                    license:boost1.0))))
 
+(define-public python-pyogrio
+  (package
+    (name "python-pyogrio")
+    (version "0.10.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pyogrio" version))
+       (sha256
+        (base32 "0g5j3a2n5hdnmi45261y84rqk1bikcvrdblgh9wfhk9jd2siq1gc"))))
+    (properties
+     `((updater-extra-inputs . ("gdal"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags
+      ;; These tests need Internet access.
+      '(list "-k" (string-append "not test_url"
+                                 " and not test_url_with_zip"
+                                 " and not test_uri_s3"))
+      #:phases
+      '(modify-phases %standard-phases
+         (add-before 'check 'build-extensions
+           (lambda _
+             (invoke "python" "setup.py" "build_ext" "--inplace"))))))
+    (propagated-inputs (list python-certifi python-numpy python-packaging))
+    (inputs (list gdal))
+    (native-inputs (list python-cython-3
+                         python-pytest
+                         python-pytest-cov
+                         python-setuptools
+                         python-tomli
+                         python-versioneer
+                         python-wheel))
+    (home-page "https://pypi.org/project/pyogrio/")
+    (synopsis "Vectorized spatial vector file format I/O using GDAL/OGR")
+    (description "Pyogrio provides a GeoPandas-oriented API to OGR vector data
+sources, such as ESRI Shapefile, GeoPackage, and GeoJSON.  Vector data sources
+have geometries, such as points, lines, or polygons, and associated records
+with potentially many columns worth of data.  Pyogrio uses a vectorized
+approach for reading and writing GeoDataFrames to and from OGR vector data
+sources in order to give you faster interoperability.  It uses pre-compiled
+bindings for GDAL/OGR so that the performance is primarily limited by the
+underlying I/O speed of data source drivers in GDAL/OGR rather than multiple
+steps of converting to and from Python data types within Python.")
+    (license license:expat)))
+
 (define-public python-pyproj
   (package
     (name "python-pyproj")
@@ -990,14 +1047,14 @@ pyproj, Rtree, and Shapely.")
 (define-public python-geopandas
   (package
     (name "python-geopandas")
-    (version "0.14.2")
+    (version "1.0.1")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "geopandas" version))
         (sha256
           (base32
-            "1nycf79nzris058lz1fyg0byj874wxq33an3y74zvybnhdxxawbf"))))
+            "1aq8rb1a97n9h0yinrcr6nhfj7gvh8h6wr2ng9dj1225afjp1gxq"))))
     (build-system pyproject-build-system)
     (arguments
      (list
@@ -1011,10 +1068,19 @@ pyproj, Rtree, and Shapely.")
          ;; Disable tests that require internet access.
          "-m" "not web")))
     (propagated-inputs
-      (list python-fiona python-packaging python-pandas python-pyproj
+      (list python-numpy
+            python-packaging
+            python-pandas
+            python-pyogrio
+            python-pyproj
             python-shapely))
     (native-inputs
-      (list python-pytest python-setuptools python-wheel))
+      (list python-codecov
+            python-pytest
+            python-pytest-cov
+            python-pytest-xdist
+            python-setuptools
+            python-wheel))
     (home-page "https://geopandas.org")
     (synopsis "Geographic pandas extensions")
     (description "The goal of GeoPandas is to make working with
@@ -1042,7 +1108,9 @@ require a spatial database such as PostGIS.")
     (propagated-inputs (list python-geojson
                              python-requests
                              python-shapely))
-    (native-inputs (list python-pytest))
+    (native-inputs (list python-pytest
+                         python-setuptools
+                         python-wheel))
     (home-page "https://github.com/mvexel/overpass-api-python-wrapper")
     (synopsis "Python wrapper for the OpenStreetMap Overpass API")
     (description "This package provides python-overpass, a Python wrapper
@@ -1101,7 +1169,7 @@ for the @code{OpenStreetMap} Overpass API.")
     (description
      "@code{ogr2osm} is a tool for converting ogr-readable files into
 @acronym{OSM, OpenStreetMap} format.  It supports reading from OGR files like
-shapefiles or PostgresSQL database and converts data into @code{osm} or
+shapefiles or PostgreSQL database and converts data into @code{osm} or
 @code{osm.pbf} formats.  A translation file can be used to manipulate the data
 during conversion.")
     (license license:expat)))
@@ -1340,35 +1408,66 @@ vector data.")
 (define-public gdal
   (package
     (name "gdal")
-    (version "3.6.1")
+    (version "3.8.2")
     (source (origin
               (method url-fetch)
               (uri (string-append
-                     "http://download.osgeo.org/gdal/" version "/gdal-"
-                     version ".tar.gz"))
+                     "https://github.com/OSGeo/gdal/releases/download/v"
+                     version "/gdal-" version ".tar.gz"))
               (sha256
                (base32
-                "1qckwnygszxkkq40bf87s3m1sab6jj9jyakdvskh0qf7dq8zjarf"))
+                "1ml9l1c4psb1nc760nvs4vbibwf288d4anxip9sisrwl4q6nj579"))
               (modules '((guix build utils)))
               (snippet
-                `(begin
-                   ;; TODO: frmts contains a lot more bundled code.
-                   (for-each delete-file-recursively
-                     ;; bundled code
-                     '("frmts/png/libpng"
-                       "frmts/gif/giflib"
-                       "frmts/jpeg/libjpeg"
-                       "frmts/jpeg/libjpeg12"
-                       "frmts/gtiff/libtiff"
-                       "frmts/gtiff/libgeotiff"
-                       "frmts/zlib"
-                       "ogr/ogrsf_frmts/geojson/libjson"))))))
+               `(begin
+                  ;; TODO: frmts contains a lot more bundled code.
+                  (for-each delete-file-recursively
+                            ;; bundled code
+                            '("frmts/png/libpng"
+                              "frmts/gif/giflib"
+                              "frmts/jpeg/libjpeg"
+                              "frmts/jpeg/libjpeg12"
+                              "frmts/gtiff/libtiff"
+                              "frmts/gtiff/libgeotiff"
+                              ;; We need to keep frmts/zlib/contrib/infback9
+                              ;; because the cmake file unconditionally
+                              ;; depends on it for deflate64.  The infback9.h
+                              ;; header file is also referenced in parts of
+                              ;; the code.
+                              ;;"frmts/zlib"
+                              "ogr/ogrsf_frmts/geojson/libjson"))))))
     (build-system cmake-build-system)
     (arguments
-     `(#:tests? #f
-       #:configure-flags
-       (list "-DGDAL_USE_INTERNAL_LIBS=WHEN_NO_EXTERNAL"
-             "-DGDAL_USE_JPEG12_INTERNAL=OFF")))
+     (list
+      #:tests? #f
+      #:modules '((guix build cmake-build-system)
+                  ((guix build python-build-system) #:prefix python:)
+                  (guix build utils))
+      #:imported-modules `(,@%cmake-build-system-modules
+                           (guix build python-build-system))
+      #:configure-flags
+      #~(list "-DGDAL_USE_INTERNAL_LIBS=WHEN_NO_EXTERNAL"
+              "-DGDAL_USE_JPEG12_INTERNAL=OFF"
+              "-DGDAL_USE_LERC_INTERNAL=ON"
+              (string-append "-DCMAKE_INSTALL_RPATH=" #$output "/lib"))
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'install 'swap-files
+            (lambda _
+              ;; The RPATH of the binaries in build/swig/python/build/ is
+              ;; rewritten in build/swig/python/for_install/build/.  For
+              ;; unknown reasons the files in the former directory are
+              ;; installed when it should be those in the latter directory.
+              ;; So we copy them ourselves.
+              (with-directory-excursion "../build/swig/python/for_install/build"
+                (for-each (lambda (file)
+                            (install-file file
+                                          (string-append
+                                           #$output
+                                           "/lib/python"
+                                           (python:python-version #$(this-package-native-input "python"))
+                                           "/site-packages/osgeo")))
+                          (find-files "." "\\.so"))))))))
     (inputs
      (list curl
            expat
@@ -1390,6 +1489,7 @@ vector data.")
            postgresql ; libpq
            proj
            qhull
+           shapelib
            sqlite
            swig
            zlib
@@ -1477,7 +1577,8 @@ utilities for data translation and processing.")
                                       " and not test_fetch_baja_bathymetry"
                                       " and not test_fetch_rio_magnetic"
                                       " and not test_fetch_california_gps"))))
-    (native-inputs (list python-cartopy python-distributed python-pytest))
+    (native-inputs (list python-cartopy python-distributed python-pytest
+                         python-setuptools python-wheel))
     (propagated-inputs (list python-dask
                              python-numpy
                              python-pandas
@@ -1496,68 +1597,54 @@ surface (i.e., gridding) with a hint of machine learning.")
 (define-public python-cartopy
   (package
     (name "python-cartopy")
-    (version "0.23.0")
+    (version "0.24.1")
     (source
      (origin
        (method url-fetch)
-       (uri (pypi-uri "Cartopy" version))
+       (uri (pypi-uri "cartopy" version))
        (sha256
-        (base32 "0xknmq73pvkm3k718zrsx8p4r83dbskwqna9v4qvmwh1ayrkf7r3"))))
+        (base32 "1gf8hpjlhjsw1gfd80ghcy3k5lkkshbhlvn4vvpsfsaccgai1j81"))))
     (build-system pyproject-build-system)
     (arguments
      (list
       #:test-flags
-      '(list
-        "--pyargs" "cartopy"
-        ;; These tests require online data.
-        "-m" "not natural_earth and not network"
-        "-k"
-        (string-append
-         ;; These ones too but are not marked as such.
-         "not test_feature_artist_draw"
-         " and not test_feature_artist_draw_facecolor_list"
-         " and not test_feature_artist_draw_cmap"
-         " and not test_feature_artist_draw_styled_feature"
-         " and not test_feature_artist_draw_styler"
-         " and not test_gridliner_constrained_adjust_datalim"
-         " and not test_gridliner_remove"
-         " and not test_gridliner_title_adjust"
-         " and not test_gridliner_labels_bbox_style"
-         ;; Accuracy problems
-         " and not test_single_spole"
-         " and not test_single_npole"
-         ;; Incomplete shapefile definition
-         " and not test_gshhs"
-         " and not test_geometry"
-         " and not test_record"
-         " and not test_bounds"))
+      #~(list
+         "--pyargs" "cartopy"
+         "--numprocesses" (number->string (parallel-job-count))
+         ;; These tests require online data.
+         "-m" "not natural_earth and not network"
+         ;; Failed: Error: Image files did not match.
+         "-k" "not test_gridliner_constrained_adjust_datalim")
       #:phases
-      '(modify-phases %standard-phases
-         ;; We don't want to create an entrypoint for
-         ;; tools/cartopy_feature_download.py, because that file is not
-         ;; installed.
-         (add-after 'unpack 'remove-endpoint
-           (lambda _
-             (substitute* "pyproject.toml"
-               (("^feature_download = .*") "")))))))
+      #~(modify-phases %standard-phases
+          ;; We don't want to create an entrypoint for
+          ;; tools/cartopy_feature_download.py, because that file is not
+          ;; installed.
+          (add-after 'unpack 'remove-endpoint
+            (lambda _
+              (substitute* "pyproject.toml"
+                (("^feature_download = .*") "")))))))
     (propagated-inputs
      (list python-matplotlib
+           python-fiona     ; optional [speedups]
            python-numpy
+           python-owslib    ; optional [ows]
            python-packaging
+           python-pillow    ; optional [ows, plotting]
+           python-pykdtree  ; optional [speedups]
            python-pyproj
            python-pyshp
-           python-scipy
+           python-scipy     ; optional [plotting]
            python-shapely))
     (inputs
      (list geos))
     (native-inputs
-     (list python-coveralls
-           python-cython
+     (list python-cython
            python-pytest
-           python-pytest-cov
            python-pytest-mpl
            python-pytest-xdist
            python-setuptools
+           python-setuptools-scm
            python-wheel))
     (home-page "https://scitools.org.uk/cartopy/docs/latest/")
     (synopsis "Cartographic library for visualisation")
@@ -1635,10 +1722,57 @@ extension.")
                ;; doc
                license:cc-by-sa3.0))))
 
+(define-public python-cf-units
+  (package
+    (name "python-cf-units")
+    (version "3.3.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "cf_units" version))
+       (sha256
+        (base32 "1nqzlrzxwhvm7z2pl70bwlr37fz95hcm0n8v7y503krh5x4xl9r3"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list 
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'udunits-path
+            (lambda _
+              (setenv "UDUNITS2_XML_PATH"
+                      (format #f "~a/share/udunits/udunits2.xml"
+                              #$(this-package-input "udunits")))))
+          (replace 'check
+          ;; To load built module and bypath error: ImportError: cannot import
+          ;; name '_udunits2' from partially initialized module 'cf_units'.
+            (lambda* (#:key tests? test-flags #:allow-other-keys)
+              (with-directory-excursion #$output
+                (apply invoke "pytest" "-vv" test-flags)))))))
+    (native-inputs
+     (list python-cython-3
+           python-pytest
+           python-setuptools
+           python-setuptools-scm
+           python-wheel))
+    (inputs
+     (list udunits))
+    (propagated-inputs
+     (list java-antlr4-runtime-python
+           python-cftime
+           python-jinja2
+           python-numpy))
+    (home-page "https://github.com/SciTools/cf-units")
+    (synopsis "Units of measure as required by the CF metadata conventions")
+    (description
+     "This package provides units of measure as required by the Climate and
+Forecast (CF) metadata conventions.  Provision of a wrapper class to support
+Unidata/UCAR UDUNITS-2 library, and the cftime calendar functionality.")
+    (license license:lgpl3+)))
+
 (define-public tegola
   (package
     (name "tegola")
-    (version "0.16.0")
+    (version "0.21.2")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -1647,13 +1781,54 @@ extension.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1mjfn0izf1lj402845mx0cv9fald8s5443q35y16d9crqf3i6mav"))))
+                "1f5l7b372dfyibawhcnlz700z11a0dxqd7kr731nwfmhwz2v3438"))
+              (modules '((guix build utils)))
+              ;; TODO: Unbundle more when missing packages are available.
+              (snippet #~(with-directory-excursion "vendor"
+                           (for-each delete-file-recursively
+                                     '("github.com/aws"
+                                       "github.com/beorn7"
+                                       "github.com/BurntSushi"
+                                       "github.com/gofrs"
+                                       "github.com/golang/protobuf"
+                                       "github.com/google"
+                                       "github.com/go-test"
+                                       "github.com/jmespath"
+                                       "github.com/mattn/go-sqlite3"
+                                       "github.com/spf13"
+                                       "golang.org/x/crypto"
+                                       "golang.org/x/sys"
+                                       "golang.org/x/text"
+                                       "golang.org/x/tools"
+                                       "google.golang.org/protobuf"
+                                       "go.uber.org"))))))
     (build-system go-build-system)
     (arguments
      `(#:import-path "github.com/go-spatial/tegola/cmd/tegola"
        #:unpack-path "github.com/go-spatial/tegola"
-       #:build-flags '(,(string-append "-ldflags=-X github.com/go-spatial/tegola/internal/build.Version=" version))
+       #:build-flags '(,(string-append "\
+-ldflags=-X github.com/go-spatial/tegola/internal/build.Version=" version))
        #:install-source? #f))
+    (inputs
+     (list go-github-com-aws-aws-lambda-go
+           go-github-com-aws-aws-sdk-go
+           go-github-com-beorn7-perks
+           go-github-com-burntsushi-toml
+           go-github-com-gofrs-uuid
+           go-github-com-golang-protobuf
+           go-github-com-google-uuid
+           go-github-com-go-test-deep
+           go-github-com-jmespath-go-jmespath
+           go-github-com-mattn-go-sqlite3
+           go-github-com-spf13-pflag
+           go-golang-org-x-crypto
+           go-golang-org-x-sys
+           go-golang-org-x-text
+           go-golang-org-x-tools
+           go-google-golang-org-protobuf
+           go-go-uber-org-atomic
+           go-go-uber-org-multierr
+           go-go-uber-org-zap))
     (home-page "https://tegola.io")
     (synopsis "Vector tile server for maps")
     (description "Tegola is a free vector tile server written in Go.  Tegola
@@ -1765,8 +1940,13 @@ version_spec = re.sub('[()]', '', version_spec)\n" m)))))
                              python-scipy
                              python-traitlets
                              python-xarray))
-    (native-inputs (list python-netcdf4 python-packaging python-pytest
-                         python-pytest-mpl))
+    (native-inputs
+     (list python-netcdf4
+           python-packaging
+           python-pytest
+           python-pytest-mpl
+           python-setuptools
+           python-wheel))
     (home-page "https://github.com/Unidata/MetPy")
     (synopsis "Collection of tools to deal with weather data")
     (description "MetPy is a collection of tools in Python for reading,
@@ -2026,7 +2206,7 @@ map display.  Downloads map data from a number of websites, including
      "XyGrib is a Grib file reader and visualizes meteorological data providing
 an off-line capability to analyse weather forecasts or hindcasts.  It is
 intended to be used as a capable weather work station for anyone with a serious
-interest in examining weather. This would include members of the sailing
+interest in examining weather.  This would include members of the sailing
 community, private and sport aviators, farmers, weather buffs and many more.
 XyGrib is the continuation of the zyGrib software package with a new team of
 volunteers.")
@@ -2126,6 +2306,165 @@ from multiple records.")
     (description
      "RTree is a Python package with bindings for @code{libspatialindex}.")
     (license license:expat)))
+
+(define-public python-scitools-iris
+  (package
+    (name "python-scitools-iris")
+    (version "3.11.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "scitools_iris" version))
+       (sha256
+        (base32 "19qwmi7amr8q2dd17scch4zvdly3vqc23v5zwpq8qw45vmldxfrq"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags
+      #~(list "--numprocesses" (number->string (parallel-job-count))
+              "--pyargs" "iris"
+              "-k" (string-join
+                    ;; Tests requiring additional data files distributed
+                    ;; separately from this project from
+                    ;; <https://github.com/SciTools/iris-test-data> or network
+                    ;; access.
+                    ;;
+                    ;; XXX: Review this list and try to ignore by files
+                    ;; instead in individual tests.
+                    (list "not test_both_transposed"
+                          "test_2d_coords_contour"
+                          "test_2d_plain_latlon"
+                          "test_2d_plain_latlon_on_polar_map"
+                          "test_2d_rotated_latlon"
+                          "test_2d_rotated_latlon"
+                          "test_ancillary_variables_pass_0"
+                          "test_auxiliary_coordinates_pass_0"
+                          "test_bounds"
+                          "test_bounds_pass_0"
+                          "test_broadcast_cubes"
+                          "test_broadcast_cubes_weighted"
+                          "test_broadcast_transpose_cubes_weighted"
+                          "test_cell_measures_pass_0"
+                          "test_common_mask_broadcast"
+                          "test_common_mask_simple"
+                          "test_compatible_cubes"
+                          "test_compatible_cubes_weighted"
+                          "test_coord_transposed"
+                          "test_coordinates_pass_0"
+                          "test_cube_transposed"
+                          "test_data_pass_0"
+                          "test_destructor"
+                          "test_formula_terms_pass_0"
+                          "test_global_attributes_pass_0"
+                          "test_grid_mapping_pass_0"
+                          "test_grouped_dim"
+                          "test_incompatible_cubes"
+                          "test_izip_different_shaped_coords"
+                          "test_izip_different_valued_coords"
+                          "test_izip_extra_coords_both_slice_dims"
+                          "test_izip_extra_coords_slice_dim"
+                          "test_izip_extra_coords_step_dim"
+                          "test_izip_extra_dim"
+                          "test_izip_input_collections"
+                          "test_izip_missing_slice_coords"
+                          "test_izip_nd_non_ortho"
+                          "test_izip_nd_ortho"
+                          "test_izip_no_args"
+                          "test_izip_no_common_coords_on_step_dim"
+                          "test_izip_onecube_height_lat_long"
+                          "test_izip_onecube_lat"
+                          "test_izip_onecube_lat_lon"
+                          "test_izip_onecube_no_coords"
+                          "test_izip_ordered"
+                          "test_izip_returns_iterable"
+                          "test_izip_same_cube_lat"
+                          "test_izip_same_cube_lat_lon"
+                          "test_izip_same_cube_no_coords"
+                          "test_izip_same_dims_single_coord"
+                          "test_izip_same_dims_two_coords"
+                          "test_izip_subcube_of_same"
+                          "test_izip_unequal_slice_coords"
+                          "test_izip_use_in_analysis"
+                          "test_label_dim_end"
+                          "test_label_dim_start"
+                          "test_lenient_handling"
+                          "test_load_pp_timevarying_orography"
+                          "test_mdtol"
+                          "test_netcdf_v3"
+                          "test_no_delayed_writes"
+                          "test_no_transpose"
+                          "test_non_existent_coord"
+                          "test_perfect_corr"
+                          "test_perfect_corr_all_dims"
+                          "test_python_versions"
+                          "test_realfile_loadsave_equivalence"
+                          "test_realise_data"
+                          "test_realise_data_multisource"
+                          "test_scheduler_types"
+                          "test_single_coord"
+                          "test_stream"
+                          "test_stream_multisource"
+                          "test_stream_multisource__manychunks"
+                          "test_time_of_writing"
+                          "test_ungrouped_dim"
+                          "test_variable_attribute_touch_pass_0"
+                          "test_variable_cf_group_pass_0"
+                          "test_weight_error")
+                    " and not "))
+      #:phases
+      #~(modify-phases %standard-phases
+          ;; GeoVista is not packaged yet, "--ignore" option did not work to
+          ;; skip test files.
+          (add-after 'unpack 'delete-failing-test-files
+            (lambda _
+              (with-directory-excursion "lib/iris/tests"
+                (for-each delete-file-recursively
+                          (list "integration/experimental/geovista"
+                                "unit/experimental/geovista")))))
+          (add-after 'unpack 'fix-paths
+            (lambda _
+              (let ((netcdf #$(this-package-native-input "netcdf")))
+                (substitute* (list "lib/iris/tests/__init__.py"
+                                   "lib/iris/tests/stock/netcdf.py")
+                  (("env_bin_path\\(\"ncgen\"\\)")
+                   (format #f "'~a/bin/ncgen'" netcdf))
+                  (("env_bin_path\\(\"ncdump\"\\)")
+                   (format #f "'~a/bin/ncdump'" netcdf))))))
+          (add-before 'check 'pre-check
+            (lambda _
+              (setenv "HOME" "/tmp"))))))
+    (native-inputs
+     (list netcdf ; for ncdump and ncgen
+           nss-certs-for-test
+           python-distributed
+           python-filelock
+           python-imagehash
+           python-pytest-xdist
+           python-pytest
+           python-setuptools
+           python-setuptools-scm
+           python-wheel))
+    (propagated-inputs
+     (list python-cartopy
+           python-cf-units
+           python-cftime
+           python-dask
+           ;; python-geovista ; optinoal, not packaged yet
+           python-matplotlib
+           python-netcdf4
+           python-numpy
+           python-pyproj
+           python-scipy
+           python-shapely
+           python-xxhash))
+    (home-page "https://github.com/SciTools/iris")
+    (synopsis "Earth science data analysing and visualising library")
+    (description
+     "Iris is a Python library for analysing and visualising Earth science
+data.  It excels when working with multi-dimensional Earth Science data, where
+tabular representations become unwieldy and inefficient.  Iris implements a
+data model based on the CF conventions.")
+    (license license:lgpl3+)))
 
 (define-public java-jmapviewer
   (package
@@ -2398,17 +2737,18 @@ associated with an address.")
 (define-public python-maxminddb
   (package
     (name "python-maxminddb")
-    (version "2.6.2")
+    (version "2.6.3")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "maxminddb" version))
        (sha256
-        (base32
-         "0r7jcqzr3hy9jims0ygjdhndysbs02hsaybx9f4vq2k2w8r2v13x"))))
+        (base32 "0m6j8pvarnw4d88537ghi1gl7nskwgkijx5c3fm4g83sm9mq1hyj"))))
     (build-system pyproject-build-system)
-    (arguments
-     `(#:tests? #f)) ;; Tests require a copy of the maxmind database
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
     (inputs
      (list libmaxminddb))
     (home-page "https://www.maxmind.com/")
@@ -2436,6 +2776,8 @@ MaxMind DB files.")
      (list python-maxminddb
            python-requests
            python-aiohttp))
+    (native-inputs
+     (list python-setuptools python-wheel))
     (home-page "https://www.maxmind.com/")
     (synopsis "MaxMind GeoIP2 API")
     (description "Provides an API for the GeoIP2 web services and databases.
@@ -3345,16 +3687,20 @@ path loss.")
 (define-public python-geographiclib
   (package
     (name "python-geographiclib")
-    (version "1.50")
+    (version "2.0")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "geographiclib" version))
         (sha256
          (base32
-          "0cn6ap5fkh3mkfa57l5b44z3gvz7j6lpmc9rl4g2jny2gvp4dg8j"))))
-    (build-system python-build-system)
-    (home-page "https://geographiclib.sourceforge.io/1.50/python/")
+          "0naql53537dsa6g9lzz1hf688b1vvih6dj2yjcyjs71yvj2irx7p"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+     (list python-pytest
+           python-setuptools
+           python-wheel))
+    (home-page "https://geographiclib.sourceforge.io/2.0/python/")
     (synopsis "Python geodesic routines from GeographicLib")
     (description
      "This is a python implementation of the geodesic routines in GeographicLib.")
@@ -3388,26 +3734,27 @@ Maxmind-Geolite2-CSV, supports IPv4/IPv6 and is pure Python.")
 (define-public python-geopy
   (package
     (name "python-geopy")
-    (version "2.0.0")
+    (version "2.4.1")
     (source
       (origin
         (method url-fetch)
         (uri (pypi-uri "geopy" version))
         (sha256
          (base32
-          "0fx0cv0kgbvynpmjgsvq2fpsyngd5idiscdn8pd5201f1ngii3mq"))))
-    (build-system python-build-system)
+          "1lfhnd04hbzmsdm5bqisvx2218v5cf6369xhbjz8jzfhga73sa2h"))))
+    (build-system pyproject-build-system)
+    (arguments
+     (list
+      #:test-flags #~(list "--skip-tests-requiring-internet")))
     (propagated-inputs
      (list python-geographiclib))
     (native-inputs
-     (list python-async-generator
-           python-coverage
-           python-flake8
-           python-isort
+     (list python-docutils
            python-pytest
-           python-pytest-aiohttp
-           python-readme-renderer
-           python-pytz))
+           python-pytest-asyncio
+           python-pytz
+           python-setuptools
+           python-wheel))
     (home-page "https://github.com/geopy/geopy")
     (synopsis "Geocoding library for Python")
     (description "@code{geopy} is a Python client for several popular geocoding
@@ -3590,16 +3937,16 @@ Grosser Reiseplaner, Routeplaner Europa 2007, Map + Route.")
 (define-public laszip
   (package
     (name "laszip")
-    (version "3.4.3")
+    (version "3.4.4")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/LASzip/LASzip")
-             (commit "3.4.3")))
+             (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "09lcsgxwv0jq50fhsgfhx0npbf1zcwn3hbnq6q78fshqksbxmz7m"))))
+        (base32 "1a0ass8wz1cd42mvdmmgp4lpaf0qpfn9blsilfskba3kmx9hpymz"))))
     (build-system cmake-build-system)
     (arguments
      (list
@@ -3614,3 +3961,77 @@ Grosser Reiseplaner, Routeplaner Europa 2007, Map + Route.")
 @code{LAZ} files.  The @code{LAS} format is a file format designed for the
 interchange and archiving of lidar point cloud data.")
     (license license:asl2.0)))
+
+(define-public tetgen
+  (package
+    (name "tetgen")
+    (version "1.6.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+         "https://wias-berlin.de/software/tetgen/1.5/src/tetgen1.6.0.tar.gz")
+       (sha256
+        (base32 "0fff0l6i3xfjlm0zkcgyyhwndp8i5d615mydyb21yirsplgfddc7"))))
+    (build-system cmake-build-system)
+    (arguments
+      (list
+        #:tests? #f ;; no test suite
+        #:configure-flags #~(list "-DCMAKE_POSITION_INDEPENDENT_CODE=ON")
+        #:phases
+        #~(modify-phases %standard-phases
+         (replace 'install ;; no install target
+           (lambda _
+             (install-file "tetgen"
+                           (string-append #$output "/bin"))))
+         ;; Do not create etc/ld.so.cache. It is a bit mysterious why
+         ;; we have this phase in the first place.
+         (delete 'make-dynamic-linker-cache))))
+    (home-page "https://wias-berlin.de/software/tetgen/")
+    (synopsis
+     "Quality Tetrahedral Mesh Generator and 3D Delaunay Triangulator")
+    (description
+     "TetGen is a program to generate tetrahedral meshes of any 3D
+polyhedral domains.  TetGen generates exact constrained Delaunay
+tetrahedralizations, boundary conforming Delaunay meshes, and Voronoi
+partitions.")
+    (license license:agpl3+)))
+
+(define-public libe57format
+  (package
+    (name "libe57format")
+    (version "3.2.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/asmaloney/libE57Format")
+             (commit "v3.2.0")))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "00sj0splv4apv3kfjfwgsrizhimav3hxw51q1qz4g2fgncn092a9"))))
+    (inputs (list xerces-c))
+    (build-system cmake-build-system)
+    (arguments
+      (list
+       ;; Tests use external data from
+       ;; https://github.com/asmaloney/libE57Format-test-data
+       ;; Even after downloading it and copying it to the
+       ;; test/libE57Format-test-data subdirectory, the configure phase
+       ;; fails with the following message:
+       ;; [E57 Test] The GoogleTest submodule was not downloaded.
+       ;; E57_GIT_SUBMODULE_UPDATE was turned off or failed.  Please update
+       ;; submodules and try again.
+       ;; Adding googletest as a native-input does not solve the problem.
+       #:configure-flags #~(list "-DE57_BUILD_TEST=NO")
+       #:tests? #f
+       #:build-type "Release"))
+    (home-page "https://github.com/asmaloney/libE57Format")
+    (synopsis "Library for reading and writing E57 files")
+    (description
+     "The libE57Format package provides a C++ library for reading and
+writing files in the ASTM-standard E57 format. E57 files store 3D point
+cloud data (produced by 3D imaging systems such as laser scanners),
+attributes associated with 3D point data (color and intensity),
+and 2D images (photos taken using a 3D imaging system).")
+    (license license:boost1.0)))

@@ -157,6 +157,7 @@ loop-back communications.")
     (shepherd-service
      (documentation "containerd daemon.")
      (provision '(containerd))
+     (requirement '(user-processes))
      (start #~(make-forkexec-constructor
                (list (string-append #$containerd "/bin/containerd")
                      #$@(if debug?
@@ -195,7 +196,8 @@ loop-back communications.")
     (shepherd-service
            (documentation "Docker daemon.")
            (provision '(dockerd))
-           (requirement '(containerd
+           (requirement '(user-processes
+                          containerd
                           dbus-system
                           elogind
                           file-system-/sys/fs/cgroup
@@ -567,7 +569,7 @@ documentation for semantics.")
   (extra-arguments
    (list '())
    "A list of strings, gexps or file-like objects that will be directly passed
-to the @command{docker run} invokation."
+to the @command{docker run} invocation."
    (sanitizer oci-sanitize-extra-arguments)))
 
 (define oci-container-configuration->options

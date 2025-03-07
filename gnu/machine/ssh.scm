@@ -1,7 +1,8 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2019 Jakob L. Kreuze <zerodaysfordays@sdf.org>
-;;; Copyright © 2020-2023 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2020-2024 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2024 Ricardo <rekado@elephly.net>
+;;; Copyright © 2025 Arun Isaac <arunisaac@systemreboot.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -552,6 +553,13 @@ an error occurred while upgrading services on '~a':~%~{~s ~}~%")
                                                       (inferior-exception-arguments
                                                        c)))
                                            os)
+                (load-system-for-kexec (eval/error-handling c
+                                         (warning (G_ "\
+failed to load system of '~a' for kexec reboot:~%~{~s~^ ~}~%")
+                                                  host
+                                                  (inferior-exception-arguments
+                                                   c)))
+                                       os)
                 (install-bootloader (eval/error-handling c
                                       (raise (formatted-message
                                               (G_ "\
@@ -614,8 +622,9 @@ an environment type of 'managed-host."
                                   #:store-directory-prefix store-dir
                                   #:old-entries old-entries)))
                        (remote-result (machine-remote-eval machine remote-exp)))
-    (when (eqv? 'error remote-result)
-      (raise roll-back-failure))))
+    (if (eqv? 'error remote-result)
+        (raise roll-back-failure)
+        (return remote-result))))
 
 
 ;;;

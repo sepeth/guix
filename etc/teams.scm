@@ -12,6 +12,8 @@ exec $pre_inst_env_maybe guix repl -- "$0" "$@"
 ;;; Copyright © 2022 Mathieu Othacehe <othacehe@gnu.org>
 ;;; Copyright © 2022, 2023 Maxim Cournoyer <maxim.cournoyer@gmail.com>
 ;;; Copyright © 2022 Simon Tournier <zimon.toutoune@gmail.com>
+;;; Copyright © 2025 Jelle Licht <jlicht@fsfe.org>
+;;; Copyright © 2025 Cayetano Santos <csantosb@inventati.org>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -121,7 +123,6 @@ exec $pre_inst_env_maybe guix repl -- "$0" "$@"
         #:scope
         (list "gnu/packages/django.scm"
               "gnu/packages/jupyter.scm"
-              ;; Match haskell.scm and haskell-*.scm.
               (make-regexp* "^gnu/packages/python(-.+|)\\.scm$")
               "gnu/packages/sphinx.scm"
               "gnu/packages/tryton.scm"
@@ -286,6 +287,18 @@ and the maven-build-system."
               "guix/build-system/ant.scm"
               "guix/build-system/maven.scm")))
 
+(define-team javascript
+  (team 'javascript
+        #:name "JavaScript team"
+        #:description
+        "JavaScript/Node.js packages, the node build system."
+        #:scope (list "gnu/packages/node-xyz.scm"
+                      "gnu/packages/node.scm"
+                      "guix/build-system/node.scm"
+                      "guix/build/node-build-system.scm"
+                      "guix/import/npm-binary.scm"
+                      "guix/scripts/import/npm-binary.scm")))
+
 (define-team science
   (team 'science
         #:name "Science team"
@@ -311,6 +324,15 @@ ecosystem."
                       "guix/import/elpa.scm"
                       "guix/scripts/import/elpa.scm"
                       "tests/elpa.scm")))
+
+(define-team electronics
+  (team 'electronics
+        #:name "Electronics team"
+        #:description "Electronics and hardware related packages."
+        #:scope (list "gnu/packages/fpga.scm"
+                      "gnu/packages/electronics.scm"
+                      "gnu/packages/libftdi.scm"
+                      "gnu/packages/engineering.scm")))
 
 (define-team lisp
   (team 'lisp
@@ -580,6 +602,7 @@ GLib/GIO, GTK, GStreamer and Webkit."
                       "gnu/packages/gnome.scm"
                       "gnu/packages/gnome-xyz.scm"
                       "gnu/packages/webkit.scm"
+                      "gnu/services/desktop.scm"
                       "guix/build/glib-or-gtk-build-system.scm"
                       "guix/build/meson-build-system.scm")))
 
@@ -619,6 +642,19 @@ GLib/GIO, GTK, GStreamer and Webkit."
                       "gnu/services/hurd.scm"
                       "gnu/packages/hurd.scm")))
 
+(define-team c++
+  (team 'c++
+        #:name "C/C++ team"
+        #:description
+        "C and C++ libraries and tools."
+        #:scope (list "gnu/build-system/cmake.scm"
+                      "gnu/build/cmake-build-system.scm"
+                      "gnu/packages/c.scm"
+                      "gnu/packages/cmake.scm"
+                      "gnu/packages/cpp.scm"
+                      "gnu/packages/ninja.scm"
+                      "gnu/packages/valgrind.scm")))
+
 
 (define-member (person "Eric Bavier"
                        "bavier@posteo.net")
@@ -648,6 +684,10 @@ GLib/GIO, GTK, GStreamer and Webkit."
 (define-member (person "Tobias Geerinckx-Rice"
                        "me@tobias.gr")
   core mentors)
+
+(define-member (person "Steve George"
+                       "steve@futurile.net")
+  rust)
 
 (define-member (person "Leo Famulari"
                        "leo@famulari.name")
@@ -707,7 +747,7 @@ GLib/GIO, GTK, GStreamer and Webkit."
 
 (define-member (person "("
                        "paren@disroot.org")
-  home mentors)
+  )
 
 (define-member (person "Simon Tournier"
                        "zimon.toutoune@gmail.com")
@@ -725,21 +765,13 @@ GLib/GIO, GTK, GStreamer and Webkit."
                        "vagrant@reproducible-builds.org")
   reproduciblebuilds)
 
-(define-member (person "Zhu Zihao"
-                       "all_but_last@163.com")
-  localization xfce)
-
 (define-member (person "Maxim Cournoyer"
                        "maxim.cournoyer@gmail.com")
-  documentation gnome qt telephony)
+  documentation gnome qt telephony electronics)
 
 (define-member (person "Katherine Cox-Buday"
                        "cox.katherine.e+guix@gmail.com")
   emacs go lisp)
-
-(define-member (person "Marius Bakke"
-                       "marius@gnu.org")
-  python)
 
 (define-member (person "Munyoki Kilyungi"
                        "me@bonfacemunyoki.com")
@@ -752,6 +784,10 @@ GLib/GIO, GTK, GStreamer and Webkit."
 (define-member (person "Ekaitz Zarraga"
                        "ekaitz@elenq.tech")
   bootstrap zig)
+
+(define-member (person "Divya Ranjan Pattanaik"
+                       "divya@subvertising.org")
+  emacs rust haskell)
 
 (define-member (person "Clément Lassieur"
                        "clement@lassieur.org")
@@ -793,6 +829,25 @@ GLib/GIO, GTK, GStreamer and Webkit."
                        "janneke@gnu.org")
   bootstrap core-packages home hurd installer)
 
+(define-member (person "Ian Eure"
+                       "ian@retrospec.tv")
+  mozilla emacs)
+
+(define-member (person "Zheng Junjie"
+                       "z572@z572.online")
+  core-packages qt)
+
+(define-member (person "Jelle Licht"
+                       "jlicht@fsfe.org")
+  javascript)
+
+(define-member (person "Cayetano Santos"
+                       "csantosb@inventati.org")
+  emacs electronics)
+
+(define-member (person "Greg Hogan"
+                       "code@greghogan.com")
+  c++)
 
 (define (find-team name)
   (or (hash-ref %teams (string->symbol name))

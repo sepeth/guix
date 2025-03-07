@@ -45,6 +45,8 @@
   #:use-module (gnu packages glib)
   #:use-module (gnu packages golang)
   #:use-module (gnu packages golang-build)
+  #:use-module (gnu packages golang-web)
+  #:use-module (gnu packages golang-xyz)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages networking)
   #:use-module (gnu packages pkg-config)
@@ -194,6 +196,9 @@ Python without keeping their credentials in a Docker configuration file.")
                                "REVISION=0")))
        (list
         #:import-path "github.com/containerd/containerd"
+        ;; XXX: This package contains full vendor, tests fail when run with
+        ;; "...", limit to the project's root. Try to unvendor.
+        #:test-subdirs #~(list ".")
         #:phases
         #~(modify-phases %standard-phases
             (add-after 'unpack 'patch-paths
@@ -726,6 +731,10 @@ Tini is integrated with Docker.")
 (define-public docker-registry
   (package
     (name "docker-registry")
+    ;; XXX: The project ships a "vendor" directory containing all
+    ;; dependencies, consider to review and package them.  The Golang library
+    ;; is packaged in (gnu packges golang-xyz) as
+    ;; go-github-com-docker-distribution.
     (version "2.8.3")
     (source (origin
               (method git-fetch)
@@ -740,6 +749,12 @@ Tini is integrated with Docker.")
     (arguments
      (list
       #:import-path "github.com/docker/distribution"
+      #:test-subdirs #~(list "configuration"
+                             "context"
+                             "health"
+                             "manifest"
+                             "notifications/..."
+                             "uuid")
       #:phases
       #~(modify-phases %standard-phases
           (add-after 'unpack 'chdir-to-src
@@ -796,7 +811,7 @@ Tini is integrated with Docker.")
     (home-page "https://github.com/docker/distribution")
     (synopsis "Docker registry server and associated tools")
     (description "The Docker registry server enable you to host your own
-docker registry. With it, there is also two other utilities:
+docker registry.  With it, there is also two other utilities:
 @itemize
 @item The digest utility is a tool that generates checksums compatibles with
 various docker manifest files.

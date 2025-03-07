@@ -55,11 +55,15 @@
 ;;; Copyright © 2023 Nicolas Graves <ngraves@ngraves.fr>
 ;;; Copyright © 2023 Ahmad Draidi <a.r.draidi@redscript.org>
 ;;; Copyright © 2023 Arnaud Lechevallier <arnaud.lechevallier@free.fr>
-;;; Copyright © 2023 gemmaro <gemmaro.dev@gmail.com>
+;;; Copyright © 2023, 2024 gemmaro <gemmaro.dev@gmail.com>
 ;;; Copyright © 2023 Denis 'GNUtoo' Carikli <GNUtoo@cyberdimension.org>
 ;;; Copyright © 2023 chris <chris@bumblehead.com>
 ;;; Copyright © 2023, 2024 Luis Felipe López Acevedo <sirgazil@zoho.com>
 ;;; Copyright © 2024 Christina O'Donnell <cdo@mutix.org>
+;;; Copyright © 2025 Ashvith Shetty <ashvithshetty10@gmail.com>
+;;; Copyright © 2025 Ashish SHUKLA <ashish.is@lostca.se>
+;;; Copyright © 2024 Josep Bigorra <jjbigorra@gmail.com>
+;;; Copyright © 2023 Santiago Payà Miralta <santiagopim@gmail.com>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -104,6 +108,29 @@
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages sdl)
   #:use-module (gnu packages xorg))
+
+(define-public font-arapey
+  (let ((commit  "28fa45c7f31afe62f577b0b857570ab0326b9113"))
+    (package
+      (name "font-arapey")
+      (version "0.0.1")
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/etunni/arapey")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1wvzx8gkw1d2dc2zqp8a75lc1kr6fvg90asyjkbrcynqi6qnwkaf"))))
+      (build-system font-build-system)
+      (home-page "https://github.com/etunni/arapey")
+      (synopsis "Typeface with soft lines, curving tips, and rhythmic nuances")
+      (description
+       "Arapey (Ah-ra-pay) is a contemporary modern typeface with some
+features of a Bodoni, but the structures, soft lines, and finishes leave
+a calm and distinguished feeling.")
+      (license license:silofl1.1))))
 
 (define-public font-artifika
   (package
@@ -241,7 +268,7 @@ in print.  With attention to detail for high resolution rendering.")
 (define-public font-intel-one-mono
   (package
     (name "font-intel-one-mono")
-    (version "1.3.0")
+    (version "1.4.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -250,7 +277,7 @@ in print.  With attention to detail for high resolution rendering.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0w9isn8az1k3a3q4m2llwnryy79i5v30dx1hfaf90x0zkj98ky5h"))))
+                "1snwxpcdxl62z1mcax19bmsmbw0hi6m0cqkxqz79ydynfch95sd0"))))
     (outputs '("out" "ttf" "woff"))
     (build-system font-build-system)
     (home-page "https://github.com/intel/intel-one-mono")
@@ -710,7 +737,7 @@ expansion of Franklin Gothic, a classic font.  It covers 105 Latin Languages.")
                (apply invoke "make" "install-otb" (string-append "prefix=" otb)
                       make-flags))))
          (add-after 'install 'install-documentation
-           ;; There's no way to decypher the cryptic file names without this.
+           ;; There's no way to decipher the cryptic file names without this.
            (lambda* (#:key outputs #:allow-other-keys)
              (for-each (match-lambda
                          ((name . directory)
@@ -1054,7 +1081,7 @@ for use at smaller text sizes")))
 (define-public font-gnu-unifont
   (package
     (name "font-gnu-unifont")
-    (version "15.1.05")
+    (version "16.0.02")
     (source
      (origin
        (method url-fetch)
@@ -1064,7 +1091,7 @@ for use at smaller text sizes")))
              (string-append "mirror://gnu/unifont/unifont-"
                             version "/unifont-" version ".tar.gz")))
        (sha256
-        (base32 "1yi33kxlgw7ds99za5bclh537sw8ggl94nrhhq7hwxaq8dgzaxfj"))
+        (base32 "0bd5mf3j7f0wggh9ss3a6rji62qwcfak37q6zb8lq9pjcf3yqa7i"))
        (snippet
         '(begin
            (use-modules (guix build utils))
@@ -1086,7 +1113,12 @@ for use at smaller text sizes")))
          (add-after 'unpack 'patch-source
            (lambda _
              (substitute* (find-files "." "Makefile")
-               (("/bin/sh -s") (string-append (which "sh") " -s")))))
+               (("/bin/sh\\b") (which "sh")))
+             ;; Skip thumbnail generation as it requires ImageMagick and the generated
+             ;; thumbnails will not be installed.
+             (substitute* "font/Makefile"
+               (("^(compiled-files:.+)thumbnails(.+)" _ pre post)
+                (string-append pre post)))))
          (replace 'install
           (lambda* (#:key make-flags outputs #:allow-other-keys)
             (let* ((ttf (string-append (assoc-ref outputs "out")
@@ -1122,7 +1154,7 @@ utilities to ease adding new glyphs to the font.")
 (define-public font-google-noto
   (package
     (name "font-google-noto")
-    (version "24.8.1")
+    (version "2025.01.01")
     (source
      (origin
        (method git-fetch)
@@ -1131,7 +1163,7 @@ utilities to ease adding new glyphs to the font.")
              (commit (string-append "noto-monthly-release-" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1xihvv67182m7k7lpz5wmjzg22piaabzy9mj6akb7bgl8ynxs7z8"))))
+        (base32 "0vplwq079dlymbbc4lvvydxpf8hxvjdihvrj2464gzii37n7b7nv"))))
     (build-system font-build-system)
     (arguments
      (list
@@ -1188,7 +1220,7 @@ display all Unicode symbols.")
 (define-public font-google-noto-emoji
   (package
     (name "font-google-noto-emoji")
-    (version "2.042")
+    (version "2.047")
     (source
      (origin
        (method git-fetch)
@@ -1198,7 +1230,7 @@ display all Unicode symbols.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "17i7awyqz9jv0j2blcf0smmpas375c3pdhjv1zqzl861g8qm1lm2"))))
+         "0p9wa55fyxih0bm81h55ip9rc12rh1c2v0dq9dxd2y19rxgcnnxz"))))
     (build-system font-build-system)
     (arguments
      (list
@@ -1572,7 +1604,7 @@ Sans Pro family.")
 (define-public font-microsoft-cascadia
   (package
     (name "font-microsoft-cascadia")
-    (version "2111.01")
+    (version "2407.24")
     (source (origin
               (method url-fetch/zipbomb)
               (uri (string-append
@@ -1584,7 +1616,7 @@ Sans Pro family.")
                     ".zip"))
               (sha256
                (base32
-                "04p72jmbafblrliy5phqi6sqi52wgzpilf3rphppxf7zdlbnizai"))))
+                "0x441jjkswz6vidg6kdv9rmbqlm7dqcvsm4higs67nw66gp6hyp6"))))
     (build-system font-build-system)
     (home-page "https://github.com/microsoft/cascadia-code")
     (synopsis "Monospaced font with programming ligatures")
@@ -1914,8 +1946,24 @@ guix repl <<EOF
                   font-iosevka-curly
                   font-iosevka-curly-slab
                   font-iosevka-etoile
+                  font-iosevka-ss01
+                  font-iosevka-ss02
+                  font-iosevka-ss03
+                  font-iosevka-ss04
+                  font-iosevka-ss05
+                  font-iosevka-ss06
+                  font-iosevka-ss07
                   font-iosevka-ss08
-                  font-iosevka-ss09))
+                  font-iosevka-ss09
+                  font-iosevka-ss10
+                  font-iosevka-ss11
+                  font-iosevka-ss12
+                  font-iosevka-ss13
+                  font-iosevka-ss14
+                  font-iosevka-ss15
+                  font-iosevka-ss16
+                  font-iosevka-ss17
+                  font-iosevka-ss18))
   (for-each (lambda (hash)
               (format #t "~a: ~a~%" (car hash) (cdr hash)))
             (reverse iosevka-hashes))
@@ -1927,15 +1975,15 @@ EOF
 (define-public font-iosevka
   (package
     (name "font-iosevka")
-    (version "20.0.0")
+    (version "32.5.0")
     (source
      (origin
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-" version ".zip"))
+                           "/PkgTTC-Iosevka-" version ".zip"))
        (sha256
-        (base32 "19f8p7zw7wbm8xbxm0kxv8k979bkqvx51hrckkc6nvddmigq1848"))))
+        (base32 "1w7043q2pxllry2njrk4cpqwvralb0a1d3bxac36y0ai9al3m5w0"))))
     (build-system font-build-system)
     (home-page "https://be5invis.github.io/Iosevka/")
     (synopsis "Coders' typeface, built from code")
@@ -1956,9 +2004,9 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-slab-" version ".zip"))
+                           "/PkgTTC-IosevkaSlab-" version ".zip"))
        (sha256
-        (base32 "0c8pxdz98xwd8sj1yc8gx2g2wfjyxk4951wmg55dibd3wj106rjp"))))))
+        (base32 "03r7ldsk3qrvy46ag08fhs3ppxmzycn8gh6xxmi3pw972hn9kgpi"))))))
 
 (define-public font-iosevka-term
   (package
@@ -1970,9 +2018,9 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttf-iosevka-term-" version ".zip"))
+                           "/PkgTTF-IosevkaTerm-" version ".zip"))
        (sha256
-        (base32 "1rln8cl1ah201ai2p34s6a52ggkgmgcx9gnvdnfgv4430bmnrpwc"))))
+        (base32 "13g3czmd36k261ip9l8r94hcq6swbvag80zb9g7i9frjsr97xn2h"))))
     (arguments
      `(#:phases
        (modify-phases %standard-phases
@@ -1990,10 +2038,10 @@ programming.  Iosevka is completely generated from its source code.")
      (origin
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka/"
-                           "releases/download/v" version "/"
-                           "ttf-iosevka-term-slab-" version ".zip"))
+                           "releases/download/v" version
+                           "/PkgTTF-IosevkaTermSlab-" version ".zip"))
        (sha256
-        (base32 "1sjz6h3w2c15jdfhqiibjshq5zfdjng28vcsl2dyxrb5wdxs7a01"))))
+        (base32 "00dwp06za3i8kyqqk5xqsd9div2ydf0rgdnj3vl5g6g5621asd39"))))
     (arguments
      `(#:phases
        (modify-phases %standard-phases
@@ -2012,9 +2060,9 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-aile-" version ".zip"))
+                           "/PkgTTC-IosevkaAile-" version ".zip"))
        (sha256
-        (base32 "0jcyx8wpw18d8igqr1hfrybrldkr0r9qs24jw4z0x5k4gbah7mmf"))))))
+        (base32 "10sf5q4f3l9z4pai46sszkswnwfnjmyqzs6ark1dlsifxh8c86wb"))))))
 
 (define-public font-iosevka-curly
   (package
@@ -2025,10 +2073,10 @@ programming.  Iosevka is completely generated from its source code.")
      (origin
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka/"
-                           "releases/download/v" version  "/"
-                           "ttc-iosevka-curly-" version ".zip"))
+                           "releases/download/v" version
+                           "/PkgTTC-IosevkaCurly-" version ".zip"))
        (sha256
-        (base32 "0hj4lx8cyvib21cp065a56ag9jkwpzs74a93cf557j0x91k3wja0"))))))
+        (base32 "0qg4r8hid50hnjj3gs0xagdymm15z919s0pn6n2dnlmmxvw1c5nv"))))))
 
 (define-public font-iosevka-curly-slab
   (package
@@ -2039,10 +2087,10 @@ programming.  Iosevka is completely generated from its source code.")
      (origin
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka/"
-                           "releases/download/v" version  "/"
-                           "ttc-iosevka-curly-slab-" version ".zip"))
+                           "releases/download/v" version
+                           "/PkgTTC-IosevkaCurlySlab-" version ".zip"))
        (sha256
-        (base32 "10h58x5c32chvz4gdx8pifs1nd4ysnd4zq7pbjqsfv3h4lxz4r5h"))))))
+        (base32 "1lkcs3aqxvdlpgbplhpd4i6vza1xyqnim2awak9b310byyf35d0c"))))))
 
 (define-public font-iosevka-etoile
   (package
@@ -2054,9 +2102,107 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-etoile-" version ".zip"))
+                           "/PkgTTC-IosevkaEtoile-" version ".zip"))
        (sha256
-        (base32 "16lbcms4rnx7dh016c15wpz94b932hfvlng78jv1lhdr13w7s60z"))))))
+        (base32 "1yh8vlhrcczmsir87f84qr605rf1kp86bvf1c459myc4a6hcqc3z"))))))
+
+(define-public font-iosevka-ss01
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss01")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS01-" version ".zip"))
+       (sha256
+        (base32 "0h1ln3bisbgwd7cc6c9jcmplzvgca42csd5cfxj1jjs4i2vmx2d6"))))))
+
+(define-public font-iosevka-ss02
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss02")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS02-" version ".zip"))
+       (sha256
+        (base32 "0z0b14cwhbb85fjp508cb1ihscxcc75asjmq9fw5rfl3kx85w6h8"))))))
+
+(define-public font-iosevka-ss03
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss03")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS03-" version ".zip"))
+       (sha256
+        (base32 "18gs7h6mb5c9fqmx7ip1a5k3garqbgp640m338h776pcq9mlnndv"))))))
+
+(define-public font-iosevka-ss04
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss04")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS04-" version ".zip"))
+       (sha256
+        (base32 "1yjywm9r390gnagla6g5yjach0ydng0m0q752k39fb2z5rpjzphp"))))))
+
+(define-public font-iosevka-ss05
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss05")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS05-" version ".zip"))
+       (sha256
+        (base32 "1jn8xb7f3hxs4yl54hmiar49wwdl7489xv0f0sqr5c66ip2jar0k"))))))
+
+(define-public font-iosevka-ss06
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss06")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS06-" version ".zip"))
+       (sha256
+        (base32 "0c6wysyg8nzgan39z4w6l41abx2d0gj89mli63ydagqlljk7vs71"))))))
+
+(define-public font-iosevka-ss07
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss07")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS07-" version ".zip"))
+       (sha256
+        (base32 "006khr7hh14dcq81mqzn3fkfrpbix1vghrvwff289r7cfy45ijkk"))))))
 
 (define-public font-iosevka-ss08
   (package
@@ -2068,9 +2214,9 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-ss08-" version ".zip"))
+                           "/PkgTTC-IosevkaSS08-" version ".zip"))
        (sha256
-        (base32 "195w4nd0901zlyjq7a6n7pwjwi2b5vnm4gj4y6692axi660jdv4j"))))))
+        (base32 "1dbnhbljybal9l61iq88h85jkmc16aaw8kxcq3r0ikzv2pq3vslm"))))))
 
 (define-public font-iosevka-ss09
   (package
@@ -2082,28 +2228,161 @@ programming.  Iosevka is completely generated from its source code.")
        (method url-fetch/zipbomb)
        (uri (string-append "https://github.com/be5invis/Iosevka"
                            "/releases/download/v" version
-                           "/ttc-iosevka-ss09-" version ".zip"))
+                           "/PkgTTC-IosevkaSS09-" version ".zip"))
        (sha256
-        (base32 "1h5jfrpply7ypc4h6ivxs30qkrbni51zkj78xz6nz4zbnp923yi0"))))))
+        (base32 "0b218h42n5qg920q95ip3mva2xz012ijzgxj8r9m638qar0ba1qi"))))))
 
-(define-public font-iosevka-comfy
+(define-public font-iosevka-ss10
   (package
     (inherit font-iosevka)
-    (name "font-iosevka-comfy")
-    (version "1.2.0")
-    (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://git.sr.ht/~protesilaos/iosevka-comfy")
-                    (commit version)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32 "1gccv28avxlkicl6rcsn6i23pdn0nrk91zhcyzwwc3nyzm2w8w40"))))
-    (home-page "https://git.sr.ht/~protesilaos/iosevka-comfy")
+    (name "font-iosevka-ss10")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS10-" version ".zip"))
+       (sha256
+        (base32 "005i3am8amvwg8skq5lh5pisq1ll8hi9nj3imlcvcwj0w2i8b04w"))))))
+
+(define-public font-iosevka-ss11
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss11")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS11-" version ".zip"))
+       (sha256
+        (base32 "0gnk9arz1dfksjx2d7gnb6vx0p0p7hpz4gcnkaj6ppdry9a5lmdn"))))))
+
+(define-public font-iosevka-ss12
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss12")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS12-" version ".zip"))
+       (sha256
+        (base32 "17ri9f2ka7jsb4n3bbb18vxnjxk432f8740hzbjpnvzy16av5nhk"))))))
+
+(define-public font-iosevka-ss13
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss13")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS13-" version ".zip"))
+       (sha256
+        (base32 "1nb3vd7q3xcbijawk9pqznkcfrjdykrc83jl58dnx7jf0znk7j4d"))))))
+
+(define-public font-iosevka-ss14
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss14")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS14-" version ".zip"))
+       (sha256
+        (base32 "0dqkrf86h77ps90rdbsndngzg0l8c4jh8l3f3vcmdy1vlcrycpbi"))))))
+
+(define-public font-iosevka-ss15
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss15")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS15-" version ".zip"))
+       (sha256
+        (base32 "0qd2di4phlxakprm5bqi0kz9yy48wqrhkxidzjswagf6bnm3mk5v"))))))
+
+(define-public font-iosevka-ss16
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss16")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS16-" version ".zip"))
+       (sha256
+        (base32 "15yr94a3faribc19j91q7jna0hx3dsdpz1axkzr5gy56w7hg6bw4"))))))
+
+(define-public font-iosevka-ss17
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss17")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS17-" version ".zip"))
+       (sha256
+        (base32 "0k8blbzymyvwczngafz3vijwdy4iwhxc4lrfqxgddrfi57lbnj5r"))))))
+
+(define-public font-iosevka-ss18
+  (package
+    (inherit font-iosevka)
+    (name "font-iosevka-ss18")
+    (version (package-version font-iosevka))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://github.com/be5invis/Iosevka"
+                           "/releases/download/v" version
+                           "/PkgTTC-IosevkaSS18-" version ".zip"))
+       (sha256
+        (base32 "08ijx9rbcx95yiaiwv6k25xmsi24rdy50mkmmaw94mmwv22mxdra"))))))
+
+(define-public font-aporetic
+  (package
+    (name "font-aporetic")
+    (version "1.1.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/protesilaos/aporetic")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0cihagy7vhw5pqznbihwv3pgb516i94iqfnvfm73njrx1a4dalz6"))))
+    (build-system font-build-system)
+    (home-page "https://github.com/protesilaos/aporetic")
+    (synopsis "Customised build of the Iosevka typeface")
     (description
-     "Iosevka Comfy is a TTF font derived from Iosevka.  It is a slightly tweaked
-     version of the original, designed for enhanced readability.")
-    (license license:silofl1.1)))
+     "Aporetic fonts are a custom build of Iosevka with
+  different style and metrics than the default.  Aporetic optimises for
+  inter-glyph and inter-style consistency within the overarching
+  constraint of usability at small point sizes.")
+    (license (list license:silofl1.1))))
+
+(define-public font-iosevka-comfy
+  (deprecated-package "font-iosevka-comfy"  font-aporetic))
 
 (define-public font-junicode
   (package
@@ -2138,7 +2417,7 @@ weights and five widths in both Roman and Italic, plus variable fonts.")
 (define-public font-sarasa-gothic
   (package
     (name "font-sarasa-gothic")
-    (version "1.0.20")
+    (version "1.0.27")
     (source
      (origin
        (method url-fetch)
@@ -2146,7 +2425,7 @@ weights and five widths in both Roman and Italic, plus variable fonts.")
                            "/releases/download/v" version
                            "/Sarasa-TTC-" version ".7z"))
        (sha256
-        (base32 "1p84qqjijm618pg7mbzndyl2vjpa6wg8d5rhsi5clppmxjh70ml0"))))
+        (base32 "19k11nl6sib8ms82jvvv23543p4xdzybgfflz2jxjim55w9d1v4y"))))
     (build-system font-build-system)
     (arguments
      `(#:phases (modify-phases %standard-phases
@@ -2161,7 +2440,8 @@ weights and five widths in both Roman and Italic, plus variable fonts.")
     (synopsis "CJK programming font based on Iosevka and Source Han Sans")
     (description
      "Sarasa Gothic is a programming font based on Iosevka and Source Han Sans,
-most CJK characters are same height, and double width as ASCII characters.")))
+most CJK characters are same height, and double width as ASCII characters.")
+    (properties '((upstream-name . "Sarasa")))))
 
 (define-public font-space-grotesk
   (package
@@ -2504,6 +2784,32 @@ designed to make long texts pleasant and easy to read, even in less than ideal
 reproduction and display environments.  This package provides only TrueType
 files (TTF).")
     (home-page "https://software.sil.org/charis/")
+    (license license:silofl1.1)))
+
+(define-public font-monaspace
+  (package
+    (name "font-monaspace")
+    (version "1.101")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/githubnext/monaspace")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32
+         "00bpzzpwz5m20ap0c1gy0rf99pc76g8lk6jr0wh7xs8fjazq7lf1"))))
+    (build-system font-build-system)
+    (outputs '("out" "ttf" "woff"))
+    (home-page "https://monaspace.githubnext.com")
+    (synopsis "Innovative superfamily of fonts for code")
+    (description
+     "The Monaspace type system is a monospaced type superfamily with some
+modern tricks up its sleeve.  It consists of five variable axis typefaces.
+Each one has a distinct voice, but they are all metrics-compatible with one
+another, allowing you to mix and match them for a more expressive
+typographical palette.")
     (license license:silofl1.1)))
 
 (define-public font-mononoki
@@ -3456,7 +3762,7 @@ and readability.  This package bundles those icons into a font.")
 (define-public font-lxgw-wenkai
   (package
     (name "font-lxgw-wenkai")
-    (version "1.330")
+    (version "1.501")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -3464,7 +3770,7 @@ and readability.  This package bundles those icons into a font.")
                     version "/lxgw-wenkai-v" version ".tar.gz"))
               (sha256
                (base32
-                "1wpxi4jwxkjslnyi0axqyvqqbf58j7hxllsbxz94zclbri8i9iqa"))))
+                "04lqlnyd8d85b11fbk60vf4ycd8n0qvcvwkk0ih3bkc967ln047c"))))
     (build-system font-build-system)
     (home-page "https://lxgw.github.io/2021/01/28/Klee-Simpchin/")
     (synopsis "Simplified Chinese Imitation Song typeface")
@@ -3472,13 +3778,14 @@ and readability.  This package bundles those icons into a font.")
      "LXGW Wenkai is a Simplified Chinese Imitation Song typeface covering the
 CJK Unified Ideographs (base block) and commonly used Hangul.  For characters
 within GB 2312, standard glyphs for Mainland China is used.")
-    (license license:silofl1.1)))
+    (license license:silofl1.1)
+    (properties '((upstream-name . "lxgw-wenkai")))))
 
 (define-public font-lxgw-wenkai-tc
   (package
     (inherit font-lxgw-wenkai)
     (name "font-lxgw-wenkai-tc")
-    (version "1.330")
+    (version "1.501")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -3486,13 +3793,14 @@ within GB 2312, standard glyphs for Mainland China is used.")
                     version "/lxgw-wenkai-tc-v" version ".tar.gz"))
               (sha256
                (base32
-                "06najc2gjhsm50q4q2qlw10n1hdcfpsbnfvgdf6b27gm26rgk5da"))))
+                "0a5b3dim1y6wqr7m4ds98ki9zg96qsm698aphsxzdn2fck0nay8s"))))
     (home-page "https://github.com/lxgw/LxgwWenKaitc")
     (synopsis "Traditional Chinese Imitation Song typeface")
     (description
      "LXGW Wenkai TC is a Traditional Chinese inherited glyphs form Imitation
 Song typeface covering commonly used characters as well as written form of
-dialects in Hong Kong and Taiwan.")))
+dialects in Hong Kong and Taiwan.")
+    (properties '((upstream-name . "lxgw-wenkai-tc")))))
 
 (define-public font-lxgw-neozhisong
   (package
@@ -3557,7 +3865,7 @@ Mainland China.")
 (define-public font-chiron-sung-hk
   (package
     (name "font-chiron-sung-hk")
-    (version "1.014")
+    (version "1.016")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3566,7 +3874,7 @@ Mainland China.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1hvfjvflfyr35ad7hpy5zgc6i580ilfqrz4rbr814i6z9jqz459s"))))
+                "0kznkhf05yd3bxm4mxp1sa74vxw8vxabr71n5lzr10hynn0z1xnq"))))
     (build-system font-build-system)
     (arguments
      (list #:phases
@@ -3595,7 +3903,7 @@ prevalent typefaces in Traditional Chinese regions.")
   (package
     (inherit font-chiron-sung-hk)
     (name "font-chiron-hei-hk")
-    (version "2.515")
+    (version "2.522")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -3604,7 +3912,7 @@ prevalent typefaces in Traditional Chinese regions.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "00p5bhzs526ml85wm9421a6a1s7w5kgk0p5wcyfvxh1wvwi9p5gj"))))
+                "0s1wdq9m7y3ygdzzvcgjwp5a6724fpllq6y1i66gb9yjmxkjj3v6"))))
     (synopsis "Traditional Chinese Gothic typeface")
     (description
      "Chiron Hei HK is a Traditional Chinese Gothic typeface based on the Hong
@@ -3647,6 +3955,30 @@ The 5x8 and 6x12 versions only contain printable ASCII characters,
 
 Spleen also has support for Powerline symbols out of the box.")
     (license license:bsd-2)))
+
+(define-public font-stix-two
+  (package
+    (name "font-stix-two")
+    (version "2.13b171")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/stipub/stixfonts")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "17d5a4fk4dz4kraprhxs9q46cbwakfwz06a0qy9zf5nwp4g6fq2d"))))
+    (build-system font-build-system)
+    (home-page "https://www.stixfonts.org/")
+    (synopsis
+     "OpenType Unicode fonts for scientific, technical, and mathematical texts")
+    (description
+     "The mission of the Scientific and Technical Information Exchange (STIX)
+font creation project is the preparation of a comprehensive set of fonts that
+serve the scientific and engineering community in the process from manuscript
+creation through final publication, both in electronic and print formats.")
+    (license license:silofl1.1)))
 
 (define-public font-scientifica
   (package
@@ -3692,9 +4024,9 @@ Most characters are just 4px wide, which is brilliant for low dpi(90-120) displa
     (synopsis "The Tuffy Truetype Font Family")
     (description
      "Thatcher Ulrich's first outline font design.  He started with the goal
-+of producing a neutral, readable sans-serif text font.  There are lots of
-+\"expressive\" fonts out there, but he wanted to start with something very
-+plain and clean, something he might want to actually use.")
+of producing a neutral, readable sans-serif text font.  There are lots of
+\"expressive\" fonts out there, but he wanted to start with something very
+plain and clean, something he might want to actually use.")
     (license license:public-domain)))
 
 (define-public font-velvetyne-jgs
@@ -3893,3 +4225,46 @@ written with the Devanagari script.")
 It is relatively compact to allow a lot of code on screen, while (hopefully) clear
 enough to remain readable even at high resolutions.")
     (license license:expat)))
+
+(define-public font-et-book
+  (let ((commit "24d3a3bbfc880095d3df2b9e9d60d05819138e89"))
+    (package
+      (name "font-et-book")
+      (version "1.0")
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/edwardtufte/et-book")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "1bhpk1fbp8jdhzc5j8y5v3bpnzy2sz3dpgjgzclb0dnm51hqqrpn"))))
+      (build-system font-build-system)
+      (home-page "https://edwardtufte.github.io/et-book/")
+      (synopsis "ET Book fonts")
+      (description
+       "ET Book is a Bembo-like font for the computer designed by Dmitry Krasny,
+Bonnie Scranton, and Edward Tufte.")
+      (license license:expat))))
+
+(define-public font-cica
+  (package
+    (name "font-cica")
+    (version "5.0.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "https://github.com/miiton/Cica/releases/download/"
+                           "v" version "/Cica_v" version ".zip"))
+       (sha256
+        (base32 "0vshn2cd70mnbavsw9cbagcasa95wiv9qdj4wkzxn7gxygqvrlfb"))))
+    (build-system font-build-system)
+    (home-page "https://github.com/miiton/Cica")
+    (synopsis "Japanese monospaced font for programming")
+    (description
+     "Cica is a Japanese monospaced font for programming.
+Hack + DejaVu Sans Mono is used for ASCII, and Rounded Mgen+ for the other.
+In addition, Nerd Fonts, Noto Emoji, Icons for Devs, and some adjustment forked
+from the Ricty generator are converted and adjusted.")
+    (license license:silofl1.1)))

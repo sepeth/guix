@@ -1,10 +1,7 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2019 Andreas Enge <andreas@enge.fr>
-;;; Copyright © 2019 Nicolas Goaziou <mail@nicolasgoaziou.fr>
-;;; Copyright © 2019, 2020 Tobias Geerinckx-Rice <me@tobias.gr>
-;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
-;;; Copyright © 2021 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2019, 2025 Andreas Enge <andreas@enge.fr>
 ;;; Copyright © 2024 Vinicius Monego <monego@posteo.net>
+;;; Copyright © 2025 Ricardo Wurmus <rekado@elephly.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -23,30 +20,36 @@
 
 (define-module (gnu packages sagemath)
   #:use-module ((guix licenses) #:prefix license:)
+  #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
   #:use-module (guix build-system pyproject)
   #:use-module (guix build-system python)
   #:use-module (guix download)
   #:use-module (guix git-download)
+  #:use-module (guix gexp)
   #:use-module (guix packages)
   #:use-module (guix utils)
   #:use-module (gnu packages)
   #:use-module (gnu packages algebra)
   #:use-module (gnu packages autotools)
+  #:use-module (gnu packages base)
   #:use-module (gnu packages bdw-gc)
   #:use-module (gnu packages boost)
   #:use-module (gnu packages check)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages fontutils)
+  #:use-module (gnu packages gd)
+  #:use-module (gnu packages graph)
   #:use-module (gnu packages image)
-  #:use-module (gnu packages maths)
   #:use-module (gnu packages lisp)
+  #:use-module (gnu packages m4)
+  #:use-module (gnu packages maths)
   #:use-module (gnu packages multiprecision)
   #:use-module (gnu packages pkg-config)
   #:use-module (gnu packages popt)
   #:use-module (gnu packages python)
   #:use-module (gnu packages python-build)
   #:use-module (gnu packages python-xyz))
-
 
 (define-public brial
   (package
@@ -109,19 +112,18 @@ modular forms.")
 (define-public cliquer
   (package
     (name "cliquer")
-    (version "1.21")
-    ;; The original source package is available from the home page and
-    ;; has not seen any release since 2010; it comes with only a Makefile
-    ;; without an "install" target. Instead, there is an autotoolized
-    ;; tarball available from the Sage project.
-    (source
-     (origin
-       (method url-fetch)
-       (uri "http://users.ox.ac.uk/~coml0531/sage/cliquer-1.21.tar.gz")
-       (sha256
-        (base32
-         "1hdzrmrx0nvvj8kbwxrs8swqgkd284khzl623jizixcv28xb77aq"))))
+    (version "1.22")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/dimpase/autocliquer")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "00gcmrhi2fjn8b246w5a3b0pl7p6haxy5wjvd9kcqib1xanz59z4"))))
     (build-system gnu-build-system)
+    (native-inputs (list autoconf automake libtool))
     (synopsis "C routines for finding cliques in weighted graphs")
     (description "Cliquer is a set of reentrant C routines for finding
 cliques in a weighted or unweighted graph.  It uses an exact
@@ -130,12 +132,12 @@ cliques or cliques with size or weight within a given range, restrict the
 search to maximal cliques, store cliques in memory and call a user-defined
 function for every found clique.")
     (license license:gpl2+)
-    (home-page "https://users.aalto.fi/~pat/cliquer.html")))
+    (home-page "https://github.com/dimpase/autocliquer")))
 
 (define-public libbraiding
   (package
     (name "libbraiding")
-    (version "1.0")
+    (version "1.3.1")
     (source
      (origin
        (method git-fetch)
@@ -146,10 +148,11 @@ function for every found clique.")
        (file-name (git-file-name name version))
        (sha256
         (base32
-         "0l68rikfr7k2l547gb3pp3g8cj5zzxwipm79xrb5r8ffj466ydxg"))))
+         "1d9vrn507phpzwwmmrxiig8s484rdi3gjghj75d4sdzbiqyyr9yp"))
+       (patches (search-patches "libbraiding-no-s.patch"))))
     (build-system gnu-build-system)
     (native-inputs
-     (list autoconf automake libtool))
+     (list autoconf automake libtool pkg-config))
     (synopsis "Computations with braid groups")
     (description "libbraiding performs computations with braid groups,
 in particular it computes normal forms of group elements.")
@@ -185,17 +188,17 @@ represented as strings.")
 (define-public python-cypari2
   (package
     (name "python-cypari2")
-    (version "2.1.2")
+    (version "2.2.1")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "cypari2" version))
        (sha256
         (base32
-         "0ymc4i9y60aazscc1blivirkr1rflzz6akkmvfzyn5l7mgnlbk83"))))
-    (build-system python-build-system)
+         "1f43bx3pryc1mg7i9gijl2c6aavijlbcxx9wyw11jn40lak1g85a"))))
+    (build-system pyproject-build-system)
     (native-inputs
-     (list python-cython))
+     (list python-cython-3 python-setuptools python-wheel))
     (propagated-inputs
      (list python-cysignals))
     (inputs
@@ -274,7 +277,11 @@ libraries GMO, MPFR and MPC.")
        (sha256
         (base32 "1zggfj09zkfcabcsasq27vwbhdmkig4yn380gi6wykcih9n22anl"))))
     (build-system pyproject-build-system)
-    (native-inputs (list python-cython-3 python-pytest))
+    (native-inputs
+     (list python-cython-3
+           python-pytest
+           python-setuptools
+           python-wheel))
     (inputs (list gmp mpc mpfr pari-gp ppl))
     (propagated-inputs (list python-cysignals python-gmpy2))
     (home-page "https://github.com/sagemath/pplpy")
@@ -283,101 +290,232 @@ libraries GMO, MPFR and MPC.")
 Polyhedra Library (PPL).")
     (license license:gpl3+)))
 
-(define-public ratpoints
+(define conway-polynomials
   (package
-    (name "ratpoints")
-    (version "2.1.3")
+    (name "conway-polynomials")
+    (version "0.10")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "conway_polynomials" version))
+       (sha256
+        (base32 "1wz03a08kwlswx1pcr5d99ppmhpfzs2a5i969rnb2ghsz1j9yqag"))))
+    (build-system pyproject-build-system)
+    (native-inputs (list python-pytest python-setuptools python-wheel))
+    (home-page "https://github.com/sagemath/conway-polynomials")
+    (synopsis "Python interface to Frank Lübeck's Conway polynomial database")
+    (description "This package provides a Python interface to Frank Lübeck's
+Conway polynomial database.  These are used in several computer algebra
+systems such as GAP and SageMath to provide quick access to those Conway
+polynomials.  The aim of this package is to make them available through a
+generic Python interface.")
+    (license license:gpl3+)))
+
+(define polytopes-db
+  (package
+    (name "polytopes-db")
+    (version "20170220")
     (source (origin
               (method url-fetch)
               (uri (string-append
-                    "http://www.mathe2.uni-bayreuth.de/stoll/programs/"
-                    "ratpoints-" version ".tar.gz"))
+                    "https://mirrors.mit.edu/sage/spkg/upstream/polytopes_db"
+                    "/polytopes_db-" version ".tar.bz2"))
               (sha256
                (base32
-                "0zhad84sfds7izyksbqjmwpfw4rvyqk63yzdjd3ysd32zss5bgf4"))
-              (patches
-               ;; Taken from
-               ;; <https://git.sagemath.org/sage.git/plain/build/pkgs/ratpoints/patches/>
-               (search-patches "ratpoints-sturm_and_rp_private.patch"))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:test-target "test"
-       #:make-flags
-       (list (string-append "INSTALL_DIR=" (assoc-ref %outputs "out"))
-             "CCFLAGS=-fPIC")
-       #:phases
-       (modify-phases %standard-phases
-         (delete 'configure)            ;no configure script
-         (add-before 'install 'create-install-directories
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let ((out (assoc-ref outputs "out")))
-               (mkdir-p out)
-               (with-directory-excursion out
-                 (for-each (lambda (d) (mkdir-p d))
-                           '("bin" "include" "lib"))))
-             #t)))))
-    (inputs
-     (list gmp))
-    (home-page "http://www.mathe2.uni-bayreuth.de/stoll/programs/")
-    (synopsis "Find rational points on hyperelliptic curves")
-    (description "Ratpoints tries to find all rational points within
-a given height bound on a hyperelliptic curve in a very efficient way,
-by using an optimized quadratic sieve algorithm.")
+                "1q0cd811ilhax4dsj9y5p7z8prlalqr7k9mzq178c03frbgqny6b"))))
+    (build-system copy-build-system)
+    (arguments '(#:install-plan '(("." "share/reflexive_polytopes"))))
+    (home-page "https://doc.sagemath.org/html/en/reference/spkg/polytopes_db.html")
+    (synopsis "Lists of 2- and 3-dimensional reflexive polytopes")
+    (description
+     "This package contains data for 2- and 3-dimensional reflexive polytopes
+to be used by SageMath.")
+    ;; Debian says GPLv2+.
     (license license:gpl2+)))
 
-;; Sage has become upstream of the following package.
-(define-public zn-poly
+(define graphs
   (package
-    (name "zn-poly")
-    (version "0.9.2")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-              (url (string-append "https://gitlab.com/sagemath/"
-                                  "zn_poly.git/"))
-              (commit version)))
-       (file-name (git-file-name "zn_poly" version))
-       (sha256
-        (base32 "1wbc3apxcldxfcw1dnwnn7fvlfb6bwvlr8glvgv6hf79p9r2s4j0"))))
-    (build-system gnu-build-system)
-    (native-inputs
-     `(("python" ,python-2)))
-    (inputs
-     (list gmp))
+    (name "graphs")
+    (version "20210214")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append
+                    "https://mirrors.mit.edu/sage/spkg/upstream/"
+                    "graphs/graphs-" version ".tar.bz2"))
+              (sha256
+               (base32
+                "0h9p5wrxips51x6vpfiiaqzp9j004nwppzc9qc2iaqakk06pq8q7"))))
+    (build-system copy-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (replace 'configure
-           ;; The configure script chokes on --enable-fast-install.
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (invoke "./configure"
-                     (string-append "--prefix=" (assoc-ref outputs "out"))
-                     "--cflags=-O3 -fPIC")))
-         (add-before 'build 'prepare-build
-           (lambda _
-             (setenv "CC" "gcc")
-             #t))
-         (add-after 'build 'build-so
-           (lambda _
-             (invoke "make" "libzn_poly.so")))
-         (add-after 'install 'install-so
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (lib (string-append out "/lib"))
-                    (soname (string-append "libzn_poly-" ,version ".so"))
-                    (target (string-append lib "/" soname)))
-               (install-file "libzn_poly.a" lib)
-               (install-file soname lib)
-               (symlink target
-                        (string-append lib "/libzn_poly.so"))
-               (symlink target
-                        (string-append lib "/libzn_poly-"
-                                       ,(version-major+minor version)
-                                       ".so")))
-             #t)))))
-    (synopsis "Arithmetic for polynomials over Z/NZ")
-    (description "zn_poly implements the arithmetic of polynomials the
-coefficients of which are modular integers.")
-    (license (list license:gpl2 license:gpl3)) ; dual licensed
-    (home-page "https://gitlab.com/sagemath/zn_poly")))
+     '(#:install-plan '(("." "share/graphs"))))
+    (home-page "https://www.sagemath.org")
+    (synopsis "Database of graphs")
+    (description
+     "This package contains databases of graphs.  It also includes the
+@acronym{ISGCI, Information System on Graph Classes and their Inclusions}
+database.")
+    ;; Debian says GPLv2+.
+    (license license:gpl2+)))
+
+(define-public sage
+  (package
+    (name "sage")
+    (version "10.6.beta7")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/sagemath/sage")
+                    (commit version)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1lr9v38w5ljvrgywyr3hfvw4dmbzqv1cr67dmrfxj3zplrp3qzvy"))
+              (patches (search-patches "sage-update-pari-gp.patch"))))
+    (build-system pyproject-build-system)
+    (native-inputs
+      (list autoconf automake m4 pkg-config ; for ./bootstrap
+            python-cython-3
+            python-cysignals
+            python-memory-allocator
+            python-pkgconfig
+            python-jinja2
+            python-setuptools
+            python-wheel))
+    (propagated-inputs
+      (list ;; required to make the sage script start
+            python-ipython
+            python-ipywidgets
+            python-traitlets
+            ;; required for the Jupyter notebook
+            python-jupyter-client
+            python-notebook))
+    (inputs
+      (list boost
+            brial
+            cliquer
+            conway-polynomials
+            coreutils
+            ecl
+            eclib
+            edge-addition-planarity-suite
+            fflas-ffpack
+            flint
+            fontconfig
+            freetype
+            gap
+            gd
+            giac
+            givaro
+            glpk
+            gmp
+            gmp-ecm
+            graphs
+            gsl
+            ijg-libjpeg
+            iml
+            lcalc
+            libbraiding
+            libhomfly
+            linbox
+            libpng
+            m4ri
+            m4rie
+            maxima-ecl
+            mpc
+            mpfi
+            mpfr
+            ntl
+            openblas
+            pari-gp
+            polytopes-db
+            python
+            python-cypari2
+            python-fpylll
+            python-gmpy2
+            python-numpy
+            python-pplpy
+            rw
+            sed
+            singular
+            symmetrica))
+    (arguments
+      (list
+        #:tests? #f ; Tests can be run using "make ptestlong", but it is
+                    ; expected that some of them fail.
+        #:phases
+        #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-source
+            (lambda _
+              (let ((ecl #$(this-package-input "ecl"))
+                    (ecm #$(this-package-input "gmp-ecm"))
+                    (maxima #$(this-package-input "maxima-ecl"))
+                    (maxima-version #$(package-version
+                                        (this-package-input "maxima-ecl")))
+                    (singular #$(this-package-input "singular"))
+                    (gap #$(this-package-input "gap"))
+                    (pari-gp #$(this-package-input "pari-gp"))
+                    (python #$(this-package-input "python"))
+                    (coreutils #$(this-package-input "coreutils"))
+                    (sed #$(this-package-input "sed"))
+                    (graphs #$(this-package-input "graphs"))
+                    (polytopes-db #$(this-package-input "polytopes-db")))
+                (substitute* (find-files "build/bin")
+                  (("sage-bootstrap-python") "python"))
+                (substitute* "src/sage/env.py"
+                  (("\"ecl-config\"")
+                   (string-append "\"" ecl "/bin/ecl-config\""))
+                  (("\"ecm\"")
+                   (string-append "\"" ecm "/bin/ecm\""))
+                  (("\"maxima\"")
+                   (string-append "\"" maxima "/bin/maxima\""))
+                  (("\"MAXIMA_FAS\"")
+                   (string-append "\"MAXIMA_FAS\", \"" maxima
+                                  "/lib/maxima/" maxima-version
+                                  "/binary-ecl/maxima.fas\""))
+                  (("\"Singular\"")
+                   (string-append "\"" singular "/bin/Singular\""))
+                  (("var\\('SAGE_GAP_COMMAND', None\\)")
+                   (string-append "var('SAGE_GAP_COMMAND', \""
+                                  gap "/bin/gap\")"))
+                  (("join\\(SAGE_LOCAL, \"lib\", \"gap\"\\)")
+                   (string-append "\"" gap "/lib/gap\""))
+                  (("join\\(SAGE_LOCAL, \"share\", \"gap\"\\)")
+                   (string-append "\"" gap "/share/gap\""))
+                  ;; definition of SAGE_VENV, which ends up in kernel.json
+                  (("os.path.abspath\\(sys.prefix\\)")
+                   (string-append "\"" #$output "\""))
+                  ;; paths of the databases
+                  (("GRAPHS_DATA_DIR\"")
+                   (string-append
+                     "GRAPHS_DATA_DIR\", "
+                     "\"" graphs "/share/graphs\""))
+                  (("POLYTOPE_DATA_DIR\"")
+                   (string-append
+                     "POLYTOPE_DATA_DIR\", "
+                     "\"" polytopes-db "/share/reflexive_polytopes\"")))
+                (substitute* "src/sage/interfaces/gp.py"
+                  (("command=f\"gp")
+                   (string-append "command=f\"" pari-gp "/bin/gp")))
+                (substitute* "src/bin/sage"
+                  (("exec python3")
+                   (string-append "exec " python "/bin/python3"))
+                  (("mkdir")
+                   (string-append coreutils "/bin/mkdir"))
+                  ((" sed ")
+                   (string-append " " sed "/bin/sed "))))))
+          (add-before 'build 'setup
+            (lambda _
+              (setenv "SAGE_NUM_THREADS"
+                      (number->string (parallel-job-count)))
+              (invoke "./bootstrap")
+              (chdir "src")))
+          (delete 'sanity-check)))) ; does not reflect reality
+    (home-page "https://www.sagemath.org/")
+    (synopsis "SageMath computer algebra system")
+    (description
+     "SageMath is a mathematics software built on top of many existing
+packages such as NumPy, SciPy, Matplotlib, Sympy, Maxima, GAP, FLINT,
+R and others. Their combined power may be accessed through a common,
+Python-based language or directly via interfaces or wrappers.")
+    ;; Documentation under cc-by-sa3.0, see COPYING.txt in the distribution.
+    (license license:gpl3)))

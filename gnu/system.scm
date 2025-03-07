@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2013-2022, 2024 Ludovic Courtès <ludo@gnu.org>
+;;; Copyright © 2013-2022, 2024-2025 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2015, 2016 Alex Kost <alezost@gmail.com>
 ;;; Copyright © 2016 Chris Marusich <cmmarusich@gmail.com>
@@ -110,6 +110,7 @@
             operating-system-default-label
             operating-system-initrd-modules
             operating-system-initrd
+            operating-system-initrd-file
             operating-system-users
             operating-system-groups
             operating-system-issue
@@ -119,6 +120,7 @@
             operating-system-locale-libcs
             operating-system-mapped-devices
             operating-system-file-systems
+            operating-system-root-file-system
             operating-system-store-file-system
             operating-system-user-mapped-devices
             operating-system-boot-mapped-devices
@@ -942,7 +944,8 @@ of PROVENANCE-SERVICE-TYPE to its services."
         ;; The packages below are also in %FINAL-INPUTS, so take them from
         ;; there to avoid duplication.
         (list bash coreutils findutils grep sed
-              diffutils patch gawk tar gzip bzip2 xz lzip)))
+              diffutils patch gawk tar
+              gzip bzip2 lzip xz zstd)))
 
 (define %base-packages-linux
   ;; Default set of linux specific packages.
@@ -1355,7 +1358,7 @@ we're running in the final root."
                (location (operating-system-location os)))))))
 
 (define (operating-system-initrd-file os)
-  "Return a gexp denoting the initrd file of OS."
+  "Return a file-like object for the initrd file of OS."
   (define boot-file-systems
     (filter file-system-needed-for-boot?
             (operating-system-file-systems os)))

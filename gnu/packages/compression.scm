@@ -2207,18 +2207,18 @@ Lunzip is intended to be fully compatible with the regular lzip package.")
 (define-public clzip
   (package
     (name "clzip")
-    (version "1.13")
+    (version "1.14")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://savannah/lzip/clzip/"
                            "clzip-" version ".tar.gz"))
        (sha256
-        (base32 "0ypagygbnq4ppqyg7sj4816x5c1w579883m2nsq0zxbb0gszpjbs"))))
+        (base32 "0wrd2s5lqxd3mjqby9isc6mpk4vyd2wbksbryrzy0bw3bcjf2gzn"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:configure-flags
-       (list ,(string-append "CC=" (cc-for-target)))))
+     (list #:configure-flags
+           #~(list (string-append "CC=" #$(cc-for-target)))))
     (home-page "https://www.nongnu.org/lzip/clzip.html")
     (synopsis "Small, stand-alone lzip compressor and decompressor")
     (description
@@ -2794,8 +2794,8 @@ chunks.")
     (home-page "https://www.blosc.org/")
     (synopsis "Blocking, shuffling and lossless compression library")
     (description
-     "Blosc is a high performance compressor optimized for binary data. It has
-been designed to transmit data to the processor cache faster than the
+     "Blosc is a high performance compressor optimized for binary data.  It
+has been designed to transmit data to the processor cache faster than the
 traditional, non-compressed, direct memory fetch approach via a
 @code{memcpy()} system call.  Blosc is meant not only to reduce the size of
 large datasets on-disk or in-memory, but also to accelerate memory-bound
