@@ -1093,7 +1093,7 @@ _GL_WARN_ON_USE_CXX (strchr,
 
 /* Find the first occurrence of C in S or the final NUL byte.  */
 #if 1
-# if 0
+# if 1
 #  if !(defined __cplusplus && defined GNULIB_NAMESPACE)
 #   define strchrnul rpl_strchrnul
 #  endif
@@ -1103,7 +1103,7 @@ _GL_FUNCDECL_RPL (strchrnul, char *, (const char *__s, int __c_in),
 _GL_CXXALIAS_RPL (strchrnul, char *,
                   (const char *str, int ch));
 # else
-#  if ! 0
+#  if ! 1
 _GL_FUNCDECL_SYS (strchrnul, char *, (char const *__s, int __c_in),
                                      _GL_ATTRIBUTE_PURE
                                      _GL_ARG_NONNULL ((1)));

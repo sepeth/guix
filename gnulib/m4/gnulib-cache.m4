@@ -40,6 +40,7 @@
 #  argp \
 #  copy-file-range \
 #  gettext \
+#  progname \
 #  strverscmp
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
@@ -48,6 +49,7 @@ gl_MODULES([
   argp
   copy-file-range
   gettext
+  progname
   strverscmp
 ])
 gl_AVOID([])

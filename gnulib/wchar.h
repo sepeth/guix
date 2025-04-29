@@ -704,7 +704,7 @@ _GL_WARN_EXTERN_C int _gl_warn_on_use
 
 
 /* Define wint_t and WEOF.  (Also done in wctype.in.h.)  */
-#if !1 && !defined wint_t
+#if !0 && !defined wint_t
 # define wint_t int
 # ifndef WEOF
 #  define WEOF -1

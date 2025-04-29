@@ -91,3 +91,5 @@
 /cdefs.h
 /libc-config.h
 /strverscmp.c
+/progname.c
+/progname.h
