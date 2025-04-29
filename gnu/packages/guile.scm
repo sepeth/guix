@@ -206,7 +206,7 @@ without requiring the source code to be rewritten.")
     `(#:configure-flags
       ,(if (target-x86-32?)               ;<https://issues.guix.gnu.org/49368>
            ''("--disable-static" "CFLAGS=-g -O2 -fexcess-precision=standard")
-           ''("--disable-static"))                ;saves 3 MiB
+           )                ;saves 3 MiB
 
       ;; Work around non-reproducible .go files as described in
       ;; <https://bugs.gnu.org/20272>, which affects 2.0, 2.2, and 3.0 so far.
@@ -250,7 +250,7 @@ without requiring the source code to be rewritten.")
                         ((%current-target-system)
                          '(search-input-file inputs "/bin/bash"))
                         (else
-                         '(string-append bash "/bin/bash")))))
+                         '(string-append (or bash "") "/bin/bash")))))
               #t)))
         (add-after 'install 'add-libxcrypt-reference-pkgconfig
           (lambda* (#:key inputs outputs #:allow-other-keys)
@@ -368,8 +368,16 @@ without requiring the source code to be rewritten.")
     ;; Build with the bundled mini-GMP to avoid interference with GnuTLS' own
     ;; use of GMP via Nettle: <https://issues.guix.gnu.org/46330>.
     (propagated-inputs
-     (modify-inputs (package-propagated-inputs guile-2.2)
-       (delete "gmp" "libltdl")))
+      (list
+      ;; These ones aren't normally needed here, but since `libguile-2.0.la'
+      ;; reads `-lltdl -lunistring', adding them here will add the needed
+      ;; `-L' flags.  As for why the `.la' file lacks the `-L' flags, see
+      ;; <http://thread.gmane.org/gmane.comp.lib.gnulib.bugs/18903>.
+      libunistring
+
+      ;; The headers and/or `guile-2.0.pc' refer to these packages, so they
+      ;; must be propagated.
+      libgc))
     (arguments
      (substitute-keyword-arguments (package-arguments guile-2.0)
        ;; Guile 3.0.9 is bit-reproducible when built in parallel, thanks to
@@ -398,6 +406,7 @@ without requiring the source code to be rewritten.")
                               " -Wno-error=incompatible-pointer-types"))
                         #~())
                  "--enable-mini-gmp"
+                 "--with-libunistring-prefix=/opt/homebrew/opt/libunistring" ; FIXME: - Dogan, terrible hack for darwin
                  '("--disable-static")))
        ((#:phases phases)
         #~(modify-phases #$phases

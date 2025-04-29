@@ -52,6 +52,7 @@ Guile and its module and object directories."
                   (let ((target (string-drop-right template 3)))
                     ;; (start-repl)
                     (copy-file template target)
+                    (format #t "Target: ~a~%" target)
                     (substitute* target
                       (("@PACKAGE_NAME@") name)
                       (("@VERSION@") version))))

@@ -278,6 +278,7 @@ listed in REFS."
 standard packages used as implicit inputs of the GNU build system."
 
   ;; Resolve (gnu packages commencement) lazily to hide circular dependency.
+  (format #t "~%~%Standard packages path for ~a~%~%" system)
   (let ((distro (resolve-module '(gnu packages commencement))))
     ((module-ref distro '%final-inputs) system)))
 
@@ -293,35 +294,50 @@ standard packages used as implicit inputs of the GNU build system."
       #:implicit-inputs? #:implicit-cross-inputs?
       ,@(if target '() '(#:target))))
 
+  (format #t "~%~%Lower path, bag ~a, source ~a~%~%" name source)
   (bag
     (name name)
     (system system) (target target)
-    (build-inputs `(,@(if source
-                          `(("source" ,source))
-                          '())
-                    ,@native-inputs
-
-                    ;; When not cross-compiling, ensure implicit inputs come
-                    ;; last.  That way, libc headers come last, which allows
-                    ;; #include_next to work correctly; see
-                    ;; <https://bugs.gnu.org/30756>.
-                    ,@(if target '() inputs)
-                    ,@(if (and target implicit-cross-inputs?)
-                          (standard-cross-packages target 'host)
-                          '())
-                    ,@(if implicit-inputs?
-                          (standard-packages system)
-                          '())))
-    (host-inputs (if target inputs '()))
-
-    ;; The cross-libc is really a target package, but for bootstrapping
-    ;; reasons, we can't put it in 'host-inputs'.  Namely, 'cross-gcc' is a
-    ;; native package, so it would end up using a "native" variant of
-    ;; 'cross-libc' (built with 'gnu-build'), whereas all the other packages
-    ;; would use a target variant (built with 'gnu-cross-build'.)
-    (target-inputs (if (and target implicit-cross-inputs?)
-                       (standard-cross-packages target 'target)
-                       '()))
+    (build-inputs '())
+    (host-inputs '())
+    (target-inputs '())
+    ;; (build-inputs `(,@(if source
+    ;;                       `(("source" ,source))
+    ;;                       '())
+    ;;                 ,@native-inputs
+    ;;
+    ;;                 ;; When not cross-compiling, ensure implicit inputs come
+    ;;                 ;; last.  That way, libc headers come last, which allows
+    ;;                 ;; #include_next to work correctly; see
+    ;;                 ;; <https://bugs.gnu.org/30756>.
+    ;;                 ,@(if target '() inputs)
+    ;;                 ,@(if (and target implicit-cross-inputs?)
+    ;;                       (standard-cross-packages target 'host)
+    ;;                       '())
+    ;;                 ,@(if implicit-inputs?
+    ;;                     (begin (format #t "~%~%Implicit inputs path~%~%")
+    ;;                            ;(standard-packages system)
+    ;;                            '()
+    ;;                            )
+    ;;                      (begin
+    ;;                        (format #t "~%~%Implicit inputs else path~%~%")
+    ;;                        '())
+    ;;                       )))
+    ;; (host-inputs (if target inputs '()))
+    ;;
+    ;; ;; The cross-libc is really a target package, but for bootstrapping
+    ;; ;; reasons, we can't put it in 'host-inputs'.  Namely, 'cross-gcc' is a
+    ;; ;; native package, so it would end up using a "native" variant of
+    ;; ;; 'cross-libc' (built with 'gnu-build'), whereas all the other packages
+    ;; ;; would use a target variant (built with 'gnu-cross-build'.)
+    ;; (target-inputs (if (and target implicit-cross-inputs?)
+    ;;                     (begin
+    ;;                       (format #t "~%~%Not sure if this is called~%~%")
+    ;;                       (standard-cross-packages target 'target))
+    ;;                     (begin
+    ;;                       (format #t "~%~%Or else if this is called~%~%")
+    ;;                       '())
+    ;;                    ))
     (outputs (if strip-binaries?
                  outputs
                  (delete "debug" outputs)))

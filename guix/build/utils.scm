@@ -629,6 +629,7 @@ for under the directories designated by FILES.  For example:
         (() ""))))
 
 (define* (search-path-as-string->list path #:optional (separator #\:))
+  (format #t "search-path-as-string->list ~a ~a~%" path separator)
   (if separator
       (string-tokenize path
                        (char-set-complement (char-set separator)))
@@ -656,10 +657,13 @@ denoting file names to look for under the directories designated by FILES:
                                  #:type 'regular
                                  #:pattern \"^catalog\\\\.xml$\")
 "
+  (format #t "set-path-environment-variable ~a ~a ~a ~a ~a ~a~%"
+          env-var files input-dirs separator type pattern)
   (let* ((path  (search-path-as-list files input-dirs
                                      #:type type
                                      #:pattern pattern))
          (value (list->search-path-as-string path separator)))
+    (format #t "path: ~a, value: ~a~%" path value)
     (if (string-null? value)
         (begin
           ;; Never set ENV-VAR to an empty string because often, the empty
@@ -675,6 +679,11 @@ denoting file names to look for under the directories designated by FILES:
 (define (which program)
   "Return the complete file name for PROGRAM as found in $PATH, or #f if
 PROGRAM could not be found."
+  (format #t "v: ~a~%" (version))
+  (format #t "path: ~a~%" (getenv "PATH"))
+  (format #t "env vars: ~a~%" (environ))
+  (format #t "build info: ~a~%" %guile-build-info)
+  (format #t "which ~a~%" program)
   (search-path (search-path-as-string->list (getenv "PATH"))
                program))
 
@@ -1229,11 +1238,13 @@ When KEEP-MTIME? is true, the atime/mtime of FILE are kept unchanged."
   "Patch occurrences of \"/usr/bin/file\" in FILE, replacing them with
 FILE-COMMAND.  When KEEP-MTIME? is true, keep FILE's modification time
 unchanged."
+  (format #t "~%Seriously patching ~a to use ~a~%" file file-command)
   (if (not file-command)
       (format (current-error-port)
               "patch-/usr/bin/file: warning: \
 no replacement 'file' command, doing nothing~%")
       (let ((st (stat file)))
+        (format #t "stat reuslt ~a~%" st)
         ;; Consider FILE is using an 8-bit encoding to avoid errors.
         (with-fluids ((%default-port-encoding #f))
           (substitute* file

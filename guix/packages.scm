@@ -1088,6 +1088,7 @@ specifies modules in scope when evaluating SNIPPET."
                           "failed to install '~a' locale: ~a~%"
                           locale (system-error-errno args)))))
 
+            ;; suspicious
             (setenv "PATH"
                     (string-join
                      (map (cut string-append <> "/bin")

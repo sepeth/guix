@@ -14,6 +14,7 @@
 #include <sstream>
 #include <algorithm>
 
+#include <iostream>
 #include <limits.h>
 #include <time.h>
 #include <sys/time.h>
@@ -1678,12 +1679,13 @@ void DerivationGoal::startBuilder()
     useChroot = settings.useChroot && !isBuiltin(drv);
 
     /* Construct the environment passed to the builder. */
-    env.clear();
+    // std::cout << "\n\nCLEARING THE ENV\n\n";
+    // env.clear();
 
     /* Most shells initialise PATH to some default (/bin:/usr/bin:...) when
        PATH is not set.  We don't want this, so we fill it in with some dummy
        value. */
-    env["PATH"] = "/path-not-set";
+    // env["PATH"] = "/path-not-set";
 
     /* Set HOME to a non-existing path to prevent certain programs from using
        /etc/passwd (or NIS, or whatever) to locate the home directory (for
@@ -1693,6 +1695,8 @@ void DerivationGoal::startBuilder()
        non-existing path. */
     Path homeDir = "/homeless-shelter";
     env["HOME"] = homeDir;
+    env["PATH"] = "/usr/bin:/bin";
+    std::cout << "PATH after: " << getenv("PATH") << "\n";
 
     /* Tell the builder where the store is.  Usually they
        shouldn't care, but this is useful for purity checking (e.g.,

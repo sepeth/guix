@@ -165,7 +165,7 @@ void warnOnce(bool & haveWarned, const FormatOrString & fs);
 
 void writeToStderr(const string & s);
 
-extern void (*_writeToStderr) (const unsigned char * buf, size_t count);
+extern void (*_writeToStderr) (const char * buf, size_t count);
 
 
 /* Wrappers arount read()/write() that read/write exactly the

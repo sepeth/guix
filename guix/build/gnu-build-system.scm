@@ -127,16 +127,18 @@ a child process; PID 1 then becomes responsible for reaping child processes."
       (#f                               ;not cross-compiling
        '())))
 
+  (format #t "native-input-directories: ~s~%" native-input-directories)
+
   ;; Tell 'ld-wrapper' to disallow non-store libraries.
   (setenv "GUIX_LD_WRAPPER_ALLOW_IMPURITIES" "no")
 
   ;; When cross building, $PATH must refer only to native (host) inputs since
   ;; target inputs are not executable.
-  (set-path-environment-variable "PATH" '("bin" "sbin")
-                                 (append native-input-directories
-                                         (if target
-                                             '()
-                                             input-directories)))
+  ;; (set-path-environment-variable "PATH" '("bin" "sbin")
+  ;;                                (append native-input-directories
+  ;;                                        (if target
+  ;;                                            '()
+  ;;                                            input-directories)))
 
   (for-each (match-lambda
              ((env-var (files ...) separator type pattern)
@@ -268,7 +270,9 @@ which generates invocations of \"/usr/bin/file\" that are used to determine
 things like the ABI being used."
   (when patch-/usr/bin/file?
     (for-each (lambda (file)
+                (format #t "My Patching ~a~%" file)
                 (when (executable-file? file)
+                  (format #t "My secod Patching ~a~%" file)
                   (patch-/usr/bin/file file)))
               (find-files "." "^configure$"))))
 
@@ -312,6 +316,8 @@ makefiles."
                        base)
                    (+ 1 (string-index base #\-)))))
 
+  (format #t "~%~% In configure, native-inputs ~a, inputs ~a~%~%" native-inputs
+          inputs)
   (let* ((prefix     (assoc-ref outputs "out"))
          (bindir     (assoc-ref outputs "bin"))
          (libdir     (assoc-ref outputs "lib"))
@@ -932,7 +938,7 @@ that traversing all the RUNPATH entries entails."
     (phases separate-from-pid1
             set-SOURCE-DATE-EPOCH set-paths install-locale unpack
             bootstrap
-            patch-usr-bin-file
+            ;; patch-usr-bin-file
             patch-source-shebangs configure patch-generated-file-shebangs
             build check install
             patch-shebangs strip

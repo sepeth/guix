@@ -972,10 +972,12 @@ derivation.  It is kept as-is, uninterpreted, in the derivation."
                              (string<? (car e1) (car e2)))))
          (drv-masked (make-derivation outputs inputs sources
                                       system builder args env-vars #f))
-         (drv        (add-output-paths drv-masked)))
+         (drv        (add-output-paths drv-masked))
+         (drv-bytestr (derivation->bytevector drv)))
 
+    (format #t "~%~%Derivation: ~a~%~a~%~%" name (utf8->string drv-bytestr))
     (let* ((file (add-data-to-store store (string-append name ".drv")
-                                    (derivation->bytevector drv)
+                                    drv-bytestr
                                     (append (map derivation-input-path inputs)
                                             sources)))
            (drv* (set-field drv (derivation-file-name) file)))

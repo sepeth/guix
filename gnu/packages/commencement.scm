@@ -145,7 +145,7 @@ the checkout from TARBALL, a tarball containing said checkout.
              #:graft? #f
              #:local-build? #t))))))
 
-(define bootar
+(define-public bootar
   (package
     (name "bootar")
     (version "1b")
@@ -196,7 +196,7 @@ outputs the source code of Bootar.  This makes it possible to go from
 pure Scheme to Tar and decompression in one easy step.")
     (license license:gpl3+)))
 
-(define gash-boot
+(define-public gash-boot
   (package
     (inherit gash)
     (name "gash-boot")
@@ -225,7 +225,7 @@ pure Scheme to Tar and decompression in one easy step.")
     (inputs `(("guile" ,%bootstrap-guile)))
     (native-inputs `(("bootar" ,bootar)))))
 
-(define gash-utils-boot
+(define-public gash-utils-boot
   (package
     (inherit gash-utils)
     (name "gash-utils-boot")
@@ -336,7 +336,7 @@ pure Scheme to Tar and decompression in one easy step.")
                 (sha256
                  (base32
                   "0p06wn95y6xbp2kcd81h2fm3wxvldd1qqyxgav0farl34xlzyq4j"))))
-      (supported-systems '("i686-linux" "x86_64-linux"
+      (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"
                            "aarch64-linux"
                            "riscv64-linux"))
       (native-inputs (%boot-gash-inputs))
@@ -410,7 +410,7 @@ MesCC-Tools), and finally M2-Planet.")
                 "03np6h4qx94givjdvq2rmhvab38y5f91254n0avg4vq2j0cx78in"))))
     (inputs '())
     (propagated-inputs '())
-    (supported-systems '("i686-linux" "x86_64-linux" "riscv64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux" "riscv64-linux"))
     (native-inputs
      `(("m2-planet" ,stage0-posix)
        ("nyacc-source" ,(bootstrap-origin
@@ -510,7 +510,7 @@ MesCC-Tools), and finally M2-Planet.")
                (base32
                 "068x3r55fnz7pdxb6q01s8s26pb4kpxm61q8mwsa4cf6389cxxpl"))))
     (build-system gnu-build-system)
-    (supported-systems '("i686-linux" "x86_64-linux" "riscv64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux" "riscv64-linux"))
     (inputs '())
     (propagated-inputs '())
     (native-inputs
@@ -597,7 +597,7 @@ MesCC-Tools), and finally M2-Planet.")
               (sha256
                (base32
                 "1rhgk2vvmdvnn6vygf0dja92ryyng00knl0kz5srb77k2kryjb2d"))))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
     (native-inputs `(("tcc" ,tcc-boot0)
@@ -650,7 +650,7 @@ MesCC-Tools), and finally M2-Planet.")
               (sha256
                (base32
                 "1pb7fb7fqf9wz9najm85qdma1xhxzf1rhj5gwrlzdsz2zm0hpcv4"))))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
     (native-inputs `(("tcc" ,tcc-boot0)
@@ -829,7 +829,7 @@ MesCC-Tools), and finally M2-Planet.")
               (sha256
                (base32
                 "12nv7jx3gxfp50y11nxzlnmqqrpicjggw6pcsq0wyavkkm3cddgc"))))
-    (supported-systems '("i686-linux" "x86_64-linux"))
+    (supported-systems '("aarch64-darwin" "i686-linux" "x86_64-linux"))
     (inputs '())
     (propagated-inputs '())
     (native-inputs (%boot-tcc0-inputs))
@@ -3039,8 +3039,7 @@ exec ~a/bin/~a-~a -B~a/lib -Wl,-dynamic-linker -Wl,~a/~a \"$@\"~%"
                         (for-each wrap-program '("gcc" "g++")))))))
     (native-inputs
      `(("binutils" ,binutils)
-       ("gcc" ,gcc)
-       ,@(if (target-linux?) `(("libc" ,glibc)) `())
+       ,@(if (target-linux?) `(("gcc" ,gcc) ("libc" ,glibc)) `())
        ("bash" ,bash)))
     (inputs '())))
 
@@ -3368,7 +3367,7 @@ exec \"$@\" \
               ("mpc-source" ,(package-source mpc))
               ("ld-wrapper" ,ld-wrapper-boot3)
               ("binutils" ,binutils-final)
-              ("libstdc++" ,libstdc++)
+              ,@(if (target-linux?) `(("libstdc++" ,libstdc++)) '())
               ("zlib" ,zlib-final)
               ,@(%boot2-inputs)))))
 
@@ -3560,11 +3559,17 @@ exec \"$@\" \
           ("coreutils" ,coreutils-final)
           ("make" ,(make-gnu-make-final))
           ("bash" ,bash-final)
-          ("ld-wrapper" ,ld-wrapper)
-          ("binutils" ,binutils-final)
-          ("gcc" ,gcc-final)
-          ("libc" ,glibc-final)
-          ("libc:static" ,glibc-final "static"))))))
+          ,@(if (target-linux? system)
+                `(
+                  ("ld-wrapper" ,ld-wrapper)
+                  ("binutils" ,binutils-final)
+                  ("gcc" ,gcc-final)
+                  ("libc" ,glibc-final)
+                  ("libc:static" ,glibc-final "static")
+                  )
+                 `()
+                 )
+          )))))
 
 (define-public canonical-package
   (let ((name->package (mlambda (system)
@@ -3675,9 +3680,12 @@ is the GNU Compiler Collection.")
                                                "ld-wrapper")))
                 ("binutils" ,binutils-final)
                 ("gcc-lib" ,gcc "lib")
-                ("libc" ,libc)
-                ("libc-debug" ,libc "debug")
-                ("libc-static" ,libc "static"))))))
+                ,@(if (target-linux?)
+                    `(("libc" ,libc)
+                      ("libc-debug" ,libc "debug")
+                      ("libc-static" ,libc "static"))
+                    `())
+                )))))
 
 
 (define-public gcc-toolchain-4.8
@@ -3721,7 +3729,7 @@ is the GNU Compiler Collection.")
 
 ;; The default GCC
 (define-public gcc-toolchain
-  (if (host-hurd64?)
+  (if (or (host-hurd64?) (target-darwin?))
       gcc-toolchain-14
       gcc-toolchain-11))
 

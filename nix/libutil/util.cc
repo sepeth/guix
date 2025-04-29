@@ -626,7 +626,7 @@ void writeToStderr(const string & s)
 {
     try {
         if (_writeToStderr)
-            _writeToStderr((const unsigned char *) s.data(), s.size());
+            _writeToStderr(s.data(), s.size());
         else
             writeFull(STDERR_FILENO, s);
     } catch (SysError & e) {
@@ -639,13 +639,21 @@ void writeToStderr(const string & s)
     }
 }
 
-static void daemonStderr(const unsigned char * s, size_t count)
+static void daemonStderr(const char * s, size_t count)
 {
-    std::cerr << "ERR: " << s;
+    std::string ccs(s);
+    // ignore if s contains build-log
+    if (ccs.find("@ build-log") != std::string::npos) {
+        int pos = ccs.find("\n");
+        if (pos != std::string::npos) {
+            ccs = ccs.substr(pos + 1);
+        }
+    }
+    std::cerr << "ERR: " << ccs;
 }
 
 
-void (*_writeToStderr) (const unsigned char * buf, size_t count) = daemonStderr;
+void (*_writeToStderr) (const char * buf, size_t count) = daemonStderr;
 
 
 void readFull(int fd, unsigned char * buf, size_t count)
